@@ -1,0 +1,109 @@
+common:
+  run_label: "run_1"
+  accum_freq: 1
+  accum_after_epoch: -1
+  log_freq: 200
+  auto_resume: true
+  mixed_precision: true
+dataset:
+  root_train: "/mnt/vision_datasets/pascal_voc/VOCdevkit/"
+  root_val: "/mnt/vision_datasets/pascal_voc/VOCdevkit/"
+  name: "pascal"
+  category: "segmentation"
+  train_batch_size0: 32
+  val_batch_size0: 16
+  eval_batch_size0: 1
+  workers: 8
+  persistent_workers: false
+  pin_memory: false
+  pascal:
+    use_coco_data: true
+    coco_root_dir: "/mnt/vision_datasets/coco_preprocess/"
+image_augmentation:
+  random_resize:
+    enable: true
+    min_size: 256
+    max_size: 1024
+  random_crop:
+    enable: true
+    mask_fill: 255
+    resize_if_needed: true
+  random_horizontal_flip:
+    enable: true
+sampler:
+  name: "batch_sampler"
+  bs:
+    crop_size_width: 512
+    crop_size_height: 512
+loss:
+  category: "segmentation"
+  ignore_idx: 255
+  segmentation:
+    name: "cross_entropy"
+optim:
+  name: "adamw"
+  weight_decay: 0.01
+  no_decay_bn_filter_bias: false
+  adamw:
+    beta1: 0.9
+    beta2: 0.999
+scheduler:
+  name: "cosine"
+  is_iteration_based: false
+  max_epochs: 50
+  warmup_iterations: 500
+  warmup_init_lr: 0.00009
+  cosine:
+    max_lr: 0.0009 # [2.7e-3 * N_GPUS^2 x (BATCH_SIZE_GPU0/ 32) * 0.02 ] # 0.02 comes from this fact 0.1 (ResNet SGD LR)/0.002 (MIT ADAMW LR)
+    min_lr: 1.e-6
+model:
+  segmentation:
+    name: "encoder_decoder"
+    lr_multiplier: 10
+    seg_head: "deeplabv3"
+    output_stride: 16
+    classifier_dropout: 0.1
+    activation:
+      name: "relu"
+    deeplabv3:
+      aspp_dropout: 0.1
+      aspp_sep_conv: false
+      aspp_out_channels: 256
+      aspp_rates: [6, 12, 18]
+  classification:
+    name: "mobilevit"
+    classifier_dropout: 0.1
+    mit:
+      mode: "x_small"
+      ffn_dropout: 0.0
+      attn_dropout: 0.0
+      dropout: 0.1
+      number_heads: 4
+      no_fuse_local_global_features: false
+      conv_kernel_size: 3
+    activation:
+      name: "swish"
+    pretrained: "https://docs-assets.developer.apple.com/ml-research/models/cvnets/classification/mobilevit_xs.pt"
+  normalization:
+    name: "sync_batch_norm"
+    momentum: 0.1
+  activation:
+    name: "relu"
+    inplace: false
+  layer:
+    global_pool: "mean"
+    conv_init: "kaiming_normal"
+    linear_init: "normal"
+    conv_weight_std: false
+ema:
+  enable: true
+  momentum: 0.0005
+ddp:
+  enable: true
+  rank: 0
+  world_size: -1
+  dist_port: 30786
+stats:
+  name: [ "loss", "iou"]
+  checkpoint_metric: "iou"
+  checkpoint_metric_max: true

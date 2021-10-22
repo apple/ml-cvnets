@@ -1,0 +1,19 @@
+ujson
+scikit-learn>=0.19.2
+scikit-image
+
+# requirement for Pytorch, Torchvision
+torch>=1.8.0
+torchvision>=0.9.0
+
+# dependency for coremltools
+coremltools>=5.0b4
+
+# dependency for MSCOCO dataset
+pycocotools
+
+# dependency for reading and writing images
+opencv-contrib-python
+
+# dependency for cityscape evaluation
+cityscapesscripts

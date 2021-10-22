@@ -1,0 +1,93 @@
+common:
+  run_label: "run_1"
+  accum_freq: 1
+  accum_after_epoch: -1
+  log_freq: 500
+  auto_resume: true
+  mixed_precision: true
+dataset:
+  root_train: "/mnt/vision_datasets/coco"
+  root_val: "/mnt/vision_datasets/coco"
+  name: "coco_ssd"
+  category: "detection"
+  train_batch_size0: 32
+  val_batch_size0: 32
+  eval_batch_size0: 1
+  workers: 8
+  persistent_workers: false
+  pin_memory: true
+sampler:
+  name: "batch_sampler"
+  bs:
+    crop_size_width: 320
+    crop_size_height: 320
+loss:
+  category: "detection"
+  detection:
+    name: "ssd_multibox_loss"
+    ssd_multibox_loss:
+      neg_pos_ratio: 3
+optim:
+  name: "adamw"
+  weight_decay: 0.01
+  no_decay_bn_filter_bias: false
+  adamw:
+    beta1: 0.9
+    beta2: 0.999
+scheduler:
+  name: "cosine"
+  is_iteration_based: false
+  max_epochs: 200
+  warmup_iterations: 500
+  warmup_init_lr: 0.00009
+  cosine:
+    max_lr: 0.0009 # [2.7e-3 * N_GPUS^2 x (BATCH_SIZE_GPU0/ 32) * 0.02 ] # 0.02 comes from this fact 0.1 (ResNet SGD LR)/0.002 (MIT ADAMW LR)
+    min_lr: 1.e-6
+model:
+  detection:
+    name: "ssd"
+    ssd:
+      anchors_aspect_ratio: [ [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [ 2, 3 ], [2] ]
+      output_strides: [ 16, 32, 64, 128, 256, -1 ]
+      proj_channels: [512, 256, 256, 128, 128, 64]
+      center_variance: 0.1
+      size_variance: 0.2
+      iou_threshold: 0.5
+      nms_iou_threshold: 0.5
+  classification:
+    name: "mobilevit"
+    classifier_dropout: 0.1
+    mit:
+      mode: "xx_small"
+      ffn_dropout: 0.0
+      attn_dropout: 0.0
+      dropout: 0.05
+      number_heads: 4
+      no_fuse_local_global_features: false
+      conv_kernel_size: 3
+    activation:
+      name: "swish"
+    pretrained: "https://docs-assets.developer.apple.com/ml-research/models/cvnets/classification/mobilevit_xxs.pt"
+  normalization:
+    name: "sync_batch_norm"
+    momentum: 0.1
+  activation:
+    name: "relu" # If specific activation function is not specified, this one will be used as a default
+    inplace: false
+  layer:
+    global_pool: "mean"
+    conv_init: "kaiming_normal"
+    linear_init: "normal"
+    conv_weight_std: false
+ema:
+  enable: true
+  momentum: 0.0005
+ddp:
+  enable: true
+  rank: 0
+  world_size: -1
+  dist_port: 30786
+stats:
+  name: [ "loss" ]
+  checkpoint_metric: "loss"
+  checkpoint_metric_max: false
