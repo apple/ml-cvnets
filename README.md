@@ -9,7 +9,7 @@ This repository contains the source code for training computer vision models. Sp
 
 Training can be done with two samplers:
    * Standard distributed sampler
-   * [Mulit-scale distributed sampler](https://arxiv.org/abs/2110.02178?context=cs.LG)
+   * [Multi-scale distributed sampler](https://arxiv.org/abs/2110.02178?context=cs.LG)
 
 We recommend to use multi-scale sampler as it improves generalization capability and leads to better performance. See [MobileViT](https://arxiv.org/abs/2110.02178?context=cs.LG) for details.
 
