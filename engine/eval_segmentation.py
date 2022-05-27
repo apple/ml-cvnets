@@ -1,24 +1,22 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2020 Apple Inc. All Rights Reserved.
+# Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
-
-import os.path
-import numpy as np
+import copy
 import torch
 import multiprocessing
 import os
-import cv2
 from tqdm import tqdm
 import glob
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 from torch import Tensor, nn
 from torch.cuda.amp import autocast
 from torch.nn import functional as F
 from torchvision.transforms import functional as F_vision
+from PIL import Image
 
 from utils import logger
-from utils.tensor_utils import to_numpy, tensor_size_from_opts
+from utils.tensor_utils import image_size_from_opts
 from options.opts import get_segmentation_eval_arguments
 from utils.common_utils import device_setup, create_directories
 from utils.ddp_utils import is_master
@@ -27,7 +25,9 @@ from data import create_eval_loader
 from utils.color_map import Colormap
 from engine.utils import print_summary
 from common import SUPPORTED_IMAGE_EXTNS
-from data.datasets.dataset_base import BaseImageDataset
+from metrics.confusion_mat import ConfusionMatrix
+from utils.visualization_utils import convert_to_cityscape_format
+from utils.download_utils import get_local_path
 
 """
 Notes:
@@ -39,90 +39,34 @@ we do not want to apply any resizing operations to input because that distorts t
 """
 
 
-class ConfusionMatrix(object):
-    """
-        This class is based on FCN
-            https://github.com/shelhamer/fcn.berkeleyvision.org/blob/master/score.py
-    """
-    def __init__(self):
-        self.confusion_mat = None
+def predict_and_save(
+    opts,
+    input_tensor: Tensor,
+    file_name: str,
+    orig_h: int,
+    orig_w: int,
+    model: nn.Module,
+    target_mask: Optional[Tensor] = None,
+    device: Optional = torch.device("cpu"),
+    conf_mat: Optional[ConfusionMatrix] = None,
+    color_map: List = None,
+    orig_image: Optional[Image.Image] = None,
+    adjust_label: Optional[int] = 0,
+    is_cityscape: Optional[bool] = False,
+    *args,
+    **kwargs
+) -> None:
+    """Predict the segmentation mask and optionally save them"""
 
-    def update(self, ground_truth, prediction, n_classes):
-        if self.confusion_mat is None:
-            self.confusion_mat = torch.zeros((n_classes, n_classes), dtype=torch.int64, device=ground_truth.device)
-        with torch.no_grad():
-            k = (ground_truth >= 0) & (ground_truth < n_classes)
-            inds = n_classes * ground_truth[k].to(torch.int64) + prediction[k]
-            self.confusion_mat += torch.bincount(inds, minlength=n_classes ** 2).reshape(n_classes, n_classes)
+    mixed_precision_training = getattr(opts, "common.mixed_precision", False)
 
-    def reset(self):
-        if self.confusion_mat is not None:
-            self.confusion_mat.zero_()
-
-    def compute(self):
-        if self.confusion_mat is None:
-            print("Confusion matrix is None. Check code")
-            return None
-        h = self.confusion_mat.float()
-        acc_global = torch.diag(h).sum() / h.sum()
-        acc = torch.diag(h) / h.sum(1)
-        iu = torch.diag(h) / (h.sum(1) + h.sum(0) - torch.diag(h))
-        return acc_global, acc, iu
-
-
-def convert_to_cityscape_format(img):
-    img[img == 19] = 255
-    img[img == 18] = 33
-    img[img == 17] = 32
-    img[img == 16] = 31
-    img[img == 15] = 28
-    img[img == 14] = 27
-    img[img == 13] = 26
-    img[img == 12] = 25
-    img[img == 11] = 24
-    img[img == 10] = 23
-    img[img == 9] = 22
-    img[img == 8] = 21
-    img[img == 7] = 20
-    img[img == 6] = 19
-    img[img == 5] = 17
-    img[img == 4] = 13
-    img[img == 3] = 12
-    img[img == 2] = 11
-    img[img == 1] = 8
-    img[img == 0] = 7
-    img[img == 255] = 0
-    return img
-
-
-def to_numpy(img_tensor: torch.Tensor) -> np.ndarray:
-    # [0, 1] --> [0, 255]
-    img_tensor = torch.mul(img_tensor, 255.0)
-    # BCHW --> BHWC
-    img_tensor = img_tensor.permute(0, 2, 3, 1)
-
-    img_np = img_tensor.byte().cpu().numpy()
-    return img_np
-
-
-def predict_and_save(opts,
-                     input_tensor: Tensor,
-                     file_name: str,
-                     orig_h: int,
-                     orig_w: int,
-                     model: nn.Module,
-                     target_label: Optional[Tensor] = None,
-                     device: Optional = torch.device("cpu"),
-                     mixed_precision_training: Optional[bool] = False,
-                     confmat: Optional[ConfusionMatrix] = None,
-                     cmap: list = Colormap().get_color_map_list(),
-                     orig_image: Optional[np.ndarray] = None,
-                     ):
     output_stride = getattr(opts, "model.segmentation.output_stride", 16)
     if output_stride == 1:
-        output_stride = 32 # we set it to 32 because ImageNet models have 5 downsampling stages (2^5 = 32)
+        # we set it to 32 because most of the ImageNet models have 5 downsampling stages (2^5 = 32)
+        output_stride = 32
 
-    #input_img_np = to_numpy(input_tensor).squeeze(0)  # remove the batch dimension
+    if orig_image is None:
+        orig_image = F_vision.to_pil_image(input_tensor[0])
 
     curr_h, curr_w = input_tensor.shape[2:]
 
@@ -133,87 +77,164 @@ def predict_and_save(opts,
 
     if new_h != curr_h or new_w != curr_w:
         # resize the input image, so that we do not get dimension mismatch errors in the forward pass
-        input_tensor = F.interpolate(input=input_tensor, size=(new_h, new_w), mode="bilinear", align_corners=False)
+        input_tensor = F.interpolate(
+            input=input_tensor, size=(new_h, new_w), mode="bilinear", align_corners=True
+        )
 
     file_name = file_name.split(os.sep)[-1].split(".")[0] + ".png"
 
     # move data to device
     input_tensor = input_tensor.to(device)
-    if target_label is not None:
-        target_label = target_label.to(device)
+    if target_mask is not None:
+        target_mask = target_mask.to(device)
 
     with autocast(enabled=mixed_precision_training):
         # prediction
-        pred_label = model(input_tensor)
+        pred = model(input_tensor, orig_size=(orig_h, orig_w))
 
-    if isinstance(pred_label, Tuple):
-        pred_mask = pred_label[0]
-    elif isinstance(pred_label, Tensor):
-        pred_mask = pred_label
+    if isinstance(pred, Tuple) and len(pred) == 2:
+        # when segmentation mask from decoder and auxiliary decoder are returned
+        pred = pred[0]
+    elif isinstance(pred, Tensor):
+        pred = pred
     else:
-        raise NotImplementedError
-    pred_h, pred_w = pred_mask.shape[2:]
-    if pred_h != orig_h or pred_w != orig_w:
-        pred_mask = F.interpolate(input=pred_mask, size=(orig_h, orig_w), mode="nearest")
+        raise NotImplementedError(
+            "Predicted must should be either an instance of Tensor or Tuple[Tensor, Tensor]"
+        )
 
-    num_classes = pred_mask.shape[1]
-    pred_mask = (
-        pred_mask
-            .argmax(1)  # get the predicted label index
-            .squeeze(0)  # remove the batch dimension
-    )
-    if target_label is not None and confmat is not None:
-        confmat.update(ground_truth=target_label.flatten(), prediction=pred_mask.flatten(), n_classes=num_classes)
+    num_classes = pred.shape[1]
+    pred_mask = pred.argmax(1).squeeze(0)
 
+    if target_mask is not None and conf_mat is not None:
+        conf_mat.update(
+            ground_truth=target_mask.flatten(),
+            prediction=pred_mask.flatten(),
+            n_classes=num_classes,
+        )
+
+    save_dir = getattr(opts, "common.exp_loc", None)
+    pred_mask = pred_mask + adjust_label
+    if target_mask is not None:
+        target_mask = target_mask + adjust_label
+
+    # Visualize results
     if getattr(opts, "evaluation.segmentation.apply_color_map", False):
-        pred_mask_pil = F_vision.to_pil_image(pred_mask.byte())
-        pred_mask_pil.putpalette(cmap)
-        pred_mask_pil = pred_mask_pil.convert('RGB')
+        # For some dataset, we need to adjust the labels. For example, we need adjust by 1 for ADE20k
 
-        color_mask_dir = "{}/predictions_cmap".format(getattr(opts, "common.exp_loc", None))
-        if not os.path.isdir(color_mask_dir):
-            os.makedirs(color_mask_dir, exist_ok=True)
-        color_mask_f_name = "{}/{}".format(color_mask_dir, file_name)
-        pred_mask_pil.save(color_mask_f_name)
+        draw_colored_masks(
+            opts=opts,
+            orig_image=orig_image,
+            pred_mask=pred_mask,
+            target_mask=target_mask,
+            results_location=save_dir,
+            color_map=color_map,
+            file_name=file_name,
+        )
 
-        if getattr(opts, "evaluation.segmentation.save_overlay_rgb_pred", False) \
-                and isinstance(orig_image, np.ndarray) \
-                and orig_image.ndim == 3: # Need RGB Image
-            pred_mask_pil_np = np.array(pred_mask_pil)
-            pred_mask_pil_np = cv2.cvtColor(pred_mask_pil_np, cv2.COLOR_RGB2BGR)
+    if getattr(opts, "evaluation.segmentation.save_masks", False):
+        draw_binary_masks(
+            opts=opts,
+            pred_mask=pred_mask,
+            file_name=file_name,
+            is_cityscape=is_cityscape,
+            results_location=save_dir,
+        )
+    logger.log(
+        "Segmentation results for {} are stored at: {}".format(file_name, save_dir)
+    )
 
-            mask_wt = getattr(opts, "evaluation.segmentation.overlay_mask_weight", 0.5)
-            overlayed_img = cv2.addWeighted(orig_image, 1.0 - mask_wt, pred_mask_pil_np, mask_wt, 0)
 
-            overlay_mask_dir = "{}/predictions_overlay".format(getattr(opts, "common.exp_loc", None))
-            if not os.path.isdir(overlay_mask_dir):
-                os.makedirs(overlay_mask_dir, exist_ok=True)
-            overlay_mask_f_name = "{}/{}".format(overlay_mask_dir, file_name)
+def draw_binary_masks(
+    opts,
+    pred_mask: Tensor,
+    file_name: str,
+    results_location: str,
+    is_cityscape: Optional[bool] = False,
+) -> None:
+    """Save masks whose values ranges between 0 and number_of_classes - 1"""
+    no_color_mask_dir = "{}/predictions_no_cmap".format(results_location)
+    if not os.path.isdir(no_color_mask_dir):
+        os.makedirs(no_color_mask_dir, exist_ok=True)
+    no_color_mask_f_name = "{}/{}".format(no_color_mask_dir, file_name)
 
-            cv2.imwrite(overlay_mask_f_name, overlayed_img)
-        else:
-            logger.warning(
-                "For overlaying segmentation mask on RGB image, we need original image (shape=[H,W,C]) as "
-                "an instance of np.ndarray. Got: {}".format(orig_image)
+    if is_cityscape:
+        # convert mask values to cityscapes format
+        pred_mask = convert_to_cityscape_format(img=pred_mask)
+    pred_mask_pil = F_vision.to_pil_image(pred_mask.byte())
+    pred_mask_pil.save(no_color_mask_f_name)
+
+
+def draw_colored_masks(
+    opts,
+    orig_image: Image.Image,
+    pred_mask: Tensor,
+    target_mask: Tensor,
+    file_name: str,
+    results_location: str,
+    color_map: Optional[List] = None,
+) -> None:
+    """Apply color map to segmentation masks"""
+
+    alpha = getattr(opts, "evaluation.segmentation.overlay_mask_weight", 0.5)
+    save_overlay_rgb_pred = getattr(
+        opts, "evaluation.segmentation.save_overlay_rgb_pred", False
+    )
+
+    if color_map is None:
+        color_map = Colormap().get_color_map_list()
+
+    # convert predicted tensor to PIL images, apply color map and save
+    pred_mask_pil = F_vision.to_pil_image(pred_mask.byte())
+    pred_mask_pil.putpalette(color_map)
+    pred_mask_pil = pred_mask_pil.convert("RGB")
+    pred_color_mask_dir = "{}/predictions_cmap".format(results_location)
+    if not os.path.isdir(pred_color_mask_dir):
+        os.makedirs(pred_color_mask_dir, exist_ok=True)
+    color_mask_f_name = "{}/{}".format(pred_color_mask_dir, file_name)
+    pred_mask_pil.save(color_mask_f_name)
+
+    if target_mask is not None:
+        # convert target tensor to PIL images, apply colormap, and save
+        target_mask_pil = F_vision.to_pil_image(target_mask.byte())
+        target_mask_pil.putpalette(color_map)
+        target_mask_pil = target_mask_pil.convert("RGB")
+        target_color_mask_dir = "{}/gt_cmap".format(results_location)
+        if not os.path.isdir(target_color_mask_dir):
+            os.makedirs(target_color_mask_dir, exist_ok=True)
+        gt_color_mask_f_name = "{}/{}".format(target_color_mask_dir, file_name)
+        target_mask_pil.save(gt_color_mask_f_name)
+
+    if save_overlay_rgb_pred and orig_image is not None:
+        # overlay predicted mask on top of original image and save
+
+        if pred_mask_pil.size != orig_image.size:
+            # resize if input image size is not the same as predicted mask.
+            # this is likely in case of labeled datasets where we use transforms on the input image
+            orig_image = F_vision.resize(
+                orig_image,
+                size=pred_mask_pil.size[::-1],
+                interpolation=F_vision.InterpolationMode.BILINEAR,
             )
 
-    is_city_dataset = (getattr(opts, "dataset.name", "") == "cityscapes")
-    if getattr(opts, "evaluation.segmentation.save_masks", False) or is_city_dataset:
-        no_color_mask_dir = "{}/predictions_no_cmap".format(getattr(opts, "common.exp_loc", None))
-        if not os.path.isdir(no_color_mask_dir):
-            os.makedirs(no_color_mask_dir, exist_ok=True)
-        no_color_mask_f_name = "{}/{}".format(no_color_mask_dir, file_name)
+        overlayed_img = Image.blend(pred_mask_pil, orig_image, alpha=alpha)
+        overlay_mask_dir = "{}/predictions_overlay".format(results_location)
+        if not os.path.isdir(overlay_mask_dir):
+            os.makedirs(overlay_mask_dir, exist_ok=True)
+        overlay_mask_f_name = "{}/{}".format(overlay_mask_dir, file_name)
+        overlayed_img.save(overlay_mask_f_name)
 
-        pred_mask_np = pred_mask.cpu().numpy()
+        # save original image
+        rgb_image_dir = "{}/rgb_images".format(results_location)
+        if not os.path.isdir(rgb_image_dir):
+            os.makedirs(rgb_image_dir, exist_ok=True)
+        rgb_image_f_name = "{}/{}".format(rgb_image_dir, file_name)
+        orig_image.save(rgb_image_f_name)
 
-        if is_city_dataset:
-            pred_mask_np = convert_to_cityscape_format(img=pred_mask_np)
 
-        cv2.imwrite(no_color_mask_f_name, pred_mask_np)
-
-
-def predict_labeled_dataset(opts, **kwargs):
-    device = getattr(opts, "dev.device", torch.device('cpu'))
+def predict_labeled_dataset(opts, **kwargs) -> None:
+    device = getattr(opts, "dev.device", torch.device("cpu"))
+    mixed_precision_training = getattr(opts, "common.mixed_precision", False)
+    dataset_name = getattr(opts, "dataset.name", "")
 
     # set-up data loaders
     val_loader = create_eval_loader(opts)
@@ -225,16 +246,29 @@ def predict_labeled_dataset(opts, **kwargs):
     print_summary(opts=opts, model=model)
 
     if model.training:
-        logger.warning('Model is in training mode. Switching to evaluation mode')
+        logger.log("Model is in training mode. Switching to evaluation mode")
         model.eval()
 
-    mixed_precision_training = getattr(opts, "common.mixed_precision", False)
-    confmat = ConfusionMatrix()
+    color_map = Colormap().get_color_map_list()
+    adjust_label = 0
+    is_cityscape = False
+    conf_mat = ConfusionMatrix()
+    if hasattr(val_loader.dataset, "color_palette"):
+        color_map = val_loader.dataset.color_palette()
+
+    if hasattr(val_loader.dataset, "adjust_mask_value"):
+        adjust_label = val_loader.dataset.adjust_mask_value()
+
+    if dataset_name is not None and dataset_name.lower() == "cityscapes":
+        is_cityscape = True
+
     with torch.no_grad():
         for batch_id, batch in tqdm(enumerate(val_loader)):
-            input_img, target_label = batch['image'], batch['label']
+            input_img, target_label = batch["image"], batch["label"]
             batch_size = input_img.shape[0]
-            assert batch_size == 1, "We recommend to run segmentation evaluation with a batch size of 1"
+            assert (
+                batch_size == 1
+            ), "We recommend to run segmentation evaluation with a batch size of 1"
 
             predict_and_save(
                 opts=opts,
@@ -243,55 +277,68 @@ def predict_labeled_dataset(opts, **kwargs):
                 orig_w=batch["im_width"][0].item(),
                 orig_h=batch["im_height"][0].item(),
                 model=model,
-                target_label=target_label,
+                target_mask=target_label,
                 device=device,
                 mixed_precision_training=mixed_precision_training,
-                confmat=confmat
+                conf_mat=conf_mat,
+                color_map=color_map,
+                adjust_label=adjust_label,
+                is_cityscape=is_cityscape,
             )
 
-    acc_global, acc, iu = confmat.compute()
+    acc_global, acc, iu = conf_mat.compute()
     logger.info("Quantitative results")
-    print("global correct: {:.2f}\naverage row correct: {}\nIoU: {}\nmean IoU: {:.2f}".format(
-        acc_global.item() * 100,
-        ['{:.2f}'.format(i) for i in (acc * 100).tolist()],
-        ['{:.2f}'.format(i) for i in (iu * 100).tolist()],
-        iu.mean().item() * 100)
+    print(
+        "global correct: {:.2f}\naverage row correct: {}\nIoU: {}\nmean IoU: {:.2f}".format(
+            acc_global.item() * 100,
+            ["{:.2f}".format(i) for i in (acc * 100).tolist()],
+            ["{:.2f}".format(i) for i in (iu * 100).tolist()],
+            iu.mean().item() * 100,
+        )
     )
 
-    is_city_dataset = (getattr(opts, "dataset.name", "") == "cityscapes")
+    is_city_dataset = getattr(opts, "dataset.name", "") == "cityscapes"
     if is_city_dataset:
         from .segmentation_utils.cityscapes_iou import eval_cityscapes
-        pred_dir = "{}/predictions_no_cmap/".format(getattr(opts, "common.exp_loc", None))
-        gt_dir = os.path.join(
-            getattr(opts, "dataset.root_val", None),
-            "gtFine/val/"
+
+        pred_dir = "{}/predictions_no_cmap/".format(
+            getattr(opts, "common.exp_loc", None)
         )
+        gt_dir = os.path.join(getattr(opts, "dataset.root_val", None), "gtFine/val/")
         eval_cityscapes(pred_dir=pred_dir, gt_dir=gt_dir)
 
 
-def predict_image(opts, image_fname, **kwargs):
+def read_and_process_image(opts, image_fname: str, *args, **kwargs):
+    input_img = Image.open(image_fname).convert("RGB")
+    input_pil = copy.deepcopy(input_img)
+    orig_w, orig_h = input_img.size
+
+    # Resize the image while maitaining the aspect ratio
+    res_h, res_w = image_size_from_opts(opts)
+
+    input_img = F_vision.resize(
+        input_img,
+        size=min(res_h, res_w),
+        interpolation=F_vision.InterpolationMode.BILINEAR,
+    )
+    input_tensor = F_vision.pil_to_tensor(input_img)
+    input_tensor = input_tensor.float().div(255.0).unsqueeze(0)
+    return input_tensor, input_pil, orig_h, orig_w
+
+
+def predict_image(opts, image_fname: str, **kwargs) -> None:
+    image_fname = get_local_path(opts, image_fname)
+
     if not os.path.isfile(image_fname):
         logger.error("Image file does not exist at: {}".format(image_fname))
 
-    orig_image = BaseImageDataset.read_image(path=image_fname)
-    im_height, im_width = orig_image.shape[:2]
-
-    res_h, res_w = tensor_size_from_opts(opts)
-    input_img = cv2.resize(orig_image, (res_h, res_w), interpolation=cv2.INTER_LINEAR)
-
-    # HWC --> CHW
-    input_img = np.transpose(input_img, (2, 0, 1))
-    input_img = (
-        torch.div(
-            torch.from_numpy(input_img).float(), # convert to float tensor
-            255.0 # convert from [0, 255] to [0, 1]
-        ).unsqueeze(dim=0) # add a dummy batch dimension
+    input_tensor, input_pil, orig_h, orig_w = read_and_process_image(
+        opts, image_fname=image_fname
     )
 
     image_fname = image_fname.split(os.sep)[-1]
 
-    device = getattr(opts, "dev.device", torch.device('cpu'))
-    mixed_precision_training = getattr(opts, "common.mixed_precision", False)
+    device = getattr(opts, "dev.device", torch.device("cpu"))
     # set-up the model
     model = get_model(opts)
     model.eval()
@@ -299,32 +346,36 @@ def predict_image(opts, image_fname, **kwargs):
     print_summary(opts=opts, model=model)
 
     if model.training:
-        logger.warning('Model is in training mode. Switching to evaluation mode')
+        logger.log("Model is in training mode. Switching to evaluation mode")
         model.eval()
 
     with torch.no_grad():
         predict_and_save(
             opts=opts,
-            input_tensor=input_img,
+            input_tensor=input_tensor,
             file_name=image_fname,
-            orig_h=im_height,
-            orig_w=im_width,
+            orig_h=orig_h,
+            orig_w=orig_w,
             model=model,
-            target_label=None,
+            target_mask=None,
             device=device,
-            mixed_precision_training=mixed_precision_training,
-            orig_image=orig_image
+            orig_image=input_pil,
         )
 
 
-def predict_images_in_folder(opts, **kwargs):
+def predict_images_in_folder(opts, **kwargs) -> None:
     img_folder_path = getattr(opts, "evaluation.segmentation.path", None)
     if img_folder_path is None:
         logger.error(
-            "Image folder is not passed. Please use --evaluation.segmentation.path as an argument to pass the location of image folder".format(
-                img_folder_path))
+            "Location of the folder containing images is not passed. Please use --evaluation.segmentation.path "
+            "as an argument to pass the location of the folder".format(img_folder_path)
+        )
     elif not os.path.isdir(img_folder_path):
-        logger.error("Image folder does not exist at: {}. Please check".format(img_folder_path))
+        logger.error(
+            "Folder containing images does not exist at: {}. Please check".format(
+                img_folder_path
+            )
+        )
 
     img_files = []
     for e in SUPPORTED_IMAGE_EXTNS:
@@ -333,11 +384,17 @@ def predict_images_in_folder(opts, **kwargs):
             img_files.extend(img_files_with_extn)
 
     if len(img_files) == 0:
-        logger.error("Number of image files found at {}: {}".format(img_folder_path, len(img_files)))
+        logger.error(
+            "Number of image files found at {}: {}".format(
+                img_folder_path, len(img_files)
+            )
+        )
 
-    logger.log("Number of image files found at {}: {}".format(img_folder_path, len(img_files)))
+    logger.log(
+        "Number of image files found at {}: {}".format(img_folder_path, len(img_files))
+    )
 
-    device = getattr(opts, "dev.device", torch.device('cpu'))
+    device = getattr(opts, "dev.device", torch.device("cpu"))
     mixed_precision_training = getattr(opts, "common.mixed_precision", False)
     # set-up the model
     model = get_model(opts)
@@ -346,43 +403,32 @@ def predict_images_in_folder(opts, **kwargs):
     print_summary(opts=opts, model=model)
 
     if model.training:
-        logger.warning('Model is in training mode. Switching to evaluation mode')
+        logger.log("Model is in training mode. Switching to evaluation mode")
         model.eval()
 
     with torch.no_grad():
-        for image_fname in img_files:
-            orig_img = BaseImageDataset.read_image(path=image_fname)
-            im_height, im_width = orig_img.shape[:2]
-
-            res_h, res_w = tensor_size_from_opts(opts)
-            input_img = cv2.resize(orig_img, (res_h, res_w), interpolation=cv2.INTER_LINEAR)
-
-            # HWC --> CHW
-            input_img = np.transpose(input_img, (2, 0, 1))
-            input_img = (
-                torch.div(
-                    torch.from_numpy(input_img).float(),  # convert to float tensor
-                    255.0  # convert from [0, 255] to [0, 1]
-                ).unsqueeze(dim=0)  # add a dummy batch dimension
+        for image_fname in tqdm(img_files):
+            input_tensor, input_pil, orig_h, orig_w = read_and_process_image(
+                opts, image_fname=image_fname
             )
 
             image_fname = image_fname.split(os.sep)[-1]
 
             predict_and_save(
                 opts=opts,
-                input_tensor=input_img,
+                input_tensor=input_tensor,
                 file_name=image_fname,
-                orig_h=im_height,
-                orig_w=im_width,
+                orig_h=orig_h,
+                orig_w=orig_w,
                 model=model,
-                target_label=None,
+                target_mask=None,
                 device=device,
                 mixed_precision_training=mixed_precision_training,
-                orig_image=orig_img
+                orig_image=input_pil,
             )
 
 
-def main_segmentation_evaluation(**kwargs):
+def main_segmentation_evaluation(**kwargs) -> None:
     opts = get_segmentation_eval_arguments()
 
     # device set-up
@@ -390,14 +436,14 @@ def main_segmentation_evaluation(**kwargs):
 
     node_rank = getattr(opts, "ddp.rank", 0)
     if node_rank < 0:
-        logger.error('--rank should be >=0. Got {}'.format(node_rank))
+        logger.error("--rank should be >=0. Got {}".format(node_rank))
 
     is_master_node = is_master(opts)
 
     # create the directory for saving results
     save_dir = getattr(opts, "common.results_loc", "results")
     run_label = getattr(opts, "common.run_label", "run_1")
-    exp_dir = '{}/{}'.format(save_dir, run_label)
+    exp_dir = "{}/{}".format(save_dir, run_label)
     setattr(opts, "common.exp_loc", exp_dir)
     logger.log("Results (if any) will be stored here: {}".format(exp_dir))
 
@@ -442,5 +488,7 @@ def main_segmentation_evaluation(**kwargs):
         predict_labeled_dataset(opts=opts, **kwargs)
     else:
         logger.error(
-            "Supported modes are single_image, image_folder, and validation_set. Got: {}".format(eval_mode)
+            "Supported modes are single_image, image_folder, and validation_set. Got: {}".format(
+                eval_mode
+            )
         )

@@ -1,25 +1,30 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2020 Apple Inc. All Rights Reserved.
+# Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
 
 from torch import nn, Tensor
 import argparse
-from typing import Tuple
+from typing import Any, Tuple
 
 
 class BaseLayer(nn.Module):
-    def __init__(self, *args, **kwargs):
-        super(BaseLayer, self).__init__()
+    """
+    Base class for neural network layers
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__()
 
     @classmethod
-    def add_arguments(cls, parser: argparse.ArgumentParser):
+    def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        """Add layer specific arguments"""
         return parser
 
-    def forward(self, *args, **kwargs) ->  Tensor or Tuple[Tensor]:
+    def forward(self, *args, **kwargs) -> Any:
         pass
 
-    def profile_module(self, *args, **kwargs) -> (Tensor, float, float):
+    def profile_module(self, *args, **kwargs) -> Tuple[Tensor, float, float]:
         raise NotImplementedError
 
     def __repr__(self):

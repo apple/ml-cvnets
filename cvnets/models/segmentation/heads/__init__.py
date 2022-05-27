@@ -1,6 +1,6 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2020 Apple Inc. All Rights Reserved.
+# Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
 
 import os
@@ -34,7 +34,9 @@ def build_segmentation_head(opts, enc_conf: Dict, use_l5_exp: bool = False):
     seg_model_name = getattr(opts, "model.segmentation.seg_head", "lr_aspp")
     seg_head = None
     if seg_model_name in SEG_HEAD_REGISTRY:
-        seg_head = SEG_HEAD_REGISTRY[seg_model_name](opts=opts, enc_conf=enc_conf, use_l5_exp=use_l5_exp)
+        seg_head = SEG_HEAD_REGISTRY[seg_model_name](
+            opts=opts, enc_conf=enc_conf, use_l5_exp=use_l5_exp
+        )
     else:
         supported_heads = list(SEG_HEAD_REGISTRY.keys())
         supp_model_str = "Supported segmentation heads are:"
@@ -46,7 +48,8 @@ def build_segmentation_head(opts, enc_conf: Dict, use_l5_exp: bool = False):
 
 
 def arguments_segmentation_head(parser: argparse.ArgumentParser):
-    # add segmentation specific arguments
+    # add segmentation head specific arguments
+    parser = BaseSegHead.add_arguments(parser=parser)
     for k, v in SEG_HEAD_REGISTRY.items():
         parser = v.add_arguments(parser=parser)
 
@@ -58,9 +61,11 @@ models_dir = os.path.dirname(__file__)
 for file in os.listdir(models_dir):
     path = os.path.join(models_dir, file)
     if (
-            not file.startswith("_")
-            and not file.startswith(".")
-            and (file.endswith(".py") or os.path.isdir(path))
+        not file.startswith("_")
+        and not file.startswith(".")
+        and (file.endswith(".py") or os.path.isdir(path))
     ):
         model_name = file[: file.find(".py")] if file.endswith(".py") else file
-        module = importlib.import_module("cvnets.models.segmentation.heads." + model_name)
+        module = importlib.import_module(
+            "cvnets.models.segmentation.heads." + model_name
+        )

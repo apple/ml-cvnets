@@ -1,0 +1,112 @@
+common:
+  run_label: "run_1"
+  log_freq: 100
+  auto_resume: true
+  mixed_precision: true
+  grad_clip: 10.0
+  accum_freq: 2
+dataset:
+  root_train: "/mnt/vision_datasets/kinetics400/training/"
+  root_val: "/mnt/vision_datasets/kinetics400/validation/"
+  name: "kinetics"
+  category: "video_classification"
+  train_batch_size0: 4 # effective batch size is 4 * accum_freq (2) * num_frames_per_clip * clips_per_video * num_gpus_per_node (8) * num_nodes (8)
+  val_batch_size0: 4
+  eval_batch_size0: 1
+  workers: 4
+  persistent_workers: true
+  pin_memory: true
+  collate_fn_name_train: "kinetics_collate_fn_train"
+  collate_fn_name_val: "kinetics_collate_fn"
+  collate_fn_name_eval: "kinetics_collate_fn"
+  # Uncomment if you have cached kinetics metadata
+  #kinetics:
+  #  metadata_file_train: "PATH TO KINETICS METADATA"
+  #  metadata_file_val: "PATH TO KINETICS METADATA"
+video_augmentation:
+  random_resized_crop:
+    enable: true
+    interpolation: "bilinear"
+  random_horizontal_flip:
+    enable: true
+  resize:
+    enable: true
+    size: [288, 288]
+    interpolation: "bilinear"
+video_reader:
+  name: "pyav_default"
+  fast_video_decoding: false
+  frame_stack_format: "sequence_first"
+sampler:
+  name: "video_variable_seq_sampler"
+  vbs:
+    crop_size_width: 256
+    crop_size_height: 256
+    max_n_scales: 5
+    min_crop_size_width: 160
+    max_crop_size_width: 320
+    min_crop_size_height: 160
+    max_crop_size_height: 320
+    check_scale: 32
+    random_video_clips: true
+    min_clips_per_video: 1
+    max_clips_per_video: 8
+    clips_per_video: 8
+    num_frames_per_clip: 8
+loss:
+  category: "classification"
+  classification:
+    name: "cross_entropy"
+    label_smoothing: 0.1
+optim:
+  name: "adamw"
+  weight_decay: 0.01
+  no_decay_bn_filter_bias: true
+  adamw:
+    beta1: 0.9
+    beta2: 0.999
+scheduler:
+  name: "cosine"
+  is_iteration_based: false
+  max_epochs: 200
+  warmup_iterations: 5700 # for 30 epochs
+  warmup_init_lr: 0.0001
+  cosine:
+    max_lr: 0.001
+    min_lr: 0.0001
+model:
+  classification:
+    name: "mobilevit"
+    classifier_dropout: 0.1
+    mit:
+      mode: "small"
+      ffn_dropout: 0.0
+      attn_dropout: 0.0
+      dropout: 0.1
+      number_heads: 4
+      no_fuse_local_global_features: false
+      conv_kernel_size: 3
+    activation:
+      name: "swish"
+  video_classification:
+    name: "mobilevit_st"
+    classifier_dropout: 0.1
+    n_classes: 400
+  normalization:
+    name: "batch_norm"
+    momentum: 0.1
+  activation:
+    name: "swish"
+  layer:
+    global_pool: "mean"
+    conv_init: "kaiming_normal"
+    linear_init: "trunc_normal"
+    linear_init_std_dev: 0.02
+ema:
+  enable: true
+  momentum: 0.0005
+stats:
+  val: [ "loss", "top1", "top5" ]
+  train: ["loss" ]
+  checkpoint_metric: "top1"
+  checkpoint_metric_max: true

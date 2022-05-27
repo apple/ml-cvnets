@@ -1,6 +1,6 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2020 Apple Inc. All Rights Reserved.
+# Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
 
 import torch
@@ -11,7 +11,11 @@ from . import register_stats_fn
 
 
 @register_stats_fn(name="iou")
-def compute_miou_batch(prediction: Union[Tuple[Tensor, Tensor], Tensor], target: Tensor, epsilon: Optional[float] = 1e-7):
+def compute_miou_batch(
+    prediction: Union[Tuple[Tensor, Tensor], Tensor],
+    target: Tensor,
+    epsilon: Optional[float] = 1e-7,
+):
     if isinstance(prediction, Tuple) and len(prediction) == 2:
         mask = prediction[0]
         assert isinstance(mask, Tensor)
@@ -20,11 +24,14 @@ def compute_miou_batch(prediction: Union[Tuple[Tensor, Tensor], Tensor], target:
         assert isinstance(mask, Tensor)
     else:
         raise NotImplementedError(
-            "For computing loss for segmentation task, we need prediction to be an instance of Tuple or Tensor")
+            "For computing loss for segmentation task, we need prediction to be an instance of Tuple or Tensor"
+        )
 
     num_classes = mask.shape[1]
     pred_mask = torch.max(mask, dim=1)[1]
-    assert pred_mask.dim() == 3, "Predicted mask tensor should be 3-dimensional (B x H x W)"
+    assert (
+        pred_mask.dim() == 3
+    ), "Predicted mask tensor should be 3-dimensional (B x H x W)"
 
     pred_mask = pred_mask.byte()
     target = target.byte()

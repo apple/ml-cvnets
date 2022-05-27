@@ -1,6 +1,6 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2020 Apple Inc. All Rights Reserved.
+# Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
 
 import cityscapesscripts.evaluation.evalPixelLevelSemanticLabeling as cityscapes_semseg_eval
@@ -11,6 +11,7 @@ from utils import logger
 
 
 def eval_cityscapes(pred_dir: str, gt_dir: str) -> None:
+    """Utility to evaluate on cityscapes dataset"""
     cityscapes_semseg_eval.args.predictionPath = pred_dir
     cityscapes_semseg_eval.args.predictionWalk = None
     cityscapes_semseg_eval.args.JSONOutput = False
@@ -22,7 +23,9 @@ def eval_cityscapes(pred_dir: str, gt_dir: str) -> None:
 
     pred_img_list = []
     for gt in gt_img_list:
-        pred_img_list.append(cityscapes_semseg_eval.getPrediction(cityscapes_semseg_eval.args, gt))
+        pred_img_list.append(
+            cityscapes_semseg_eval.getPrediction(cityscapes_semseg_eval.args, gt)
+        )
 
     results = cityscapes_semseg_eval.evaluateImgLists(
         pred_img_list, gt_img_list, cityscapes_semseg_eval.args
@@ -33,6 +36,6 @@ def eval_cityscapes(pred_dir: str, gt_dir: str) -> None:
         100.0 * results["averageScoreClasses"],
         100.0 * results["averageScoreInstClasses"],
         100.0 * results["averageScoreCategories"],
-        100.0 * results["averageScoreInstCategories"]
+        100.0 * results["averageScoreInstCategories"],
     )
     print(eval_res_str)

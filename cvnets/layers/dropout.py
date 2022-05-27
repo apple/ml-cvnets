@@ -1,38 +1,56 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2020 Apple Inc. All Rights Reserved.
+# Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
 
 from torch import nn, Tensor
+from typing import Optional, Tuple
 
 
 class Dropout(nn.Dropout):
-    def __init__(self, p: float = 0.5, inplace: bool = False):
-        """
-        During training, randomly zeroes some of the elements of the input tensor with probability `p` using samples \
-        from a Bernoulli distribution.
+    """
+    This layer, during training, randomly zeroes some of the elements of the input tensor with probability `p`
+    using samples from a Bernoulli distribution.
 
-        :param p: probability of an element to be zeroed. Default: 0.5
-        :param inplace: If set to ``True``, will do this operation in-place. Default: ``False``
-        """
-        super(Dropout, self).__init__(p=p, inplace=inplace)
+    Args:
+        p: probability of an element to be zeroed. Default: 0.5
+        inplace: If set to ``True``, will do this operation in-place. Default: ``False``
 
-    def profile_module(self, input: Tensor) -> (Tensor, float, float):
-        input = self.forward(input)
+    Shape:
+        - Input: :math:`(N, *)` where :math:`N` is the batch size
+        - Output: same as the input
+
+    """
+
+    def __init__(
+        self, p: Optional[float] = 0.5, inplace: Optional[bool] = False, *args, **kwargs
+    ) -> None:
+        super().__init__(p=p, inplace=inplace)
+
+    def profile_module(
+        self, input: Tensor, *args, **kwargs
+    ) -> Tuple[Tensor, float, float]:
         return input, 0.0, 0.0
 
 
 class Dropout2d(nn.Dropout2d):
+    """
+    This layer, during training, randomly zeroes some of the elements of the 4D input tensor with probability `p`
+    using samples from a Bernoulli distribution.
+
+    Args:
+        p: probability of an element to be zeroed. Default: 0.5
+        inplace: If set to ``True``, will do this operation in-place. Default: ``False``
+
+    Shape:
+        - Input: :math:`(N, C, H, W)` where :math:`N` is the batch size, :math:`C` is the input channels,
+            :math:`H` is the input tensor height, and :math:`W` is the input tensor width
+        - Output: same as the input
+
+    """
+
     def __init__(self, p: float = 0.5, inplace: bool = False):
-        """
-        During training, randomly zeroes some of the elements of the input tensor with probability `p` using samples \
-        from a Bernoulli distribution.
+        super().__init__(p=p, inplace=inplace)
 
-        :param p: probability of an element to be zeroed. Default: 0.5
-        :param inplace: If set to ``True``, will do this operation in-place. Default: ``False``
-        """
-        super(Dropout2d, self).__init__(p=p, inplace=inplace)
-
-    def profile_module(self, input: Tensor) -> (Tensor, float, float):
-        input = self.forward(input)
+    def profile_module(self, input: Tensor, *args, **kwargs) -> (Tensor, float, float):
         return input, 0.0, 0.0

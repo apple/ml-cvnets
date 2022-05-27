@@ -1,14 +1,16 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2020 Apple Inc. All Rights Reserved.
+# Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
 
 from typing import Union, Optional
 
 
-def make_divisible(v: Union[float, int],
-                   divisor: Optional[int] = 8,
-                   min_value: Optional[Union[float, int]] = None) -> Union[float, int]:
+def make_divisible(
+    v: Union[float, int],
+    divisor: Optional[int] = 8,
+    min_value: Optional[Union[float, int]] = None,
+) -> Union[float, int]:
     """
     This function is taken from the original tf repo.
     It ensures that all layers have a channel number that is divisible by 8
@@ -28,5 +30,7 @@ def make_divisible(v: Union[float, int],
     return new_v
 
 
-def bound_fn(min_val: Union[float, int], max_val: Union[float, int], value: Union[float, int]) -> Union[float, int]:
+def bound_fn(
+    min_val: Union[float, int], max_val: Union[float, int], value: Union[float, int]
+) -> Union[float, int]:
     return max(min_val, min(max_val, value))

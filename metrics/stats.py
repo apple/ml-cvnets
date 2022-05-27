@@ -1,6 +1,6 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2020 Apple Inc. All Rights Reserved.
+# Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
 
 import sys
@@ -14,20 +14,32 @@ from . import SUPPORTED_STATS
 
 
 class Statistics(object):
-    def __init__(self, metric_names: Optional[list] = ['loss'], is_master_node: Optional[bool] = False) -> None:
+    def __init__(
+        self,
+        metric_names: Optional[list] = ["loss"],
+        is_master_node: Optional[bool] = False,
+    ) -> None:
         if len(metric_names) == 0:
-            logger.error('Metric names list cannot be empty')
+            logger.error("Metric names list cannot be empty")
 
         # key is the metric name and value is the value
         metric_dict: Dict[str, Union[Any]] = {}
         metric_counters = {}
         for m_name in metric_names:
+            # Don't use coco_map key here as it is handled separately
+            if m_name == "coco_map":
+                continue
+
             if m_name in SUPPORTED_STATS:
                 metric_dict[m_name] = None
                 metric_counters[m_name] = 0
             else:
                 if is_master_node:
-                    logger.log('{} statistics not supported. Supported: {}'.format(m_name, SUPPORTED_STATS))
+                    logger.log(
+                        "{} statistics not supported. Supported: {}".format(
+                            m_name, SUPPORTED_STATS
+                        )
+                    )
 
         self.metric_dict = metric_dict
         self.supported_metrics = list(metric_dict.keys())
@@ -38,20 +50,26 @@ class Statistics(object):
         self.batch_time = 0
         self.batch_counter = 0
 
-    def update(self, metric_vals: dict, batch_time: float, n: Optional[int] = 1) -> None:
+    def update(
+        self, metric_vals: dict, batch_time: float, n: Optional[int] = 1
+    ) -> None:
         for k, v in metric_vals.items():
             if k in self.supported_metrics:
                 if self.metric_dict[k] is None:
                     if k == "iou":
-                        self.metric_dict[k] = {"inter": v["inter"] * n, "union": v["union"] * n}
+                        self.metric_dict[k] = {
+                            "inter": v["inter"] * n,
+                            "union": v["union"] * n,
+                        }
                     else:
                         self.metric_dict[k] = v * n
                 else:
                     if k == "iou":
-                        self.metric_dict[k]["inter"] += (v["inter"] * n)
-                        self.metric_dict[k]["union"] += (v["union"] * n)
+                        self.metric_dict[k]["inter"] += v["inter"] * n
+                        self.metric_dict[k]["union"] += v["union"] * n
                     else:
                         self.metric_dict[k] += v * n
+
                 self.metric_counters[k] += n
         self.batch_time += batch_time
         self.batch_counter += 1
@@ -99,12 +117,14 @@ class Statistics(object):
             avg_val = round(avg_val, self.round_places)
         return avg_val
 
-    def iter_summary(self,
-                     epoch: int,
-                     n_processed_samples: int,
-                     total_samples: int,
-                     elapsed_time: float,
-                     learning_rate: float or list) -> None:
+    def iter_summary(
+        self,
+        epoch: int,
+        n_processed_samples: int,
+        total_samples: int,
+        elapsed_time: float,
+        learning_rate: float or list,
+    ) -> None:
         if self.is_master_node:
             metric_stats = self.avg_statistics_all()
             el_time_str = "Elapsed time: {:5.2f}".format(time.time() - elapsed_time)
@@ -113,8 +133,12 @@ class Statistics(object):
             else:
                 learning_rate = [round(lr, 6) for lr in learning_rate]
                 lr_str = "LR: {}".format(learning_rate)
-            epoch_str = "Epoch: {:3d} [{:8d}/{:8d}]".format(epoch, n_processed_samples, total_samples)
-            batch_str = "Avg. batch load time: {:1.3f}".format(self.batch_time / self.batch_counter)
+            epoch_str = "Epoch: {:3d} [{:8d}/{:8d}]".format(
+                epoch, n_processed_samples, total_samples
+            )
+            batch_str = "Avg. batch load time: {:1.3f}".format(
+                self.batch_time / self.batch_counter
+            )
 
             stats_summary = [epoch_str]
             stats_summary.extend(metric_stats)
@@ -130,6 +154,6 @@ class Statistics(object):
         if self.is_master_node:
             metric_stats = self.avg_statistics_all(sep="=")
             metric_stats_str = " || ".join(metric_stats)
-            logger.log('*** {} summary for epoch {}'.format(stage.title(), epoch))
+            logger.log("*** {} summary for epoch {}".format(stage.title(), epoch))
             print("\t {}".format(metric_stats_str))
             sys.stdout.flush()

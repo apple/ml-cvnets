@@ -1,6 +1,6 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2020 Apple Inc. All Rights Reserved.
+# Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
 
 import os
@@ -8,7 +8,7 @@ import importlib
 from utils import logger
 import argparse
 from utils.download_utils import get_local_path
-from utils.ddp_utils import is_master
+from utils.ddp_utils import is_master, is_start_rank_node
 from utils.common_utils import check_frozen_norm_layer
 
 from .base_seg import BaseSegmentation
@@ -40,10 +40,7 @@ def build_segmentation_model(opts):
     is_master_node = is_master(opts)
     if seg_model_name in SEG_MODEL_REGISTRY:
         output_stride = getattr(opts, "model.segmentation.output_stride", None)
-        encoder = build_classification_model(
-            opts=opts,
-            output_stride=output_stride
-        )
+        encoder = build_classification_model(opts=opts, output_stride=output_stride)
 
         seg_act_fn = getattr(opts, "model.segmentation.activation.name", None)
         if seg_act_fn is not None:
@@ -53,8 +50,16 @@ def build_segmentation_model(opts):
             gen_act_neg_slope = getattr(opts, "model.activation.neg_slope", 0.1)
 
             setattr(opts, "model.activation.name", seg_act_fn)
-            setattr(opts, "model.activation.inplace", getattr(opts, "model.segmentation.activation.inplace", False))
-            setattr(opts, "model.activation.neg_slope", getattr(opts, "model.segmentation.activation.neg_slope", 0.1))
+            setattr(
+                opts,
+                "model.activation.inplace",
+                getattr(opts, "model.segmentation.activation.inplace", False),
+            )
+            setattr(
+                opts,
+                "model.activation.neg_slope",
+                getattr(opts, "model.segmentation.activation.neg_slope", 0.1),
+            )
 
             model = SEG_MODEL_REGISTRY[seg_model_name](opts, encoder)
 
@@ -76,14 +81,18 @@ def build_segmentation_model(opts):
     pretrained = getattr(opts, "model.segmentation.pretrained", None)
     if pretrained is not None:
         pretrained = get_local_path(opts, path=pretrained)
-        model = load_pretrained_model(model=model, wt_loc=pretrained, is_master_node=is_master(opts))
+        model = load_pretrained_model(
+            model=model, wt_loc=pretrained, is_master_node=is_start_rank_node(opts)
+        )
 
     freeze_norm_layers = getattr(opts, "model.segmentation.freeze_batch_norm", False)
     if freeze_norm_layers:
         model.freeze_norm_layers()
         frozen_state, count_norm = check_frozen_norm_layer(model)
         if count_norm > 0 and frozen_state and is_master_node:
-            logger.error('Something is wrong while freezing normalization layers. Please check')
+            logger.error(
+                "Something is wrong while freezing normalization layers. Please check"
+            )
 
         if is_master_node:
             logger.log("Normalization layers are frozen")
@@ -92,35 +101,89 @@ def build_segmentation_model(opts):
 
 
 def common_seg_args(parser: argparse.ArgumentParser):
-    group = parser.add_argument_group(title='Segmentation arguments', description="Segmentation arguments")
+    group = parser.add_argument_group(
+        title="Segmentation arguments", description="Segmentation arguments"
+    )
 
-    group.add_argument('--model.segmentation.name', type=str, default=None, help="Model name")
-    group.add_argument('--model.segmentation.n-classes', type=int, default=None, help="Number of classes in the dataset")
-    group.add_argument('--model.segmentation.pretrained', type=str, default=None,
-                       help="Path of the pretrained segmentation model. Useful for evaluation")
-    group.add_argument('--model.segmentation.lr-multiplier', type=float, default=1.0,
-                       help="Multiply the learning rate in segmentation network (e.g., decoder)")
-    group.add_argument('--model.segmentation.seg-head', type=str, default="basic", help="Segmentation head")
-    group.add_argument('--model.segmentation.classifier-dropout', type=float, default=0.1,
-                       help="Dropout rate in classifier")
-    parser.add_argument('--model.segmentation.use-aux-head', action="store_true",
-                        help="Use auxiliary output")
+    group.add_argument(
+        "--model.segmentation.name", type=str, default=None, help="Model name"
+    )
+    group.add_argument(
+        "--model.segmentation.n-classes",
+        type=int,
+        default=20,
+        help="Number of classes in the dataset",
+    )
+    group.add_argument(
+        "--model.segmentation.pretrained",
+        type=str,
+        default=None,
+        help="Path of the pretrained segmentation model. Useful for evaluation",
+    )
+    group.add_argument(
+        "--model.segmentation.lr-multiplier",
+        type=float,
+        default=1.0,
+        help="Multiply the learning rate in segmentation network (e.g., decoder)",
+    )
+    group.add_argument(
+        "--model.segmentation.classifier-dropout",
+        type=float,
+        default=0.1,
+        help="Dropout rate in classifier",
+    )
+    parser.add_argument(
+        "--model.segmentation.use-aux-head",
+        action="store_true",
+        help="Use auxiliary output",
+    )
+    group.add_argument(
+        "--model.segmentation.aux-dropout",
+        default=0.1,
+        type=float,
+        help="Dropout in auxiliary branch",
+    )
 
-    group.add_argument('--model.segmentation.output-stride', type=int, default=None,
-                       help="Output stride in classification network")
-    group.add_argument('--model.segmentation.replace-stride-with-dilation', action="store_true",
-                       help="Replace stride with dilation")
+    group.add_argument(
+        "--model.segmentation.output-stride",
+        type=int,
+        default=None,
+        help="Output stride in classification network",
+    )
+    group.add_argument(
+        "--model.segmentation.replace-stride-with-dilation",
+        action="store_true",
+        help="Replace stride with dilation",
+    )
 
-    group.add_argument('--model.segmentation.activation.name', default=None, type=str,
-                       help='Non-linear function type')
-    group.add_argument('--model.segmentation.activation.inplace', action='store_true',
-                       help='Inplace non-linear functions')
-    group.add_argument('--model.segmentation.activation.neg-slope', default=0.1, type=float,
-                       help='Negative slope in leaky relu')
-    group.add_argument('--model.segmentation.freeze-batch-norm', action="store_true", help="Freeze batch norm layers")
+    group.add_argument(
+        "--model.segmentation.activation.name",
+        default=None,
+        type=str,
+        help="Non-linear function type",
+    )
+    group.add_argument(
+        "--model.segmentation.activation.inplace",
+        action="store_true",
+        help="Inplace non-linear functions",
+    )
+    group.add_argument(
+        "--model.segmentation.activation.neg-slope",
+        default=0.1,
+        type=float,
+        help="Negative slope in leaky relu",
+    )
+    group.add_argument(
+        "--model.segmentation.freeze-batch-norm",
+        action="store_true",
+        help="Freeze batch norm layers",
+    )
 
-    group.add_argument('--model.segmentation.use-level5-exp', action="store_true",
-                       help="Use output of conv1x1 Level 5 expansion layer in base feature extractor")
+    group.add_argument(
+        "--model.segmentation.use-level5-exp",
+        action="store_true",
+        help="Use output of Level 5 expansion layer in base feature extractor",
+    )
 
     return parser
 
@@ -133,6 +196,7 @@ def arguments_segmentation(parser: argparse.ArgumentParser):
         parser = v.add_arguments(parser=parser)
 
     from cvnets.models.segmentation.heads import arguments_segmentation_head
+
     parser = arguments_segmentation_head(parser)
 
     return parser
@@ -143,9 +207,9 @@ models_dir = os.path.dirname(__file__)
 for file in os.listdir(models_dir):
     path = os.path.join(models_dir, file)
     if (
-            not file.startswith("_")
-            and not file.startswith(".")
-            and (file.endswith(".py") or os.path.isdir(path))
+        not file.startswith("_")
+        and not file.startswith(".")
+        and (file.endswith(".py") or os.path.isdir(path))
     ):
         model_name = file[: file.find(".py")] if file.endswith(".py") else file
         module = importlib.import_module("cvnets.models.segmentation." + model_name)

@@ -1,6 +1,6 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2020 Apple Inc. All Rights Reserved.
+# Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
 
 import numpy as np
@@ -9,11 +9,12 @@ from typing import Optional, List
 
 class Colormap(object):
     """
-        Generate colormap for visualizing segmentation masks or bounding boxes.
+    Generate colormap for visualizing segmentation masks or bounding boxes.
 
-        This is based on the MATLab code in the PASCAL VOC repository:
-            http://host.robots.ox.ac.uk/pascal/VOC/voc2012/index.html#devkit
+    This is based on the MATLab code in the PASCAL VOC repository:
+        http://host.robots.ox.ac.uk/pascal/VOC/voc2012/index.html#devkit
     """
+
     def __init__(self, n: Optional[int] = 256, normalized: Optional[bool] = False):
         super(Colormap, self).__init__()
         self.n = n
@@ -25,7 +26,7 @@ class Colormap(object):
 
     def get_color_map(self) -> np.ndarray:
 
-        dtype = 'float32' if self.normalized else 'uint8'
+        dtype = "float32" if self.normalized else "uint8"
         color_map = np.zeros((self.n, 3), dtype=dtype)
         for i in range(self.n):
             r = g = b = 0

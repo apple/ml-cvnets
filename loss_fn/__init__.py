@@ -1,6 +1,6 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2020 Apple Inc. All Rights Reserved.
+# Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
 
 from .base_criteria import BaseCriteria
@@ -15,7 +15,9 @@ LOSS_REGISTRY = {}
 def register_loss_fn(name):
     def register_loss_fn_class(cls):
         if name in LOSS_REGISTRY:
-            raise ValueError("Cannot register duplicate loss function ({})".format(name))
+            raise ValueError(
+                "Cannot register duplicate loss function ({})".format(name)
+            )
 
         if not issubclass(cls, BaseCriteria):
             raise ValueError(
@@ -35,7 +37,9 @@ def build_loss_fn(opts):
         loss_fn = LOSS_REGISTRY[loss_fn_category](opts)
     else:
         temp_list = list(LOSS_REGISTRY.keys())
-        temp_str = "Loss function ({}) not yet supported. \n Supported loss functions are:".format(loss_fn_category)
+        temp_str = "Loss function ({}) not yet supported. \n Supported loss functions are:".format(
+            loss_fn_category
+        )
         for i, m_name in enumerate(temp_list):
             temp_str += "\n\t {}: {}".format(i, logger.color_text(m_name))
         logger.error(temp_str)
@@ -44,11 +48,19 @@ def build_loss_fn(opts):
 
 
 def general_loss_fn_args(parser: argparse.ArgumentParser):
-    group = parser.add_argument_group(title="Loss function arguments", description="Loss function arguments")
+    group = parser.add_argument_group(
+        title="Loss function arguments", description="Loss function arguments"
+    )
 
-    group.add_argument("--loss.category", type=str, default="classification",
-                       help="Loss function category (classification,segmentation)")
-    group.add_argument("--loss.ignore-idx", type=int, default=-1, help="Ignore idx in loss function")
+    group.add_argument(
+        "--loss.category",
+        type=str,
+        default="classification",
+        help="Loss function category (classification,segmentation)",
+    )
+    group.add_argument(
+        "--loss.ignore-idx", type=int, default=-1, help="Ignore idx in loss function"
+    )
 
     return parser
 
@@ -67,9 +79,9 @@ loss_fn_dir = os.path.dirname(__file__)
 for file in os.listdir(loss_fn_dir):
     path = os.path.join(loss_fn_dir, file)
     if (
-            not file.startswith("_")
-            and not file.startswith(".")
-            and (file.endswith(".py") or os.path.isdir(path))
+        not file.startswith("_")
+        and not file.startswith(".")
+        and (file.endswith(".py") or os.path.isdir(path))
     ):
         loss_fn_name = file[: file.find(".py")] if file.endswith(".py") else file
         module = importlib.import_module("loss_fn." + loss_fn_name)

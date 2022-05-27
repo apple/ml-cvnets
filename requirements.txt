@@ -17,3 +17,15 @@ opencv-contrib-python
 
 # dependency for cityscape evaluation
 cityscapesscripts
+
+# added as a dependency to reproduce 3rd party models
+pytorchvideo
+
+# PyAV for video decoding
+av
+
+# FVCore for FLOP calculation
+fvcore
+
+# black for reformatting
+black

@@ -1,6 +1,6 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2020 Apple Inc. All Rights Reserved.
+# Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
 
 import yaml
@@ -11,14 +11,20 @@ from utils import logger
 from utils.ddp_utils import is_master
 from utils.download_utils import get_local_path
 
+try:
+    # Workaround for DeprecationWarning when importing Collections
+    collections_abc = collections.abc
+except AttributeError:
+    collections_abc = collections
+
 DEFAULT_CONFIG_DIR = "config"
 
 
-def flatten_yaml_as_dict(d, parent_key='', sep='.'):
+def flatten_yaml_as_dict(d, parent_key="", sep="."):
     items = []
     for k, v in d.items():
         new_key = parent_key + sep + k if parent_key else k
-        if isinstance(v, collections.MutableMapping):
+        if isinstance(v, collections_abc.MutableMapping):
             items.extend(flatten_yaml_as_dict(v, new_key, sep=sep).items())
         else:
             items.append((new_key, v))
@@ -35,22 +41,26 @@ def load_config_file(opts):
         config_file_name = get_local_path(opts=opts, path=config_file_name)
 
     if not os.path.isfile(config_file_name):
-        if len(config_file_name.split('/')) == 1:
+        if len(config_file_name.split("/")) == 1:
             # loading files from default config folder
             new_config_file_name = "{}/{}".format(DEFAULT_CONFIG_DIR, config_file_name)
             if not os.path.isfile(new_config_file_name) and is_master_node:
-                logger.warning("Configuration file neither exists at {} nor at {}".format(config_file_name, new_config_file_name))
-                return opts
+                logger.error(
+                    "Configuration file neither exists at {} nor at {}".format(
+                        config_file_name, new_config_file_name
+                    )
+                )
             else:
                 config_file_name = new_config_file_name
         else:
             # If absolute path of the file is passed
             if not os.path.isfile(config_file_name) and is_master_node:
-                logger.warning("Configuration file does not exists at {}".format(config_file_name))
-                return opts
+                logger.error(
+                    "Configuration file does not exists at {}".format(config_file_name)
+                )
 
     setattr(opts, "common.config_file", config_file_name)
-    with open(config_file_name, 'r') as yaml_file:
+    with open(config_file_name, "r") as yaml_file:
         try:
             cfg = yaml.load(yaml_file, Loader=yaml.FullLoader)
 
@@ -60,7 +70,17 @@ def load_config_file(opts):
                     setattr(opts, k, v)
         except yaml.YAMLError as exc:
             if is_master_node:
-                logger.warning('Error while loading config file: {}'.format(config_file_name))
-                logger.warning('Error message: {}'.format(str(exc)))
+                logger.error(
+                    "Error while loading config file: {}. Error message: {}".format(
+                        config_file_name, str(exc)
+                    )
+                )
+
+    # override arguments
+    override_args = getattr(opts, "override_args", None)
+    if override_args is not None:
+        for override_k, override_v in override_args.items():
+            if hasattr(opts, override_k):
+                setattr(opts, override_k, override_v)
 
     return opts

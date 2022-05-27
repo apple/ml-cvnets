@@ -1,81 +1,174 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2020 Apple Inc. All Rights Reserved.
+# Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
 
 import torch
 from torch import nn, Tensor
-from typing import Optional, Tuple, List
+from typing import Dict, List
 import torch.nn.functional as F
 
-from ..layers import ConvLayer, UpSample
+from utils import logger
+
+from ..layers import ConvLayer, norm_layers_tuple
 from ..modules import BaseModule
 from ..misc.profiler import module_profile
+from ..misc.init_utils import initialize_conv_layer, initialize_norm_layers
 
 
-class FPModule(BaseModule):
+class FeaturePyramidNetwork(BaseModule):
     """
-        Inspired from the PSP module in the PSPNet paper:
-            https://arxiv.org/abs/1612.01105
-        Difference: Replaces the average pooling with Upsample function
+    This class implements the `Feature Pyramid Network <https://arxiv.org/abs/1612.03144>`_ module for object detection.
+
+    Args:
+        opts: command-line arguments
+        in_channels (List[int]): List of channels at different output strides
+        output_strides (List[int]): Feature maps from these output strides will be used in FPN
+        out_channels (int): Output channels
+
     """
-    def __init__(self,
-                 opts,
-                 in_channels: int,
-                 out_channels: int,
-                 scales: Optional[Tuple or List] = (0.25, 0.5, 2.0),
-                 ) -> None:
-        projection_dim = max(int(in_channels / len(scales)), 32)
-        fp_branches = []
-        for scale in scales:
-            cbr_layer = ConvLayer(opts=opts, in_channels=in_channels, out_channels=projection_dim,
-                                  kernel_size=1, stride=1, use_norm=True, use_act=True)
-            branch = nn.Sequential()
-            branch.add_module(
-                name="scale_".format(scale),
-                module=UpSample(scale_factor=scale, mode="bilinear", align_corners=False)
+
+    def __init__(
+        self,
+        opts,
+        in_channels: List[int],
+        output_strides: List[str],
+        out_channels: int,
+        *args,
+        **kwargs
+    ) -> None:
+
+        if isinstance(in_channels, int):
+            in_channels = [in_channels]
+        if isinstance(output_strides, int):
+            output_strides = [output_strides]
+
+        if len(in_channels) != len(output_strides):
+            logger.error(
+                "For {}, we need the length of input_channels to be the same as the length of output stride. "
+                "Got: {} and {}".format(
+                    self.__class__.__name__, len(in_channels), len(output_strides)
+                )
             )
-            branch.add_module(name="conv_1x1", module=cbr_layer)
-            fp_branches.append(branch)
+        assert len(in_channels) == len(output_strides)
+        super().__init__(*args, **kwargs)
 
-        channels_after_concat = in_channels + (projection_dim * len(scales))
-        conv_3x3 = ConvLayer(opts=opts, in_channels=channels_after_concat, out_channels=out_channels,
-                             kernel_size=3, stride=1, use_norm=True, use_act=True)
-        super(FPModule, self).__init__()
-        self.fp_branches = nn.ModuleList(fp_branches)
-        self.fusion = conv_3x3
-        self.in_channels = in_channels
+        self.proj_layers = nn.ModuleDict()
+        self.nxn_convs = nn.ModuleDict()
+
+        for os, in_channel in zip(output_strides, in_channels):
+            proj_layer = ConvLayer(
+                opts=opts,
+                in_channels=in_channel,
+                out_channels=out_channels,
+                kernel_size=1,
+                bias=False,
+                use_norm=True,
+                use_act=False,
+            )
+            nxn_conv = ConvLayer(
+                opts=opts,
+                in_channels=out_channels,
+                out_channels=out_channels,
+                kernel_size=3,
+                bias=False,
+                use_norm=True,
+                use_act=False,
+            )
+
+            self.proj_layers.add_module(name="os_{}".format(os), module=proj_layer)
+            self.nxn_convs.add_module(name="os_{}".format(os), module=nxn_conv)
+
+        self.num_fpn_layers = len(in_channels)
         self.out_channels = out_channels
-        self.scales = scales
+        self.in_channels = in_channels
+        self.output_strides = output_strides
 
-    def forward(self, x: Tensor) -> Tensor:
-        x_size = x.size()
-        res = [x]
-        for psp_branch in self.fp_branches:
-            out = psp_branch(x)
-            out = F.interpolate(out, x_size[2:], mode='bilinear', align_corners=True)
-            res.append(out)
-        return self.fusion(torch.cat(res, dim=1))
+        self.reset_weights()
 
-    def profile_module(self, input: Tensor) -> (Tensor, float, float):
+    def reset_weights(self) -> None:
+        """Resets the weights of FPN layers"""
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                initialize_conv_layer(m, init_method="xavier_uniform")
+            elif isinstance(m, norm_layers_tuple):
+                initialize_norm_layers(m)
+
+    def forward(self, x: Dict[str, Tensor], *args, **kwargs) -> Dict[str, Tensor]:
+        assert len(x) == self.num_fpn_layers
+
+        # dictionary to store results for fpn
+        fpn_out_dict = {"os_".format(os): None for os in self.output_strides}
+
+        # process the last output stride
+        os_key = "os_{}".format(self.output_strides[-1])
+        prev_x = self.proj_layers[os_key](x[os_key])
+        prev_x = self.nxn_convs[os_key](prev_x)
+        fpn_out_dict[os_key] = prev_x
+
+        remaining_output_strides = self.output_strides[:-1]
+
+        # bottom-up processing
+        for os in remaining_output_strides[::-1]:
+            os_key = "os_{}".format(os)
+            # 1x1 conv
+            curr_x = self.proj_layers[os_key](x[os_key])
+            # upsample
+            prev_x = F.interpolate(prev_x, size=curr_x.shape[-2:], mode="nearest")
+            # add
+            prev_x = curr_x + prev_x
+            prev_x = self.nxn_convs[os_key](prev_x)
+            fpn_out_dict[os_key] = prev_x
+
+        return fpn_out_dict
+
+    def profile_module(
+        self, input: Dict[str, Tensor], *args, **kwargs
+    ) -> (Dict[str, Tensor], float, float):
         params, macs = 0.0, 0.0
-        res = [input]
-        input_size = input.size()
-        for psp_branch in self.fp_branches:
-            out, p, m = module_profile(module=psp_branch, x=input)
-            out = F.interpolate(out, input_size[2:], mode='bilinear', align_corners=True)
+
+        # dictionary to store results for fpn
+        fpn_out_dict = {"os_{}".format(os): None for os in self.output_strides}
+
+        # process the last output stride
+        os_key = "os_{}".format(self.output_strides[-1])
+        prev_x, p, m = module_profile(module=self.proj_layers[os_key], x=input[os_key])
+        params += p
+        macs += m
+
+        prev_x, p, m = module_profile(module=self.nxn_convs[os_key], x=prev_x)
+        params += p
+        macs += m
+
+        fpn_out_dict[os_key] = prev_x
+
+        remaining_output_strides = self.output_strides[:-1]
+
+        for os in remaining_output_strides[::-1]:
+            # 1x1 conv
+            os_key = "os_{}".format(os)
+            curr_x, p, m = module_profile(
+                module=self.proj_layers[os_key], x=input[os_key]
+            )
             params += p
             macs += m
-            res.append(out)
-        res = torch.cat(res, dim=1)
 
-        res, p, m = module_profile(module=self.fusion, x=res)
-        return res, params + p, macs + m
+            # upsample
+            prev_x = F.interpolate(prev_x, size=curr_x.shape[-2:], mode="nearest")
+            # add
+            prev_x = curr_x + prev_x
+            prev_x, p, m = module_profile(module=self.nxn_convs[os_key], x=prev_x)
+            params += p
+            macs += m
+
+            fpn_out_dict[os_key] = prev_x
+
+        return fpn_out_dict, params, macs
 
     def __repr__(self):
-        return "{}(in_channels={}, out_channels={}, scales={})".format(
+        return "{}(in_channels={}, output_strides={} out_channels={})".format(
             self.__class__.__name__,
             self.in_channels,
+            self.output_strides,
             self.out_channels,
-            self.scales
         )

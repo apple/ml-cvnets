@@ -1,0 +1,5 @@
+# docs
+sphinx
+sphinx-rtd-theme
+sphinx-argparse
+myst-parser

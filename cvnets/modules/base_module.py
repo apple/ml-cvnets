@@ -1,21 +1,23 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2020 Apple Inc. All Rights Reserved.
+# Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
 
 import torch
 from torch import nn, Tensor
-from typing import Tuple
+from typing import Tuple, Union, Any
 
 
 class BaseModule(nn.Module):
+    """Base class for all modules"""
+
     def __init__(self, *args, **kwargs):
         super(BaseModule, self).__init__()
 
-    def forward(self, x: Tensor or Tuple[Tensor]) -> Tensor or Tuple[Tensor]:
+    def forward(self, x: Any, *args, **kwargs) -> Any:
         raise NotImplementedError
 
-    def profile_module(self, input: Tensor) -> (Tensor, float, float):
+    def profile_module(self, input: Any, *args, **kwargs) -> Tuple[Any, float, float]:
         raise NotImplementedError
 
     def __repr__(self):

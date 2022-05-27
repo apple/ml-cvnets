@@ -1,6 +1,6 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2020 Apple Inc. All Rights Reserved.
+# Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
 
 import os
@@ -39,17 +39,23 @@ def build_optimizer(model: torch.nn.Module, opts) -> BaseOptim:
     no_decay_bn_filter_bias = getattr(opts, "optim.no_decay_bn_filter_bias", False)
 
     if hasattr(model, "module"):
-        model_params, lr_mult = model.module.get_trainable_parameters(weight_decay=weight_decay,
-                                                                      no_decay_bn_filter_bias=no_decay_bn_filter_bias)
+        model_params, lr_mult = model.module.get_trainable_parameters(
+            weight_decay=weight_decay, no_decay_bn_filter_bias=no_decay_bn_filter_bias
+        )
     else:
-        model_params, lr_mult = model.get_trainable_parameters(weight_decay=weight_decay,
-                                                               no_decay_bn_filter_bias=no_decay_bn_filter_bias)
+        model_params, lr_mult = model.get_trainable_parameters(
+            weight_decay=weight_decay, no_decay_bn_filter_bias=no_decay_bn_filter_bias
+        )
     setattr(opts, "optim.lr_multipliers", lr_mult)
     if optim_name in OPTIM_REGISTRY:
         optimizer = OPTIM_REGISTRY[optim_name](opts, model_params)
     else:
         supp_list = list(OPTIM_REGISTRY.keys())
-        supp_str = "Optimizer ({}) not yet supported. \n Supported optimizers are:".format(optim_name)
+        supp_str = (
+            "Optimizer ({}) not yet supported. \n Supported optimizers are:".format(
+                optim_name
+            )
+        )
         for i, m_name in enumerate(supp_list):
             supp_str += "\n\t {}: {}".format(i, logger.color_text(m_name))
         logger.error(supp_str)
@@ -58,12 +64,17 @@ def build_optimizer(model: torch.nn.Module, opts) -> BaseOptim:
 
 
 def general_optim_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-    group = parser.add_argument_group('optimizer', 'Optimizer related arguments')
-    group.add_argument('--optim.name', default='sgd', help='Which optimizer')
-    group.add_argument('--optim.eps', type=float, default=1e-8, help='Optimizer eps')
-    group.add_argument('--optim.weight-decay', default=4e-5, type=float, help='Weight decay')
-    group.add_argument('--optim.no-decay-bn-filter-bias', action="store_true",
-                       help="No weight decay in normalization layers and bias")
+    group = parser.add_argument_group("optimizer", "Optimizer related arguments")
+    group.add_argument("--optim.name", default="sgd", help="Which optimizer")
+    group.add_argument("--optim.eps", type=float, default=1e-8, help="Optimizer eps")
+    group.add_argument(
+        "--optim.weight-decay", default=4e-5, type=float, help="Weight decay"
+    )
+    group.add_argument(
+        "--optim.no-decay-bn-filter-bias",
+        action="store_true",
+        help="No weight decay in normalization layers and bias",
+    )
     return parser
 
 
@@ -82,9 +93,9 @@ optim_dir = os.path.dirname(__file__)
 for file in os.listdir(optim_dir):
     path = os.path.join(optim_dir, file)
     if (
-            not file.startswith("_")
-            and not file.startswith(".")
-            and (file.endswith(".py") or os.path.isdir(path))
+        not file.startswith("_")
+        and not file.startswith(".")
+        and (file.endswith(".py") or os.path.isdir(path))
     ):
         optim_name = file[: file.find(".py")] if file.endswith(".py") else file
         module = importlib.import_module("optim." + optim_name)
