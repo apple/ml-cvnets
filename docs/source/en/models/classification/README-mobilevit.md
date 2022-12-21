@@ -1,6 +1,4 @@
-# Training Classification Models on the ImageNet dataset
-
-## Training MobileViT on the ImageNet dataset
+# Training MobileViT on the ImageNet dataset
 
 Single node 8-GPU training of `MobileViT-S` can be done using below command:
 

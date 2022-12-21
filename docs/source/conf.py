@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.abspath("../.."))
 
 # -- Project information -----------------------------------------------------
 
-project = "CVNet: High Performance Library for Computer Vision"
+project = "CVNets: A library for training computer vision networks"
 copyright = "Copyright (C) 2022 Apple Inc. All Rights Reserved."
 author = "Sachin Mehta"
 

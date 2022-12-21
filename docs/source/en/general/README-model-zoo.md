@@ -1,5 +1,7 @@
 # Model Zoo
 
+⚠️ For recent papers along with pre-trained models, training/evaluation recipes, and configuration files, please see `[examples](../../../../../examples)` folder. We will update model zoo periodically.⚠️
+
 This file contains the links to all the pre-trained models in CVNets and their configs:
 
 ## Classification (ImageNet-1k)

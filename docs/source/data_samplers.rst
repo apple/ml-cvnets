@@ -9,22 +9,7 @@ CVNet offer data samplers with three sampling strategies:
 2. Multi-scale with fixed batch size (MSc-FBS)
 3. Multi-scale with variable batch size (MSc-VBS)
 
-These sampling strategies are visualized in these figures and discussed below:
-
-
-.. list-table::
-
-   * - .. figure:: _static/single_scale_fbs.jpg
-
-        SSc-FBS
-
-   * - .. figure:: _static/multi_scale_fbs.jpg
-
-        MSc-FBS
- 
-   * - .. figure:: _static/multi_scale_vbs.jpg
-
-        MSc-VBS
+For details about these samplers, please see `MobileViT <https://arxiv.org/abs/2110.02178>`_ paper.
 
 Single-scale with fixed batch size (SSc-FBS)
 =======

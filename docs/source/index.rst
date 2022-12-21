@@ -3,14 +3,16 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to CVNet's documentation!
+Welcome to CVNets documentation!
 =====================================
 
-CVNet is a high-performance open-source library for training deep neural networks for visual recognition tasks,
+CVNets is an open-source library for training deep neural networks for visual recognition tasks,
 including classification, detection, and segmentation.
 
-CVNet supports image and video understanding tools, including data loading, data transformations, novel data sampling methods,
-and implementations of several state-of-the-art networks with significantly better performance than the original publications.
+CVNets supports image and video understanding tools, including data loading, data transformations, novel data sampling methods,
+and implementations of several state-of-the-art networks.
+
+Our source code is available on `Github <https://github.com/apple/ml-cvnets>`_ .
 
 
 .. toctree::
@@ -22,7 +24,6 @@ and implementations of several state-of-the-art networks with significantly bett
    how_to
    data_samplers
    en/general/README-model-zoo
-..    models
    
 
 Citation
@@ -32,17 +33,19 @@ If you find CVNets useful, please cite the following papers:
 
 .. code-block::
 
-    @article{mehta2021mobilevit,
+    @inproceedings{mehta2022mobilevit,
         title={MobileViT: Light-weight, General-purpose, and Mobile-friendly Vision Transformer},
-        author={Mehta, Sachin and Rastegari, Mohammad},
-        journal={arXiv preprint arXiv:2110.02178},
-        year={2021}
+        author={Sachin Mehta and Mohammad Rastegari},
+        booktitle={International Conference on Learning Representations},
+        year={2022}
     }
 
-    @article{mehta2022cvnets,
-        title={CVNets: High Performance Library for Computer Vision},
-        author={Mehta, Sachin and Abdolhosseini, Farzad and Rastegari, Mohammad},
-        year={2022}
+    @inproceedings{mehta2022cvnets, 
+        author = {Mehta, Sachin and Abdolhosseini, Farzad and Rastegari, Mohammad}, 
+        title = {CVNets: High Performance Library for Computer Vision}, 
+        year = {2022}, 
+        booktitle = {Proceedings of the 30th ACM International Conference on Multimedia}, 
+        series = {MM '22} 
     }
 
 Indices and tables
