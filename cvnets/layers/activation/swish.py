@@ -15,7 +15,7 @@ class Swish(nn.SiLU):
     Applies the `Swish (also known as SiLU) <https://arxiv.org/abs/1702.03118>`_ function.
     """
 
-    def __init__(self, inplace: Optional[bool] = False) -> None:
+    def __init__(self, inplace: Optional[bool] = False, *args, **kwargs) -> None:
         super().__init__(inplace=inplace)
 
     def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:

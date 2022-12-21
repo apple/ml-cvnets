@@ -202,10 +202,13 @@ class KineticsDataset(BaseImageDataset):
             target = getattr(self.opts, "loss.ignore_idx", -1)
             data = {"image": input_video}
 
-        # target is a 0-dimensional tensor
-        data["label"] = torch.LongTensor(size=(input_video.shape[0],)).fill_(target)
+        output_data = {
+            "samples": data.pop("image"),
+            # target is a 0-dimensional tensor
+            "targets": torch.LongTensor(size=(input_video.shape[0],)).fill_(target),
+        }
 
-        return data
+        return output_data
 
     def __repr__(self):
         from utils.tensor_utils import video_size_from_opts
@@ -239,8 +242,8 @@ def kinetics_collate_fn(batch: List, opts):
     images = []
     labels = []
     for b in range(batch_size):
-        b_label = batch[b]["label"]
-        images.append(batch[b]["image"])
+        b_label = batch[b]["targets"]
+        images.append(batch[b]["samples"])
         labels.append(b_label)
 
     images = torch.cat(images, dim=0)
@@ -253,7 +256,7 @@ def kinetics_collate_fn(batch: List, opts):
     if not labels.is_contiguous():
         labels = labels.contiguous()
 
-    return {"image": images, "label": labels}
+    return {"samples": images, "targets": labels}
 
 
 @register_collate_fn(name="kinetics_collate_fn_train")
@@ -264,10 +267,10 @@ def kinetics_collate_fn_train(batch: List, opts):
     images = []
     labels = []
     for b in range(batch_size):
-        b_label = batch[b]["label"]
+        b_label = batch[b]["targets"]
         if ignore_label in b_label:
             continue
-        images.append(batch[b]["image"])
+        images.append(batch[b]["samples"])
         labels.append(b_label)
 
     images = torch.cat(images, dim=0)
@@ -280,4 +283,4 @@ def kinetics_collate_fn_train(batch: List, opts):
     if not labels.is_contiguous():
         labels = labels.contiguous()
 
-    return {"image": images, "label": labels}
+    return {"samples": images, "targets": labels}

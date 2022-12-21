@@ -72,7 +72,7 @@ def main_worker_conversion():
 
     if conversion_success:
         try:
-            from utils_internal.upload_utils import upload_to_server
+            from internal.utils.upload_utils import upload_to_server
 
             # upload function is only available for internal usage
             upload_to_server(

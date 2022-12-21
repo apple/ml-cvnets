@@ -41,7 +41,7 @@ class MobileNetv1(BaseEncoder):
             val = round(0.1 * width_mult, 3)
             classifier_dropout = bound_fn(min_val=0.0, max_val=0.1, value=val)
 
-        super().__init__(*args, **kwargs)
+        super().__init__(opts, *args, **kwargs)
 
         cfg = get_configuration(opts=opts)
 

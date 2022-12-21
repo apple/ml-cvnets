@@ -5,7 +5,7 @@
 
 import os
 import torch
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 import math
 import glob
 
@@ -108,6 +108,34 @@ def avg_n_save_k_checkpoints(
         print(e)
 
 
+def save_interval_checkpoint(
+    iterations: int,
+    epoch: int,
+    model: torch.nn.Module,
+    optimizer: Union[BaseOptim, torch.optim.Optimizer],
+    best_metric: float,
+    save_dir: str,
+    gradient_scalar: torch.cuda.amp.GradScaler,
+    not_intermediate_checkpoint: Optional[bool] = False,
+    *args,
+    **kwargs
+) -> Dict:
+    model_state = get_model_state_dict(model)
+    checkpoint = {
+        "iterations": iterations,
+        "epoch": epoch,
+        "model_state_dict": model_state,
+        "optim_state_dict": optimizer.state_dict(),
+        "best_metric": best_metric,
+        "gradient_scalar_state_dict": gradient_scalar.state_dict(),
+    }
+    if not not_intermediate_checkpoint:
+        ckpt_str = "{}/checkpoint".format(save_dir)
+        ckpt_fname = "{}_{}_{}.{}".format(ckpt_str, epoch, iterations, CHECKPOINT_EXTN)
+        torch.save(checkpoint, ckpt_fname)
+    return checkpoint
+
+
 def save_checkpoint(
     iterations: int,
     epoch: int,
@@ -127,14 +155,17 @@ def save_checkpoint(
     **kwargs
 ) -> None:
     model_state = get_model_state_dict(model)
-    checkpoint = {
-        "iterations": iterations,
-        "epoch": epoch,
-        "model_state_dict": model_state,
-        "optim_state_dict": optimizer.state_dict(),
-        "best_metric": best_metric,
-        "gradient_scalar_state_dict": gradient_scalar.state_dict(),
-    }
+
+    checkpoint = save_interval_checkpoint(
+        iterations=iterations,
+        epoch=epoch,
+        model=model,
+        optimizer=optimizer,
+        best_metric=best_metric,
+        save_dir=save_dir,
+        gradient_scalar=gradient_scalar,
+        not_intermediate_checkpoint=True,
+    )
     ckpt_str = "{}/checkpoint".format(save_dir)
 
     if is_best:

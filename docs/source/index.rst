@@ -3,16 +3,14 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to CVNets documentation!
+Welcome to CVNet's documentation!
 =====================================
 
-CVNets is an open-source library for training deep neural networks for visual recognition tasks,
+CVNet is a high-performance open-source library for training deep neural networks for visual recognition tasks,
 including classification, detection, and segmentation.
 
-CVNets supports image and video understanding tools, including data loading, data transformations, novel data sampling methods,
-and implementations of several state-of-the-art networks.
-
-Our source code is available on `Github <https://github.com/apple/ml-cvnets>`_ .
+CVNet supports image and video understanding tools, including data loading, data transformations, novel data sampling methods,
+and implementations of several state-of-the-art networks with significantly better performance than the original publications.
 
 
 .. toctree::
@@ -24,6 +22,7 @@ Our source code is available on `Github <https://github.com/apple/ml-cvnets>`_ .
    how_to
    data_samplers
    en/general/README-model-zoo
+..    models
    
 
 Citation

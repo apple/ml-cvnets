@@ -13,6 +13,7 @@ from utils import logger
 from utils.ddp_utils import is_master, is_start_rank_node
 from utils.common_utils import check_frozen_norm_layer
 
+from .. import register_tasks, register_task_arguments
 from ...misc.common import load_pretrained_model
 from ...models.classification import build_classification_model
 
@@ -36,14 +37,15 @@ def register_detection_models(name):
     return register_model_class
 
 
+@register_tasks(name="detection")
 def build_detection_model(opts):
-    seg_model_name = getattr(opts, "model.detection.name", None)
+    det_model_name = getattr(opts, "model.detection.name", None)
     model = None
     is_master_node = is_master(opts)
-    if seg_model_name in DETECT_MODEL_REGISTRY:
+    if det_model_name in DETECT_MODEL_REGISTRY:
         output_stride = getattr(opts, "model.detection.output_stride", None)
         encoder = build_classification_model(opts=opts, output_stride=output_stride)
-        model = DETECT_MODEL_REGISTRY[seg_model_name](opts, encoder)
+        model = DETECT_MODEL_REGISTRY[det_model_name](opts, encoder)
     else:
         supported_models = list(DETECT_MODEL_REGISTRY.keys())
         supp_model_str = "Supported detection models are:"
@@ -55,9 +57,7 @@ def build_detection_model(opts):
     pretrained = getattr(opts, "model.detection.pretrained", None)
     if pretrained is not None:
         pretrained = get_local_path(opts, path=pretrained)
-        model = load_pretrained_model(
-            model=model, wt_loc=pretrained, is_master_node=is_start_rank_node(opts)
-        )
+        model = load_pretrained_model(model=model, wt_loc=pretrained, opts=opts)
 
     freeze_norm_layers = getattr(opts, "model.detection.freeze_batch_norm", False)
     if freeze_norm_layers:
@@ -114,10 +114,11 @@ def common_detection_args(parser: argparse.ArgumentParser):
     return parser
 
 
+@register_task_arguments(name="detection")
 def arguments_detection(parser: argparse.ArgumentParser):
     parser = common_detection_args(parser)
 
-    # add segmentation specific arguments
+    # add detection specific arguments
     for k, v in DETECT_MODEL_REGISTRY.items():
         parser = v.add_arguments(parser=parser)
 

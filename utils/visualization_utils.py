@@ -2,12 +2,14 @@
 # For licensing see accompanying LICENSE file.
 # Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
+import random
 
 from torch import Tensor
 import cv2
 import numpy as np
 import copy
-from typing import Optional, List
+from typing import Optional, List, Tuple
+from matplotlib.colors import hsv_to_rgb
 
 from utils.color_map import Colormap
 from utils import logger
@@ -34,15 +36,29 @@ def visualize_boxes_xyxy(image: np.ndarray, boxes: np.ndarray) -> np.ndarray:
     return new_image
 
 
+def create_colored_mask(mask: np.ndarray, num_classes: int, *args, **kwargs) -> np.ndarray:
+    """Create a colored mask with random colors"""
+    colored_mask = np.ones((mask.shape[0], mask.shape[1], 3), dtype=np.uint8)
+    # 0 for background.
+    random_hue = random.randint(1, num_classes)
+
+    random_mask_color = hsv_to_rgb((random_hue / num_classes, 0.75, 0.75))
+    colored_mask[..., :] = [int(c * 255.) for c in random_mask_color]
+    colored_mask *= mask[..., None]
+    return colored_mask
+
+
 def draw_bounding_boxes(
     image: np.ndarray,
     boxes: np.ndarray,
     labels: np.ndarray,
     scores: np.ndarray,
+    masks: Optional[np.ndarray] = None,
     color_map: Optional = None,
     object_names: Optional[List] = None,
     is_bgr_format: Optional[bool] = False,
     save_path: Optional[str] = None,
+    num_classes: Optional[int] = 81
 ) -> None:
     """Utility function to draw bounding boxes of objects along with their labels and score on a given image"""
     boxes = boxes.astype(np.int)
@@ -54,10 +70,17 @@ def draw_bounding_boxes(
     if color_map is None:
         color_map = Colormap().get_box_color_codes()
 
-    for label, score, coords in zip(labels, scores, boxes):
+    if masks is None:
+        masks = [None] * len(boxes)
+
+    for label, score, coords, mask in zip(labels, scores, boxes, masks):
         r, g, b = color_map[label]
         c1 = (coords[0], coords[1])
         c2 = (coords[2], coords[3])
+
+        if mask is not None:
+            mask = create_colored_mask(mask=mask, num_classes=num_classes)
+            image = cv2.addWeighted(image, 1.0, mask, 1.0, gamma=0.0)
 
         cv2.rectangle(image, c1, c2, (r, g, b), thickness=RECT_BORDER_THICKNESS)
         if object_names is not None:
@@ -66,6 +89,7 @@ def draw_bounding_boxes(
             )
             t_size = cv2.getTextSize(label_text, FONT_SIZE, 1, TEXT_THICKNESS)[0]
             new_c2 = c1[0] + t_size[0] + 3, c1[1] + t_size[1] + 4
+
             cv2.rectangle(image, c1, new_c2, (r, g, b), -1)
             cv2.putText(
                 image,

@@ -10,7 +10,6 @@ from tqdm import tqdm
 import glob
 from typing import Optional, Tuple, List
 from torch import Tensor, nn
-from torch.cuda.amp import autocast
 from torch.nn import functional as F
 from torchvision.transforms import functional as F_vision
 from PIL import Image
@@ -28,6 +27,8 @@ from common import SUPPORTED_IMAGE_EXTNS
 from metrics.confusion_mat import ConfusionMatrix
 from utils.visualization_utils import convert_to_cityscape_format
 from utils.download_utils import get_local_path
+
+from .utils import autocast_fn
 
 """
 Notes:
@@ -59,6 +60,7 @@ def predict_and_save(
     """Predict the segmentation mask and optionally save them"""
 
     mixed_precision_training = getattr(opts, "common.mixed_precision", False)
+    mixed_precision_dtype = getattr(opts, "common.mixed_precision_dtype", "float16")
 
     output_stride = getattr(opts, "model.segmentation.output_stride", 16)
     if output_stride == 1:
@@ -88,7 +90,9 @@ def predict_and_save(
     if target_mask is not None:
         target_mask = target_mask.to(device)
 
-    with autocast(enabled=mixed_precision_training):
+    with autocast_fn(
+        enabled=mixed_precision_training, amp_precision=mixed_precision_dtype
+    ):
         # prediction
         pred = model(input_tensor, orig_size=(orig_h, orig_w))
 
@@ -139,9 +143,6 @@ def predict_and_save(
             is_cityscape=is_cityscape,
             results_location=save_dir,
         )
-    logger.log(
-        "Segmentation results for {} are stored at: {}".format(file_name, save_dir)
-    )
 
 
 def draw_binary_masks(
@@ -192,6 +193,7 @@ def draw_colored_masks(
         os.makedirs(pred_color_mask_dir, exist_ok=True)
     color_mask_f_name = "{}/{}".format(pred_color_mask_dir, file_name)
     pred_mask_pil.save(color_mask_f_name)
+    logger.log("Predicted mask is saved at: {}".format(color_mask_f_name))
 
     if target_mask is not None:
         # convert target tensor to PIL images, apply colormap, and save
@@ -203,6 +205,7 @@ def draw_colored_masks(
             os.makedirs(target_color_mask_dir, exist_ok=True)
         gt_color_mask_f_name = "{}/{}".format(target_color_mask_dir, file_name)
         target_mask_pil.save(gt_color_mask_f_name)
+        logger.log("Target mask is saved at: {}".format(color_mask_f_name))
 
     if save_overlay_rgb_pred and orig_image is not None:
         # overlay predicted mask on top of original image and save
@@ -222,6 +225,7 @@ def draw_colored_masks(
             os.makedirs(overlay_mask_dir, exist_ok=True)
         overlay_mask_f_name = "{}/{}".format(overlay_mask_dir, file_name)
         overlayed_img.save(overlay_mask_f_name)
+        logger.log("RGB image blended with mask is saved at: {}".format(overlay_mask_f_name))
 
         # save original image
         rgb_image_dir = "{}/rgb_images".format(results_location)
@@ -229,6 +233,7 @@ def draw_colored_masks(
             os.makedirs(rgb_image_dir, exist_ok=True)
         rgb_image_f_name = "{}/{}".format(rgb_image_dir, file_name)
         orig_image.save(rgb_image_f_name)
+        logger.log("Original RGB image is saved at: {}".format(overlay_mask_f_name))
 
 
 def predict_labeled_dataset(opts, **kwargs) -> None:
@@ -263,21 +268,21 @@ def predict_labeled_dataset(opts, **kwargs) -> None:
         is_cityscape = True
 
     with torch.no_grad():
-        for batch_id, batch in tqdm(enumerate(val_loader)):
-            input_img, target_label = batch["image"], batch["label"]
-            batch_size = input_img.shape[0]
+        for batch_id, batch in enumerate(val_loader):
+            samples, targets = batch["samples"], batch["targets"]
+            batch_size = samples.shape[0]
             assert (
                 batch_size == 1
             ), "We recommend to run segmentation evaluation with a batch size of 1"
 
             predict_and_save(
                 opts=opts,
-                input_tensor=input_img,
-                file_name=batch["file_name"][0],
-                orig_w=batch["im_width"][0].item(),
-                orig_h=batch["im_height"][0].item(),
+                input_tensor=samples,
+                file_name=targets["file_name"][0],
+                orig_w=targets["im_width"][0].item(),
+                orig_h=targets["im_height"][0].item(),
                 model=model,
-                target_mask=target_label,
+                target_mask=targets["mask"],
                 device=device,
                 mixed_precision_training=mixed_precision_training,
                 conf_mat=conf_mat,

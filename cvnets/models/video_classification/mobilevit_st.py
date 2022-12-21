@@ -190,3 +190,16 @@ class SpatioTemporalMobileViT(BaseVideoEncoder):
             return self._forward_inference(x)
         else:
             return self._forward_train(x)
+
+    def dummy_input_and_label(self, batch_size: int) -> Dict:
+        """Create dummy input and labels for CI/CD purposes."""
+        num_frames = 2
+        img_channels = 3
+        height = 224
+        width = 224
+        n_classes = 10
+        img_tensor = torch.randn(
+            batch_size, num_frames, img_channels, height, width, dtype=torch.float
+        )
+        label_tensor = torch.randint(low=0, high=n_classes, size=(batch_size,)).long()
+        return {"samples": img_tensor, "targets": label_tensor}

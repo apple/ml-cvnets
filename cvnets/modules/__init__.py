@@ -13,6 +13,8 @@ from .pspnet_module import PSP
 from .mobilevit_block import MobileViTBlock, MobileViTBlockv2
 from .feature_pyramid import FeaturePyramidNetwork
 from .ssd_heads import SSDHead, SSDInstanceHead
+from .efficientnet import EfficientNetBlock
+from .swin_transformer_block import SwinTransformerBlock, PatchMerging, Permute
 
 
 __all__ = [
@@ -29,4 +31,8 @@ __all__ = [
     "FeaturePyramidNetwork",
     "SSDHead",
     "SSDInstanceHead",
+    "EfficientNetBlock",
+    "SwinTransformerBlock",
+    "PatchMerging",
+    "Permute",
 ]

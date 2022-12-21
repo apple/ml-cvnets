@@ -13,8 +13,8 @@ from .detection_loss_fns import get_detection_loss, arguments_detection_loss_fn
 
 @register_loss_fn("detection")
 class DetectionLoss(BaseCriteria):
-    def __init__(self, opts):
-        super(DetectionLoss, self).__init__()
+    def __init__(self, opts, *args, **kwargs):
+        super().__init__(opts, *args, **kwargs)
 
         self.criteria = get_detection_loss(opts=opts)
 
@@ -43,7 +43,11 @@ class DetectionLoss(BaseCriteria):
     ) -> Tensor:
 
         loss = self.criteria(
-            input_sample=input_sample, prediction=prediction, target=target
+            input_sample=input_sample,
+            prediction=prediction,
+            target=target,
+            *args,
+            **kwargs
         )
         return loss
 

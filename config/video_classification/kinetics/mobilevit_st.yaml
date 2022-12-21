@@ -1,5 +1,6 @@
+taskname: '+ MobileViTv1-Small SpatioTemporal'
 common:
-  run_label: "run_1"
+  run_label: "train"
   log_freq: 100
   auto_resume: true
   mixed_precision: true

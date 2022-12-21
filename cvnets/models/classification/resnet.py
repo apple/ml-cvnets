@@ -36,7 +36,7 @@ class ResNet(BaseEncoder):
 
         cfg = get_configuration(opts=opts)
 
-        super().__init__(*args, **kwargs)
+        super().__init__(opts, *args, **kwargs)
         self.model_conf_dict = dict()
 
         self.conv_1 = ConvLayer(

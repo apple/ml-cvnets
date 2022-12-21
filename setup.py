@@ -15,7 +15,7 @@ if sys.platform == "darwin":
 else:
     extra_compile_args = ["-std=c++11", "-O3"]
 
-VERSION = 0.2
+VERSION = 0.3
 
 
 def do_setup(package_data):
@@ -25,11 +25,13 @@ def do_setup(package_data):
         description="CVNets: A library for training computer vision networks",
         url="https://github.com/apple/ml-cvnets.git",
         setup_requires=[
-            'numpy>=1.21; python_version>="3.7"',
+            'numpy<1.20.0; python_version<"3.7"',
+            'numpy; python_version>="3.7"',
             "setuptools>=18.0",
         ],
         install_requires=[
-            'numpy>=1.21; python_version>="3.7"',
+            'numpy<1.20.0; python_version<"3.7"',
+            'numpy; python_version>="3.7"',
             "torch",
             "tqdm",
         ],

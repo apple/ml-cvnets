@@ -70,7 +70,6 @@ def _image_batch_pairs(
         # compute the batch size for sampled image resolutions with respect to the base resolution
         _bsz = max(1, int(round(n_elements / (crop_h * crop_y), 2)))
 
-        _bsz = make_divisible(_bsz, n_gpus)
         img_batch_tuples.add((crop_h, crop_y, _bsz))
 
     img_batch_tuples = list(img_batch_tuples)

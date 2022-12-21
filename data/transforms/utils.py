@@ -8,10 +8,12 @@ import numpy as np
 
 
 def setup_size(size: Any, error_msg="Need a tuple of length 2"):
+    if size is None:
+        raise ValueError("Size can't be None")
+
     if isinstance(size, int):
         return size, size
-
-    if isinstance(size, (list, tuple)) and len(size) == 1:
+    elif isinstance(size, (list, tuple)) and len(size) == 1:
         return size[0], size[0]
 
     if len(size) != 2:

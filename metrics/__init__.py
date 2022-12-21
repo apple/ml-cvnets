@@ -45,10 +45,12 @@ def arguments_stats(parser: argparse.ArgumentParser):
         help="Maximize checkpoint metric",
     )
     group.add_argument(
-        "--stats.save-all-checkpoints",
-        action="store_true",
-        default=False,
-        help="If True, will save checkpoints from all epochs",
+        "--stats.coco-map.iou_types",
+        type=str,
+        default=["bbox"],
+        nargs="+",
+        choices=("bbox", "segm"),
+        help="Types of IOU to compute for MSCoco.",
     )
 
     return parser

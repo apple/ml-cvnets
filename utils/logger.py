@@ -32,21 +32,28 @@ def error(message: str) -> None:
         + "ERROR  "
         + text_colors["end_color"]
     )
-    print("{} - {} - {}".format(time_stamp, error_str, message), flush=True)
-    print("{} - {} - {}".format(time_stamp, error_str, "Exiting!!!"), flush=True)
-    exit(-1)
+
+    # exiting with code -1 does not tell any information about the error (e.g., NaN encountered in the loss).
+    # For more descriptive error messages, we replace exit(-1) with sys.exit(ERROR_MESSAGE).
+    # This allows us to handle specific exceptions in the tests.
+
+    # print("{} - {} - {}".format(time_stamp, error_str, message), flush=True)
+    # print("{} - {} - {}".format(time_stamp, error_str, "Exiting!!!"), flush=True)
+    # exit(-1)
+
+    sys.exit("{} - {} - {}. Exiting!!!".format(time_stamp, error_str, message))
 
 
 def color_text(in_text: str) -> str:
     return text_colors["light_red"] + in_text + text_colors["end_color"]
 
 
-def log(message: str) -> None:
+def log(message: str, end="\n") -> None:
     time_stamp = get_curr_time_stamp()
     log_str = (
         text_colors["logs"] + text_colors["bold"] + "LOGS   " + text_colors["end_color"]
     )
-    print("{} - {} - {}".format(time_stamp, log_str, message))
+    print("{} - {} - {}".format(time_stamp, log_str, message), end=end)
 
 
 def warning(message: str) -> None:

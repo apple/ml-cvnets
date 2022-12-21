@@ -8,7 +8,8 @@ import time
 import numpy as np
 import torch
 from utils import logger
-from typing import Optional, Dict, Union, Any
+from typing import Optional, Dict, Union, Any, List
+from numbers import Number
 
 from . import SUPPORTED_STATS
 
@@ -57,64 +58,137 @@ class Statistics(object):
             if k in self.supported_metrics:
                 if self.metric_dict[k] is None:
                     if k == "iou":
-                        self.metric_dict[k] = {
-                            "inter": v["inter"] * n,
-                            "union": v["union"] * n,
-                        }
-                    else:
+                        if isinstance(v["inter"], np.ndarray):
+                            self.metric_dict[k] = {
+                                "inter": v["inter"] * n,
+                                "union": v["union"] * n,
+                            }
+                        else:
+                            logger.error(
+                                "IOU computation is only supported using np.ndarray."
+                            )
+                    elif isinstance(v, Dict):
+                        self.metric_dict[k] = dict()
+                        for k1, v1 in v.items():
+                            self.metric_dict[k][k1] = v1 * n
+                    elif isinstance(v, Number):
                         self.metric_dict[k] = v * n
+                    else:
+                        logger.error(
+                            "Dict[str, float] or float are supported in {}".format(
+                                self.__class__.__name__
+                            )
+                        )
                 else:
                     if k == "iou":
-                        self.metric_dict[k]["inter"] += v["inter"] * n
-                        self.metric_dict[k]["union"] += v["union"] * n
-                    else:
+                        if isinstance(v["inter"], np.ndarray):
+                            self.metric_dict[k]["inter"] += v["inter"] * n
+                            self.metric_dict[k]["union"] += v["union"] * n
+                        else:
+                            logger.error(
+                                "IOU computation is only supported using np.ndarray."
+                            )
+                    elif isinstance(v, Dict):
+                        for k1, v1 in v.items():
+                            self.metric_dict[k][k1] += v1 * n
+                    elif isinstance(v, Number):
                         self.metric_dict[k] += v * n
+                    else:
+                        logger.error(
+                            "Dict[str, float] or Number are supported in {}".format(
+                                self.__class__.__name__
+                            )
+                        )
 
                 self.metric_counters[k] += n
         self.batch_time += batch_time
         self.batch_counter += 1
 
-    def avg_statistics_all(self, sep=": ") -> list:
+    def avg_statistics_all(self, sep=": ") -> List[str]:
+        """
+        This function computes average statistics of all metrics and returns them as a list of strings.
+
+        Examples:
+         loss: 12.9152
+         loss: {'total_loss': 12.9152, 'reg_loss': 2.8199, 'cls_loss': 10.0953}
+        """
+
         metric_stats = []
         for k, v in self.metric_dict.items():
             counter = self.metric_counters[k]
 
             if k == "iou":
-                inter = (v["inter"] * 1.0) / counter
-                union = (v["union"] * 1.0) / counter
-                iou = inter / union
-                if isinstance(iou, torch.Tensor):
-                    iou = iou.cpu().numpy()
-                # Converting iou from [0, 1] to [0, 100]
-                # other metrics are by default in [0, 100 range]
-                v_avg = np.mean(iou) * 100.0
+                if isinstance(v["inter"], np.ndarray):
+                    inter = (v["inter"] * 1.0) / counter
+                    union = (v["union"] * 1.0) / counter
+                    iou = inter / union
+                    if isinstance(iou, torch.Tensor):
+                        iou = iou.cpu().numpy()
+                    # Converting iou from [0, 1] to [0, 100]
+                    # other metrics are by default in [0, 100 range]
+                    v_avg = np.mean(iou) * 100.0
+                    v_avg = round(v_avg, self.round_places)
+                else:
+                    logger.error("IOU computation is only supported using np.ndarray.")
+            elif isinstance(v, Dict):
+                v_avg = {}
+                for k1, v1 in v.items():
+                    v_avg[k1] = round((v1 * 1.0) / counter, self.round_places)
             else:
-                v_avg = (v * 1.0) / counter
+                v_avg = round((v * 1.0) / counter, self.round_places)
 
-            v_avg = round(v_avg, self.round_places)
-
-            metric_stats.append("{:<}{}{:.4f}".format(k, sep, v_avg))
+            metric_stats.append("{:<}{}{}".format(k, sep, v_avg))
         return metric_stats
 
-    def avg_statistics(self, metric_name: str) -> float:
+    def avg_statistics(
+        self, metric_name: str, sub_metric_name: Optional[str] = None, *args, **kwargs
+    ) -> float:
+        """
+        This function computes the average statistics of a given metric.
+
+        .. note::
+        The statistics are stored in form of a dictionary and each key-value pair can be of string and number
+        OR string and dictionary of string and number.
+
+        Examples:
+             {'loss': 10.0, 'top-1': 50.0}
+             {'loss': {'total_loss': 10.0, 'cls_loss': 2.0, 'reg_loss': 8.0}, 'mAP': 5.0}
+
+        """
         avg_val = None
         if metric_name in self.supported_metrics:
             counter = self.metric_counters[metric_name]
             v = self.metric_dict[metric_name]
 
             if metric_name == "iou":
-                inter = (v["inter"] * 1.0) / counter
-                union = (v["union"] * 1.0) / counter
-                iou = inter / union
-                if isinstance(iou, torch.Tensor):
-                    iou = iou.cpu().numpy()
-                # Converting iou from [0, 1] to [0, 100]
-                # other metrics are by default in [0, 100 range]
-                avg_val = np.mean(iou) * 100.0
-            else:
-                avg_val = (v * 1.0) / counter
+                if isinstance(v["inter"], np.ndarray):
+                    inter = (v["inter"] * 1.0) / counter
+                    union = (v["union"] * 1.0) / counter
+                    iou = inter / union
+                    if isinstance(iou, torch.Tensor):
+                        iou = iou.cpu().numpy()
+                    # Converting iou from [0, 1] to [0, 100]
+                    # other metrics are by default in [0, 100 range]
+                    avg_val = np.mean(iou) * 100.0
+                    avg_val = round(avg_val, self.round_places)
+                else:
+                    logger.error("IOU computation is only supported using np.ndarray.")
 
-            avg_val = round(avg_val, self.round_places)
+            elif isinstance(v, Dict) and sub_metric_name is not None:
+                sub_metric_keys = list(v.keys())
+                if sub_metric_name in sub_metric_keys:
+                    avg_val = round(
+                        (v[sub_metric_name] * 1.0) / counter, self.round_places
+                    )
+                else:
+                    logger.error(
+                        "{} not present in the dictionary. Available keys are: {}".format(
+                            sub_metric_name, sub_metric_keys
+                        )
+                    )
+            elif isinstance(v, Number):
+                avg_val = round((v * 1.0) / counter, self.round_places)
+
         return avg_val
 
     def iter_summary(

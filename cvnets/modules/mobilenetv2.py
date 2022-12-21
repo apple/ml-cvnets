@@ -23,10 +23,13 @@ class InvertedResidualSE(BaseModule):
         in_channels (int): :math:`C_{in}` from an expected input of size :math:`(N, C_{in}, H_{in}, W_{in})`
         out_channels (int): :math:`C_{out}` from an expected output of size :math:`(N, C_{out}, H_{out}, W_{out)`
         expand_ratio (Union[int, float]): Expand the input channels by this factor in depth-wise conv
-        use_hs (Optional[bool]): Use hard sigmoid activation over relu. Default: False
         dilation (Optional[int]): Use conv with dilation. Default: 1
         stride (Optional[int]): Use convolutions with a stride. Default: 1
         use_se (Optional[bool]): Use squeeze-excitation block. Default: False
+        act_fn_name (Optional[str]): Activation function name. Default: relu
+        se_scale_fn_name (Optional [str]): Scale activation function inside SE unit. Defaults to hard_sigmoid
+        kernel_size (Optional[int]): Kernel size in depth-wise convolution. Defaults to 3.
+        squeeze_factor (Optional[bool]): Squeezing factor in SE unit. Defaults to 4.
 
     Shape:
         - Input: :math:`(N, C_{in}, H_{in}, W_{in})`
@@ -39,18 +42,18 @@ class InvertedResidualSE(BaseModule):
         in_channels: int,
         out_channels: int,
         expand_ratio: Union[int, float],
-        use_hs: Optional[bool] = False,
         dilation: Optional[int] = 1,
         stride: Optional[int] = 1,
         use_se: Optional[bool] = False,
+        act_fn_name: Optional[str] = "relu",
+        se_scale_fn_name: Optional[str] = "hard_sigmoid",
+        kernel_size: Optional[int] = 3,
+        squeeze_factor: Optional[int] = 4,
         *args,
         **kwargs
     ) -> None:
         hidden_dim = make_divisible(int(round(in_channels * expand_ratio)), 8)
-        if use_hs:
-            act_fn = get_activation_fn(act_type="hard_swish", inplace=True)
-        else:
-            act_fn = get_activation_fn(act_type="relu", inplace=True)
+        act_fn = get_activation_fn(act_type=act_fn_name, inplace=True)
 
         super().__init__()
 
@@ -76,7 +79,7 @@ class InvertedResidualSE(BaseModule):
                 in_channels=hidden_dim,
                 out_channels=hidden_dim,
                 stride=stride,
-                kernel_size=3,
+                kernel_size=kernel_size,
                 groups=hidden_dim,
                 use_act=False,
                 use_norm=True,
@@ -89,8 +92,8 @@ class InvertedResidualSE(BaseModule):
             se = SqueezeExcitation(
                 opts=opts,
                 in_channels=hidden_dim,
-                squeeze_factor=4,
-                scale_fn_name="hard_sigmoid",
+                squeeze_factor=squeeze_factor,
+                scale_fn_name=se_scale_fn_name,
             )
             block.add_module(name="se", module=se)
 
@@ -111,9 +114,10 @@ class InvertedResidualSE(BaseModule):
         self.out_channels = out_channels
         self.exp = expand_ratio
         self.dilation = dilation
-        self.use_hs = use_hs
         self.use_se = use_se
         self.stride = stride
+        self.act_fn_name = act_fn_name
+        self.kernel_size = kernel_size
         self.use_res_connect = self.stride == 1 and in_channels == out_channels
 
     def forward(self, x: Tensor, *args, **kwargs) -> Tensor:
@@ -126,15 +130,16 @@ class InvertedResidualSE(BaseModule):
         return module_profile(module=self.block, x=input)
 
     def __repr__(self) -> str:
-        return "{}(in_channels={}, out_channels={}, stride={}, exp={}, dilation={}, use_hs={}, use_se={})".format(
+        return "{}(in_channels={}, out_channels={}, stride={}, exp={}, dilation={}, use_se={}, kernel_size={}, act_fn={})".format(
             self.__class__.__name__,
             self.in_channels,
             self.out_channels,
             self.stride,
             self.exp,
             self.dilation,
-            self.use_hs,
             self.use_se,
+            self.kernel_size,
+            self.act_fn_name,
         )
 
 

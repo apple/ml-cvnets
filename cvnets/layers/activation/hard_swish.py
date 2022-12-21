@@ -16,15 +16,17 @@ class Hardswish(nn.Hardswish):
     `Searching for MobileNetv3 <https://arxiv.org/abs/1905.02244>`_
     """
 
-    def __init__(self, inplace: Optional[bool] = False) -> None:
+    def __init__(self, inplace: Optional[bool] = False, *args, **kwargs) -> None:
         super().__init__(inplace=inplace)
 
-    def forward(self, input: Tensor) -> Tensor:
+    def forward(self, input: Tensor, *args, **kwargs) -> Tensor:
         if hasattr(F, "hardswish"):
             return F.hardswish(input, self.inplace)
         else:
             x_hard_sig = F.relu(input + 3) / 6
             return input * x_hard_sig
 
-    def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:
+    def profile_module(
+        self, input: Tensor, *args, **kwargs
+    ) -> Tuple[Tensor, float, float]:
         return input, 0.0, 0.0

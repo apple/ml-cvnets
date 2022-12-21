@@ -5,14 +5,13 @@
 
 import sys
 import traceback
-
 import torch
+from torch import Tensor
 import copy
 import gc
 import time
 import shutil
 from typing import Dict
-from torch.cuda.amp import autocast
 from torch.nn import functional as F
 import random
 from typing import Union, List, Optional
@@ -20,15 +19,23 @@ import numpy as np
 from itertools import product
 
 from data.transforms.image_torch import RandomMixup, RandomCutmix
-from engine.utils import print_summary
+from engine.utils import print_summary, get_log_writers
 from metrics import Statistics, metric_monitor
 from common import DEFAULT_ITERATIONS, DEFAULT_EPOCHS, DEFAULT_LOG_FREQ
+from options.parse_args import parse_validation_metric_names
 from utils import logger
 from utils.common_utils import create_directories, move_to_device
 from utils.ddp_utils import is_master, dist_barrier
 from utils.tensor_utils import reduce_tensor_sum, tensor_to_python_float
-from utils.checkpoint_utils import copy_weights, save_checkpoint
+from utils.checkpoint_utils import (
+    copy_weights,
+    save_checkpoint,
+    save_interval_checkpoint,
+)
 from loss_landscape import landscape_utils as ll_utils
+
+
+from .utils import get_batch_size, autocast_fn, log_metrics
 
 
 class Trainer(object):
@@ -84,6 +91,9 @@ class Trainer(object):
         self.accum_after_epoch = getattr(self.opts, "common.accum_after_epoch", 0)
 
         self.mixed_precision_training = getattr(opts, "common.mixed_precision", False)
+        self.mixed_precision_dtype = getattr(
+            opts, "common.mixed_precision_dtype", "float16"
+        )
 
         self.train_metric_names = getattr(opts, "stats.train", ["loss"])
         if isinstance(self.train_metric_names, str):
@@ -98,39 +108,20 @@ class Trainer(object):
         if "loss" not in self.train_metric_names:
             self.train_metric_names.append(self.train_metric_names)
 
-        self.val_metric_names = getattr(opts, "stats.val", ["loss"])
-        if isinstance(self.val_metric_names, str):
-            self.val_metric_names = [self.val_metric_names]
-
-        assert isinstance(
-            self.val_metric_names, list
-        ), "Type of metric names should be list. Got: {}".format(
-            type(self.val_metric_names)
-        )
-
-        if "loss" not in self.val_metric_names:
-            self.val_metric_names.append(self.val_metric_names)
+        (
+            self.val_metric_names,
+            self.ckpt_metric,
+            self.ckpt_submetric,
+        ) = parse_validation_metric_names(self.opts)
 
         self.save_all_checkpoints = getattr(
-            self.opts, "stats.save_all_checkpoints", False
+            self.opts, "common.save_all_checkpoints", False
         )
-        self.ckpt_metric = getattr(self.opts, "stats.checkpoint_metric", "loss")
-        if self.ckpt_metric is None:
-            # if checkpoint metric is not specified, then use loss
-            self.ckpt_metric = "loss"
 
-        assert (
-            self.ckpt_metric in self.val_metric_names
-        ), "Checkpoint metric should be part of metric names. Metric names: {}, Checkpoint metric: {}".format(
-            self.val_metric_names, self.ckpt_metric
-        )
-        self.ckpt_metric = self.ckpt_metric.lower()
+        self.save_location = getattr(opts, "common.exp_loc", "results/run_1")
 
-        self.tb_log_writer = None
-        self.bolt_log_writer = None
+        self.log_writers = get_log_writers(self.opts, save_location=self.save_location)
         if self.is_master_node:
-            self.setup_log_writer()
-
             print_summary(
                 opts=self.opts,
                 model=self.model,
@@ -182,39 +173,10 @@ class Trainer(object):
         # self.optimizer.zero_grad(set_to_none=True)
         self.set_grad_to_none = False
 
-    def setup_log_writer(self):
-        tensorboard_logging = getattr(self.opts, "common.tensorboard_logging", False)
-        if tensorboard_logging:
-            try:
-                from torch.utils.tensorboard import SummaryWriter
-            except ImportError as e:
-                logger.log(
-                    "Unable to import SummaryWriter from torch.utils.tensorboard. Disabling tensorboard logging"
-                )
-                SummaryWriter = None
-
-            if SummaryWriter is not None:
-                exp_dir = getattr(self.opts, "common.exp_loc", "results/run_1")
-                exp_dir = "{}/tb_logs".format(exp_dir)
-                create_directories(dir_path=exp_dir, is_master_node=self.is_master_node)
-                self.tb_log_writer = SummaryWriter(
-                    log_dir=exp_dir, comment="Training and Validation logs"
-                )
-            else:
-                self.tb_log_writer = None
-
-        bolt_logging = getattr(self.opts, "common.bolt_logging", False)
-        if bolt_logging:
-            try:
-                from utils.bolt_logger import BoltLogger
-            except ModuleNotFoundError:
-                BoltLogger = None
-
-            if BoltLogger is None:
-                logger.log("Unable to import bolt. Disabling bolt logging")
-                self.bolt_log_writer = None
-            else:
-                self.bolt_log_writer = BoltLogger()
+        save_interval_freq = getattr(opts, "common.save_interval_freq", 0)
+        # save interval checkpoints every `save_interval_freq` updates on the master node
+        self.save_interval = self.is_master_node and save_interval_freq > 0
+        self.save_interval_freq = save_interval_freq
 
     def compute_grad_norm(self):
         parameters = [p for p in self.model.parameters() if p.grad is not None]
@@ -236,12 +198,6 @@ class Trainer(object):
         if total_norm.isnan() or total_norm.isinf():
             return None
         return total_norm
-
-    def _get_batch_size(self, x):
-        if isinstance(x, torch.Tensor):
-            return x.shape[0]
-        elif isinstance(x, Dict):
-            return x["image"].shape[0]
 
     def apply_mixup_transforms(self, data):
         # Apply mixup transforms on classification tasks
@@ -294,7 +250,7 @@ class Trainer(object):
 
         epoch_start_time = time.time()
         batch_load_start = time.time()
-        grad_norm = 0.0
+        grad_norm = torch.tensor([0.0], dtype=torch.float, device=self.device)
         for batch_id, batch in enumerate(self.train_loader):
             if self.train_iterations > self.max_iterations:
                 self.max_iterations_reached = True
@@ -307,9 +263,9 @@ class Trainer(object):
 
             batch_load_toc = time.time() - batch_load_start
 
-            input_img, target_label = batch["image"], batch["label"]
+            samples, targets = batch["samples"], batch["targets"]
 
-            batch_size = self._get_batch_size(input_img)
+            batch_size = get_batch_size(samples)
 
             # update the learning rate
             self.optimizer = self.scheduler.update_lr(
@@ -322,13 +278,31 @@ class Trainer(object):
                     model=self.model, epoch=epoch, iteration=self.train_iterations
                 )
 
-            with autocast(enabled=self.mixed_precision_training):
+            with autocast_fn(
+                enabled=self.mixed_precision_training,
+                amp_precision=self.mixed_precision_dtype,
+            ):
                 # prediction
-                pred_label = self.model(input_img)
+                pred_label = self.model(samples)
                 # compute loss
-                loss = self.criteria(
-                    input_sample=input_img, prediction=pred_label, target=target_label
+                loss_dict_or_tensor: Union[Dict, Tensor] = self.criteria(
+                    input_sample=samples,
+                    prediction=pred_label,
+                    target=targets,
+                    epoch=epoch,
+                    iterations=self.train_iterations,
                 )
+
+                if isinstance(loss_dict_or_tensor, Dict):
+                    if "total_loss" not in loss_dict_or_tensor.keys():
+                        logger.error(
+                            "total_loss key is required for loss functions that return outputs as dictionary."
+                        )
+                    loss = loss_dict_or_tensor["total_loss"]
+                elif isinstance(loss_dict_or_tensor, Tensor):
+                    loss = loss_dict_or_tensor
+                else:
+                    logger.error("Loss value should be an instance of Tensor or Dict")
 
                 if isinstance(loss, torch.Tensor) and torch.isnan(loss):
                     logger.error("Nan encountered in the loss.")
@@ -364,8 +338,8 @@ class Trainer(object):
             metrics = metric_monitor(
                 self.opts,
                 pred_label=pred_label,
-                target_label=target_label,
-                loss=loss,
+                target_label=targets,
+                loss=loss_dict_or_tensor,
                 grad_norm=grad_norm,
                 use_distributed=self.use_distributed,
                 metric_names=self.train_metric_names,
@@ -374,6 +348,28 @@ class Trainer(object):
             train_stats.update(
                 metric_vals=metrics, batch_time=batch_load_toc, n=batch_size
             )
+
+            # save the checkpoint every N updates
+            if (
+                self.save_interval
+                and (self.train_iterations % self.save_interval_freq) == 0
+            ):
+                save_interval_checkpoint(
+                    iterations=self.train_iterations,
+                    epoch=epoch,
+                    model=self.model,
+                    optimizer=self.optimizer,
+                    best_metric=loss.item(),
+                    save_dir=self.save_location,
+                    gradient_scalar=self.gradient_scalar,
+                    not_intermediate_checkpoint=False,
+                )
+                logger.info(
+                    "Checkpoints saved after {} updates at: {}".format(
+                        self.train_iterations, self.save_location
+                    ),
+                    print_line=True,
+                )
 
             if batch_id % self.log_freq == 0 and self.is_master_node:
                 lr = self.scheduler.retrieve_lr(self.optimizer)
@@ -387,9 +383,13 @@ class Trainer(object):
 
             batch_load_start = time.time()
 
-        avg_loss = train_stats.avg_statistics(metric_name="loss")
+        avg_loss = train_stats.avg_statistics(
+            metric_name="loss", sub_metric_name="total_loss"
+        )
         train_stats.epoch_summary(epoch=epoch, stage="training")
-        avg_ckpt_metric = train_stats.avg_statistics(metric_name=self.ckpt_metric)
+        avg_ckpt_metric = train_stats.avg_statistics(
+            metric_name=self.ckpt_metric, sub_metric_name=self.ckpt_submetric
+        )
 
         gc.collect()
 
@@ -408,7 +408,7 @@ class Trainer(object):
             from metrics.coco_map import COCOEvaluator
 
             coco_evaluator = COCOEvaluator(
-                opts=self.opts, iou_types=["bbox"], use_distributed=self.use_distributed
+                opts=self.opts, use_distributed=self.use_distributed
             )
         else:
             coco_evaluator = None
@@ -426,18 +426,21 @@ class Trainer(object):
             for batch_id, batch in enumerate(self.val_loader):
                 batch = move_to_device(opts=self.opts, x=batch, device=self.device)
 
-                input_img, target_label = batch["image"], batch["label"]
+                samples, targets = batch["samples"], batch["targets"]
 
-                batch_size = self._get_batch_size(input_img)
+                batch_size = get_batch_size(samples)
 
-                with autocast(enabled=self.mixed_precision_training):
+                with autocast_fn(
+                    enabled=self.mixed_precision_training,
+                    amp_precision=self.mixed_precision_dtype,
+                ):
                     # prediction
-                    pred_label = model(input_img)
+                    pred_label = model(samples)
                     # compute loss
-                    loss = self.criteria(
-                        input_sample=input_img,
+                    loss_dict_or_tensor = self.criteria(
+                        input_sample=samples,
                         prediction=pred_label,
-                        target=target_label,
+                        target=targets,
                     )
 
                 processed_samples += batch_size
@@ -445,8 +448,8 @@ class Trainer(object):
                 metrics = metric_monitor(
                     self.opts,
                     pred_label=pred_label,
-                    target_label=target_label,
-                    loss=loss,
+                    target_label=targets,
+                    loss=loss_dict_or_tensor,
                     use_distributed=self.use_distributed,
                     metric_names=self.val_metric_names,
                     is_evaluation=True,
@@ -458,7 +461,7 @@ class Trainer(object):
 
                 if coco_evaluator is not None:
                     coco_evaluator.prepare_predictions(
-                        predictions=pred_label, targets=target_label
+                        predictions=pred_label, targets=targets
                     )
 
                 if batch_id % self.log_freq == 0 and self.is_master_node:
@@ -471,8 +474,12 @@ class Trainer(object):
                     )
 
         validation_stats.epoch_summary(epoch=epoch, stage="validation" + extra_str)
-        avg_loss = validation_stats.avg_statistics(metric_name="loss")
-        avg_ckpt_metric = validation_stats.avg_statistics(metric_name=self.ckpt_metric)
+        avg_loss = validation_stats.avg_statistics(
+            metric_name="loss", sub_metric_name="total_loss"
+        )
+        avg_ckpt_metric = validation_stats.avg_statistics(
+            metric_name=self.ckpt_metric, sub_metric_name=self.ckpt_submetric
+        )
 
         if coco_evaluator is not None:
             # synchronize across different processes and aggregate the results
@@ -514,7 +521,7 @@ class Trainer(object):
             for batch_id, batch in enumerate(self.train_loader_set):
                 batch = move_to_device(opts=self.opts, x=batch, device=self.device)
 
-                input_img, target_label = batch["image"], batch["label"]
+                samples, targets = batch["samples"], batch["targets"]
 
                 sample_ids = None
                 if "sample_id" in batch:
@@ -532,16 +539,19 @@ class Trainer(object):
                     logger.log("Sample Ids can't be none")
                     break
 
-                with autocast(enabled=self.mixed_precision_training):
+                with autocast_fn(
+                    enabled=self.mixed_precision_training,
+                    amp_precision=self.mixed_precision_dtype,
+                ):
                     # prediction
-                    pred_label = model(input_img)
+                    pred_label = model(samples)
                     pred_label = F.softmax(pred_label, dim=-1)
 
                 pred_conf, pred_indices = torch.max(pred_label, dim=-1)
 
                 easy_samples = torch.logical_and(
                     pred_indices.eq(
-                        target_label
+                        targets
                     ),  # condition 1: Predicted label == Target label
                     pred_conf
                     >= self.sample_confidence,  # condition 2: prediction confidence >= desired confidence
@@ -598,63 +608,16 @@ class Trainer(object):
                             )
                         )
 
-    @staticmethod
-    def log_metrics(
-        lrs: Union[List, float],
-        log_writer,
-        train_loss: float,
-        val_loss: float,
-        epoch: int,
-        best_metric: float,
-        val_ema_loss: Optional[float] = None,
-        ckpt_metric_name: Optional[str] = None,
-        train_ckpt_metric: Optional[float] = None,
-        val_ckpt_metric: Optional[float] = None,
-        val_ema_ckpt_metric: Optional[float] = None,
-    ) -> None:
-        if not isinstance(lrs, list):
-            lrs = [lrs]
-        for g_id, lr_val in enumerate(lrs):
-            log_writer.add_scalar("LR/Group-{}".format(g_id), round(lr_val, 6), epoch)
-
-        log_writer.add_scalar("Train/Loss", round(train_loss, 2), epoch)
-        log_writer.add_scalar("Val/Loss", round(val_loss, 2), epoch)
-        log_writer.add_scalar("Common/Best Metric", round(best_metric, 2), epoch)
-        if val_ema_loss is not None:
-            log_writer.add_scalar("Val_EMA/Loss", round(val_ema_loss, 2), epoch)
-
-        # If val checkpoint metric is different from loss, add that too
-        if ckpt_metric_name is not None and ckpt_metric_name != "loss":
-            if train_ckpt_metric is not None:
-                log_writer.add_scalar(
-                    "Train/{}".format(ckpt_metric_name.title()),
-                    round(train_ckpt_metric, 2),
-                    epoch,
-                )
-            if val_ckpt_metric is not None:
-                log_writer.add_scalar(
-                    "Val/{}".format(ckpt_metric_name.title()),
-                    round(val_ckpt_metric, 2),
-                    epoch,
-                )
-            if val_ema_ckpt_metric is not None:
-                log_writer.add_scalar(
-                    "Val_EMA/{}".format(ckpt_metric_name.title()),
-                    round(val_ema_ckpt_metric, 2),
-                    epoch,
-                )
-
     def run(self, train_sampler=None):
         if train_sampler is None and self.is_master_node:
             logger.error("Train sampler cannot be None")
 
         copy_at_epoch = getattr(self.opts, "ema.copy_at_epoch", -1)
         train_start_time = time.time()
-        save_dir = getattr(self.opts, "common.exp_loc", "results")
 
         cfg_file = getattr(self.opts, "common.config_file", None)
         if cfg_file is not None and self.is_master_node:
-            dst_cfg_file = "{}/config.yaml".format(save_dir)
+            dst_cfg_file = "{}/config.yaml".format(self.save_location)
             shutil.copy(src=cfg_file, dst=dst_cfg_file)
             logger.info(
                 "Configuration file is stored here: {}".format(
@@ -739,7 +702,7 @@ class Trainer(object):
                         optimizer=self.optimizer,
                         best_metric=self.best_metric,
                         is_best=is_best,
-                        save_dir=save_dir,
+                        save_dir=self.save_location,
                         model_ema=self.model_ema,
                         is_ema_best=is_ema_best,
                         ema_best_metric=ema_best_metric,
@@ -749,30 +712,17 @@ class Trainer(object):
                         save_all_checkpoints=self.save_all_checkpoints,
                     )
                     logger.info(
-                        "Checkpoints saved at: {}".format(save_dir), print_line=True
+                        "Checkpoints saved at: {}".format(self.save_location),
+                        print_line=True,
                     )
 
                 if self.is_master_node:
                     lr_list = self.scheduler.retrieve_lr(self.optimizer)
 
-                    if self.tb_log_writer is not None:
-                        self.log_metrics(
+                    for log_writer in self.log_writers:
+                        log_metrics(
                             lrs=lr_list,
-                            log_writer=self.tb_log_writer,
-                            train_loss=train_loss,
-                            val_loss=val_loss,
-                            epoch=epoch,
-                            best_metric=self.best_metric,
-                            val_ema_loss=val_ema_loss,
-                            ckpt_metric_name=self.ckpt_metric,
-                            train_ckpt_metric=train_ckpt_metric,
-                            val_ckpt_metric=val_ckpt_metric,
-                            val_ema_ckpt_metric=val_ema_ckpt_metric,
-                        )
-                    if self.bolt_log_writer is not None:
-                        self.log_metrics(
-                            lrs=lr_list,
-                            log_writer=self.bolt_log_writer,
+                            log_writer=log_writer,
                             train_loss=train_loss,
                             val_loss=val_loss,
                             epoch=epoch,
@@ -791,7 +741,6 @@ class Trainer(object):
                     if self.is_master_node:
                         logger.info("Max. iterations for training reached")
                     break
-
         except KeyboardInterrupt as e:
             if self.is_master_node:
                 logger.log("Keyboard interruption. Exiting from early training")
@@ -822,8 +771,8 @@ class Trainer(object):
 
             torch.cuda.empty_cache()
 
-            if self.is_master_node and self.tb_log_writer is not None:
-                self.tb_log_writer.close()
+            for log_writer in self.log_writers:
+                log_writer.close()
 
             if self.is_master_node:
                 train_end_time = time.time()
@@ -833,13 +782,6 @@ class Trainer(object):
                     int(hours), int(minutes), seconds
                 )
                 logger.log("Training took {}".format(train_time_str))
-
-            try:
-                exit(0)
-            except Exception as e:
-                pass
-            finally:
-                pass
 
     def run_loss_landscape(self):
         # Loss landscape code is adapted from https://github.com/xxxnell/how-do-vits-work
@@ -868,7 +810,6 @@ class Trainer(object):
                 if has_module
                 else self.model.__class__.__name__
             )
-            save_dir = getattr(self.opts, "common.exp_loc", "results")
 
             # copy the model and create bases
             model = copy.deepcopy(self.model)
@@ -915,18 +856,31 @@ class Trainer(object):
                         batch = move_to_device(
                             opts=self.opts, x=batch, device=self.device
                         )
-                        input_img, target_label = batch["image"], batch["label"]
+                        samples, targets = batch["samples"], batch["targets"]
 
-                        batch_size = self._get_batch_size(x=input_img)
+                        batch_size = get_batch_size(samples)
                         processed_samples += batch_size
 
                         # make the prediction and compute loss
-                        pred_label = model(input_img)
-                        loss = self.criteria(
-                            input_sample=input_img,
+                        pred_label = model(samples)
+                        loss_dict_or_tensor: Union[Dict, Tensor] = self.criteria(
+                            input_sample=samples,
                             prediction=pred_label,
-                            target=target_label,
+                            target=targets,
                         )
+
+                        if isinstance(loss_dict_or_tensor, Dict):
+                            if "total_loss" not in loss_dict_or_tensor.keys():
+                                logger.error(
+                                    "total_loss key is required for loss functions that return outputs as dictionary."
+                                )
+                            loss = loss_dict_or_tensor["total_loss"]
+                        elif isinstance(loss_dict_or_tensor, Tensor):
+                            loss = loss_dict_or_tensor
+                        else:
+                            logger.error(
+                                "Loss value should be an instance of Tensor or Dict"
+                            )
 
                         if isinstance(loss, torch.Tensor) and torch.isnan(loss):
                             logger.error("Nan encountered in the loss.")
@@ -934,8 +888,8 @@ class Trainer(object):
                         metrics = metric_monitor(
                             self.opts,
                             pred_label=pred_label,
-                            target_label=target_label,
-                            loss=loss,
+                            target_label=targets,
+                            loss=loss_dict_or_tensor,
                             use_distributed=self.use_distributed,
                             metric_names=ll_metrics,
                             is_evaluation=True,
@@ -954,7 +908,9 @@ class Trainer(object):
                                 learning_rate=0.0,
                             )
 
-                    avg_loss = ll_stats.avg_statistics(metric_name="loss")
+                    avg_loss = ll_stats.avg_statistics(
+                        metric_name="loss", sub_metric_name="total_loss"
+                    )
                     loss_surface[coord_a, coord_b] = avg_loss
                     if self.is_master_node:
                         print(
@@ -966,24 +922,10 @@ class Trainer(object):
                     if self.is_master_node:
                         lr_list = [0.0]
 
-                        if self.tb_log_writer is not None:
-                            self.log_metrics(
+                        for log_writer in self.log_writers:
+                            log_metrics(
                                 lrs=lr_list,
-                                log_writer=self.tb_log_writer,
-                                train_loss=0.0,
-                                val_loss=avg_loss,
-                                epoch=epoch,
-                                best_metric=self.best_metric,
-                                val_ema_loss=None,
-                                ckpt_metric_name=None,
-                                train_ckpt_metric=None,
-                                val_ckpt_metric=None,
-                                val_ema_ckpt_metric=None,
-                            )
-                        if self.bolt_log_writer is not None:
-                            self.log_metrics(
-                                lrs=lr_list,
-                                log_writer=self.bolt_log_writer,
+                                log_writer=log_writer,
                                 train_loss=0.0,
                                 val_loss=avg_loss,
                                 epoch=epoch,
@@ -1001,7 +943,7 @@ class Trainer(object):
 
             if self.is_master_node:
                 ll_utils.plot_save_graphs(
-                    save_dir=save_dir,
+                    save_dir=self.save_location,
                     model_name=model_name,
                     grid_a=grid_a,
                     grid_b=grid_b,
@@ -1044,10 +986,3 @@ class Trainer(object):
                     int(hours), int(minutes), seconds
                 )
                 logger.log("Loss landspace evaluation took {}".format(train_time_str))
-
-            try:
-                exit(0)
-            except Exception as e:
-                pass
-            finally:
-                pass

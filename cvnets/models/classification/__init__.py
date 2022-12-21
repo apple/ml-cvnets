@@ -3,7 +3,7 @@
 # Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
 
-from .base_cls import BaseEncoder
+
 import os
 import importlib
 import argparse
@@ -13,6 +13,8 @@ from utils import logger
 from utils.common_utils import check_frozen_norm_layer
 from utils.ddp_utils import is_master, is_start_rank_node
 
+from .. import register_tasks, register_task_arguments
+from .base_cls import BaseEncoder
 from ...misc.common import load_pretrained_model
 
 CLS_MODEL_REGISTRY = {}
@@ -34,6 +36,7 @@ def register_cls_models(name):
     return register_model_class
 
 
+@register_tasks(name="classification")
 def build_classification_model(opts, *args, **kwargs):
     model_name = getattr(opts, "model.classification.name", None)
     model = None
@@ -73,7 +76,7 @@ def build_classification_model(opts, *args, **kwargs):
             supp_model_str += "\n\t {}: {}".format(i, logger.color_text(m_name))
 
         if is_master_node:
-            logger.error(supp_model_str)
+            logger.error(supp_model_str + "Got: {}".format(model_name))
 
     finetune_task = getattr(
         opts, "model.classification.finetune_pretrained_model", False
@@ -93,18 +96,14 @@ def build_classification_model(opts, *args, **kwargs):
         # load the weights
         if pretrained is not None:
             pretrained = get_local_path(opts, path=pretrained)
-            model = load_pretrained_model(
-                model=model, wt_loc=pretrained, is_master_node=is_start_rank_node(opts)
-            )
+            model = load_pretrained_model(model=model, wt_loc=pretrained, opts=opts)
 
         # Now, re-initialize the classification layer
         model.update_classifier(opts, n_classes=n_classes)
 
     elif pretrained is not None:
         pretrained = get_local_path(opts, path=pretrained)
-        model = load_pretrained_model(
-            model=model, wt_loc=pretrained, is_master_node=is_start_rank_node(opts)
-        )
+        model = load_pretrained_model(model=model, wt_loc=pretrained, opts=opts)
 
     freeze_norm_layers = getattr(opts, "model.classification.freeze_batch_norm", False)
     if freeze_norm_layers:
@@ -121,72 +120,10 @@ def build_classification_model(opts, *args, **kwargs):
     return model
 
 
-def std_cls_model_args(parser: argparse.ArgumentParser):
-    group = parser.add_argument_group(
-        title="Classification arguments", description="Classification arguments"
-    )
-    group.add_argument(
-        "--model.classification.classifier-dropout",
-        type=float,
-        default=0.0,
-        help="Dropout rate in classifier",
-    )
-
-    group.add_argument(
-        "--model.classification.name", type=str, default=None, help="Model name"
-    )
-    group.add_argument(
-        "--model.classification.n-classes",
-        type=int,
-        default=1000,
-        help="Number of classes in the dataset",
-    )
-    group.add_argument(
-        "--model.classification.pretrained",
-        type=str,
-        default=None,
-        help="Path of the pretrained backbone",
-    )
-    group.add_argument(
-        "--model.classification.freeze-batch-norm",
-        action="store_true",
-        help="Freeze batch norm layers",
-    )
-    group.add_argument(
-        "--model.classification.activation.name",
-        default=None,
-        type=str,
-        help="Non-linear function name (e.g., relu)",
-    )
-    group.add_argument(
-        "--model.classification.activation.inplace",
-        action="store_true",
-        help="Inplace non-linear functions",
-    )
-    group.add_argument(
-        "--model.classification.activation.neg-slope",
-        default=0.1,
-        type=float,
-        help="Negative slope in leaky relu",
-    )
-
-    group.add_argument(
-        "--model.classification.finetune-pretrained-model",
-        action="store_true",
-        help="Finetune a pretrained model",
-    )
-    group.add_argument(
-        "--model.classification.n-pretrained-classes",
-        type=int,
-        default=None,
-        help="Number of pre-trained classes",
-    )
-
-    return parser
-
-
+@register_task_arguments(name="classification")
 def arguments_classification(parser: argparse.ArgumentParser):
-    parser = std_cls_model_args(parser=parser)
+    # add arguments (if any) specified in BaseEncoder class
+    parser = BaseEncoder.add_arguments(parser=parser)
 
     # add classification specific arguments
     for k, v in CLS_MODEL_REGISTRY.items():

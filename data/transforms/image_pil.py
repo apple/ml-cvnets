@@ -124,9 +124,21 @@ def _resize_fn(
 
     if "mask" in data:
         mask = data.pop("mask")
-        resized_mask = F.resize(
-            img=mask, size=[size_h, size_w], interpolation=T.InterpolationMode.NEAREST
-        )
+        # mask can be a PIL or Tensor.
+        # Especially for Mask-RCNN, we may have tensors with first dimension as 0.
+        # In that case, resize, won't work.
+        # A workaround is that we check for the instance of a Tensor and then check its dimension.
+        if isinstance(mask, torch.Tensor) and mask.shape[0] == 0:
+            # It's empty tensor.
+            resized_mask = torch.zeros(
+                [0, size_h, size_w], dtype=mask.dtype, device=mask.device
+            )
+        else:
+            resized_mask = F.resize(
+                img=mask,
+                size=[size_h, size_w],
+                interpolation=T.InterpolationMode.NEAREST,
+            )
         data["mask"] = resized_mask
 
     if "box_coordinates" in data:
@@ -154,6 +166,251 @@ def _resize_fn(
         data["instance_coords"] = instance_coords
 
     return data
+
+
+def _pad_fn(
+    data: Dict,
+    padding: Union[int, Sequence],
+    fill: Optional[int] = 0,
+    padding_mode: Optional[str] = "constant",
+) -> Dict:
+    # Taken from the functional_tensor.py pad
+    if isinstance(padding, int):
+        pad_left = pad_right = pad_top = pad_bottom = padding
+    elif len(padding) == 1:
+        pad_left = pad_right = pad_top = pad_bottom = padding[0]
+    elif len(padding) == 2:
+        pad_left = pad_right = padding[0]
+        pad_top = pad_bottom = padding[1]
+    else:
+        pad_left = padding[0]
+        pad_top = padding[1]
+        pad_right = padding[2]
+        pad_bottom = padding[3]
+
+    padding = [pad_left, pad_top, pad_right, pad_bottom]
+    data["image"] = F.pad(data.pop("image"), padding, fill, padding_mode)
+
+    if "mask" in data:
+        data["mask"] = F.pad(data.pop("mask"), padding, 0, "constant")
+
+    if "box_coordinates" in data:
+        # labels remain unchanged
+        boxes = data.pop("box_coordinates")
+        boxes[:, 0::2] += pad_left
+        boxes[:, 1::2] += pad_top
+        data["box_coordinates"] = boxes
+
+    return data
+
+
+@register_transformations(name="fixed_size_crop", type="image_pil")
+class FixedSizeCrop(BaseTransformation):
+    def __init__(
+        self, opts, size: Optional[Union[int, Tuple[int, int]]] = None, *args, **kwargs
+    ):
+        super().__init__(opts, *args, **kwargs)
+        # size can be passed as an argument or using config.
+        # The argument is useful when implementing variable samplers
+        if size is None:
+            size = getattr(opts, "image_augmentation.fixed_size_crop.size", None)
+        fill = getattr(opts, "image_augmentation.fixed_size_crop.fill", 0)
+        padding_mode = getattr(
+            opts, "image_augmentation.fixed_size_crop.padding_mode", "constant"
+        )
+        size = setup_size(
+            size,
+            error_msg="Please provide either int or (int, int) for size in {}.".format(
+                self.__class__.__name__
+            ),
+        )
+        self.crop_height = size[0]
+        self.crop_width = size[1]
+        self.fill = fill
+        self.padding_mode = padding_mode
+
+    @classmethod
+    def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        group = parser.add_argument_group(
+            title="".format(cls.__name__), description="".format(cls.__name__)
+        )
+        group.add_argument(
+            "--image-augmentation.fixed-size-crop.enable",
+            action="store_true",
+            help="use {}. This flag is useful when you want to study the effect of different "
+            "transforms.".format(cls.__name__),
+        )
+        group.add_argument(
+            "--image-augmentation.fixed-size-crop.size",
+            type=int,
+            nargs="+",
+            default=None,
+            help="Image size either as an int or (int, int).",
+        )
+        group.add_argument(
+            "--image-augmentation.fixed-size-crop.fill",
+            type=int,
+            default=0,
+            help="Fill value to be used during padding operation. Defaults to 0.",
+        )
+        group.add_argument(
+            "--image-augmentation.fixed-size-crop.padding-mode",
+            type=str,
+            default="constant",
+            help="Padding modes. Defaults to constant",
+        )
+
+        return parser
+
+    def __call__(self, data: Dict, *args, **kwargs) -> Dict:
+        img = data["image"]
+        width, height = F.get_image_size(img)
+        new_height = min(height, self.crop_height)
+        new_width = min(width, self.crop_width)
+
+        if new_height != height or new_width != width:
+            offset_height = max(height - self.crop_height, 0)
+            offset_width = max(width - self.crop_width, 0)
+
+            r = random.random()
+            top = int(offset_height * r)
+            left = int(offset_width * r)
+
+            data = _crop_fn(
+                data, top=top, left=left, height=new_height, width=new_width
+            )
+
+        pad_bottom = max(self.crop_height - new_height, 0)
+        pad_right = max(self.crop_width - new_width, 0)
+        if pad_bottom != 0 or pad_right != 0:
+            data = _pad_fn(
+                data,
+                padding=[0, 0, pad_right, pad_bottom],
+                fill=self.fill,
+                padding_mode=self.padding_mode,
+            )
+        return data
+
+    def __repr__(self):
+        return "{}(crop_size=({}, {}), fill={}, padding_mode={})".format(
+            self.__class__.__name__,
+            self.crop_height,
+            self.crop_width,
+            self.fill,
+            self.padding_mode,
+        )
+
+
+@register_transformations(name="scale_jitter", type="image_pil")
+class ScaleJitter(BaseTransformation):
+    """Randomly resizes the input within the scale range"""
+
+    def __init__(self, opts, *args, **kwargs) -> None:
+        target_size = getattr(opts, "image_augmentation.scale_jitter.target_size", None)
+        if target_size is None:
+            logger.error(
+                "Target size can't be None in {}.".format(self.__class__.__name__)
+            )
+        target_size = setup_size(
+            target_size,
+            error_msg="Need either an int or (int, int) for target size in {}".format(
+                self.__class__.__name__
+            ),
+        )
+
+        scale_range = getattr(opts, "image_augmentation.scale_jitter.scale_range", None)
+        if scale_range is None:
+            logger.error(
+                "Scale range can't be None in {}".format(self.__class__.__name__)
+            )
+
+        if isinstance(scale_range, Sequence) and len(scale_range) == 2:
+            scale_range = scale_range
+        else:
+            logger.error(
+                "Need (float, float) for target size in {}".format(
+                    self.__class__.__name__
+                )
+            )
+
+        if scale_range[0] > scale_range[1]:
+            logger.error(
+                "scale_range[1] >= scale_range[0] in {}. Got: {}".format(
+                    self.__class__.__name__, scale_range[1], scale_range[0]
+                )
+            )
+
+        interpolation = getattr(
+            opts, "image_augmentation.scale_jitter.interpolation", "bilinear"
+        )
+
+        if isinstance(interpolation, str):
+            interpolation = _interpolation_modes_from_str(name=interpolation)
+
+        super().__init__(opts, *args, **kwargs)
+        self.target_size = target_size
+        self.scale_range = scale_range
+        self.interpolation = interpolation
+
+    @classmethod
+    def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        group = parser.add_argument_group(
+            title="".format(cls.__name__), description="".format(cls.__name__)
+        )
+        group.add_argument(
+            "--image-augmentation.scale-jitter.enable",
+            action="store_true",
+            help="use {}. This flag is useful when you want to study the effect of different "
+            "transforms.".format(cls.__name__),
+        )
+        group.add_argument(
+            "--image-augmentation.scale-jitter.interpolation",
+            type=str,
+            default="bilinear",
+            help="Interpolation method. Defaults to bilinear interpolation",
+        )
+        group.add_argument(
+            "--image-augmentation.scale-jitter.target-size",
+            type=int,
+            nargs="+",
+            default=None,
+            help="Target image size either as an int or (int, int).",
+        )
+        group.add_argument(
+            "--image-augmentation.scale-jitter.scale-range",
+            type=float,
+            nargs="+",
+            default=None,
+            help="Scale range as (float, float).",
+        )
+
+        return parser
+
+    def __call__(self, data: Dict, *args, **kwargs) -> Dict:
+        img = data["image"]
+        orig_width, orig_height = F.get_image_size(img)
+        scale = self.scale_range[0] + random.random() * (
+            self.scale_range[1] - self.scale_range[0]
+        )
+        r = (
+            min(self.target_size[1] / orig_height, self.target_size[0] / orig_width)
+            * scale
+        )
+        new_width = int(orig_width * r)
+        new_height = int(orig_height * r)
+
+        data = _resize_fn(
+            data, size=(new_height, new_width), interpolation=self.interpolation
+        )
+        return data
+
+    def __repr__(self):
+        return "{}(scale_range={}, target_size={}, interpolation={})".format(
+            self.__class__.__name__,
+            self.scale_range,
+            self.target_size,
+            self.interpolation,
+        )
 
 
 @register_transformations(name="random_resized_crop", type="image_pil")
@@ -393,6 +650,79 @@ class RandAugment(BaseTransformation, T.RandAugment):
         )
 
 
+@register_transformations(name="trivial_augment_wide", type="image_pil")
+class TrivialAugmentWide(BaseTransformation, T.TrivialAugmentWide):
+    """
+    This class implements the `TrivialAugment (Wide) data augmentation <https://arxiv.org/abs/2103.10158>`_ method.
+    """
+
+    def __init__(self, opts, *args, **kwargs) -> None:
+        num_magnitude_bins = getattr(
+            opts, "image_augmentation.trivial_augment_wide.num_magnitude_bins", 31
+        )
+        interpolation = getattr(
+            opts, "image_augmentation.trivial_augment_wide.interpolation", "bilinear"
+        )
+
+        BaseTransformation.__init__(self, opts=opts)
+
+        if isinstance(interpolation, str):
+            interpolation = _interpolation_modes_from_str(name=interpolation)
+
+        T.TrivialAugmentWide.__init__(
+            self,
+            num_magnitude_bins=num_magnitude_bins,
+            interpolation=interpolation,
+        )
+
+    @classmethod
+    def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        group = parser.add_argument_group(
+            title="".format(cls.__name__), description="".format(cls.__name__)
+        )
+
+        group.add_argument(
+            "--image-augmentation.trivial-augment-wide.enable",
+            action="store_true",
+            help="Use {}. This flag is useful when you want to study the effect of different "
+            "transforms.".format(cls.__name__),
+        )
+        group.add_argument(
+            "--image-augmentation.trivial-augment-wide.num-magnitude-bins",
+            type=int,
+            default=31,
+            help="The number of different magnitude values. Defaults to 31.",
+        )
+        group.add_argument(
+            "--image-augmentation.trivial-augment-wide.interpolation",
+            type=str,
+            default="bilinear",
+            choices=list(INTERPOLATION_MODE_MAP.keys()),
+            help="Desired interpolation method. Defaults to bilinear",
+        )
+        return parser
+
+    def __call__(self, data: Dict) -> Dict:
+        if "box_coordinates" in data or "mask" in data or "instance_masks" in data:
+            logger.error(
+                "{} is only supported for classification tasks".format(
+                    self.__class__.__name__
+                )
+            )
+
+        img = data["image"]
+        img = super().forward(img)
+        data["image"] = img
+        return data
+
+    def __repr__(self) -> str:
+        return "{}(num_magnitude_bins={}, interpolation={})".format(
+            self.__class__.__name__,
+            self.num_magnitude_bins,
+            self.interpolation,
+        )
+
+
 @register_transformations(name="random_horizontal_flip", type="image_pil")
 class RandomHorizontalFlip(BaseTransformation):
     """
@@ -555,10 +885,13 @@ class Resize(BaseTransformation):
         # 1. Resize while maintaining aspect ratio. To enable this option, pass int as a size
         # 2. Resize to a fixed size. To enable this option, pass a tuple of height and width as a size
 
-        if isinstance(size, Sequence) and len(size) > 2:
+        if isinstance(size, Sequence) and len(size) == 1:
+            # List with single integer
+            size = size[0]
+        elif isinstance(size, Sequence) and len(size) > 2:
             logger.error(
-                "The length of size should be either 1 or 2 in {}".format(
-                    self.__class__.__name__
+                "The length of size should be either 1 or 2 in {}. Got: {}".format(
+                    self.__class__.__name__, size
                 )
             )
 
@@ -595,7 +928,7 @@ class Resize(BaseTransformation):
             "--image-augmentation.resize.size",
             type=int,
             nargs="+",
-            default=None,
+            default=256,
             help="Resize image to the specified size. If int is passed, then shorter side is resized"
             "to the specified size and longest side is resized while maintaining aspect ratio."
             "Defaults to None.",
@@ -655,7 +988,7 @@ class CenterCrop(BaseTransformation):
             "--image-augmentation.center-crop.size",
             type=int,
             nargs="+",
-            default=None,
+            default=224,
             help="Center crop size. Defaults to None.",
         )
         return parser
@@ -1627,8 +1960,12 @@ class ToTensor(BaseTransformation):
         super().__init__(opts=opts)
         img_dtype = getattr(opts, "image_augmentation.to_tensor.dtype", "float")
         self.img_dtype = torch.float
+        self.norm_factor = 255
         if img_dtype in ["half", "float16"]:
             self.img_dtype = torch.float16
+        elif img_dtype in ["uint8"]:
+            self.img_dtype = torch.uint8
+            self.norm_factor = 1
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -1640,6 +1977,11 @@ class ToTensor(BaseTransformation):
         )
         return parser
 
+    def __repr__(self):
+        return "{}(dtype={}, norm_factor={})".format(
+            self.__class__.__name__, self.img_dtype, self.norm_factor
+        )
+
     def __call__(self, data: Dict) -> Dict:
         # HWC --> CHW
         img = data["image"]
@@ -1648,13 +1990,16 @@ class ToTensor(BaseTransformation):
             # convert PIL image to tensor
             img = F.pil_to_tensor(img).contiguous()
 
-        data["image"] = img.to(dtype=self.img_dtype).div(255.0)
+        data["image"] = img.to(dtype=self.img_dtype).div(self.norm_factor)
 
         if "mask" in data:
             mask = data.pop("mask")
             mask = np.array(mask)
-            if len(mask.shape) > 2 and mask.shape[-1] > 1:
-                mask = np.ascontiguousarray(mask.transpose(2, 0, 1))
+
+            if len(mask.shape) not in (2, 3):
+                logger.error(
+                    "Mask needs to be 2- or 3-dimensional. Got: {}".format(mask.shape)
+                )
             data["mask"] = torch.as_tensor(mask, dtype=torch.long)
 
         if "box_coordinates" in data:
@@ -1745,3 +2090,69 @@ class RandomOrder(BaseTransformation):
             self.__class__.__name__, self.keep_t, transform_str
         )
         return repr_str
+
+
+@register_transformations(name="rand_augment_timm", type="image_pil")
+class RandAugmentTimm(BaseTransformation):
+    """
+    This class implements the `RandAugment data augmentation <https://arxiv.org/abs/1909.13719>`_ method,
+    as described in `ResNet Strikes Back <https://arxiv.org/abs/2110.00476>`_ paper
+    """
+
+    def __init__(self, opts, *args, **kwargs) -> None:
+        config_str = getattr(
+            opts,
+            "image_augmentation.rand_augment.timm_config_str",
+            "rand-m9-mstd0.5-inc1",
+        )
+
+        super().__init__(opts=opts, *args, **kwargs)
+
+        rand_augment_transform = None
+        try:
+            from timm.data.transforms_factory import rand_augment_transform
+        except ModuleNotFoundError:
+            logger.error("Please install timm library")
+
+        self.config_str = config_str
+        self.aug_fn = rand_augment_transform
+
+    @classmethod
+    def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        group = parser.add_argument_group(
+            title="".format(cls.__name__), description="".format(cls.__name__)
+        )
+
+        group.add_argument(
+            "--image-augmentation.rand-augment.use-timm-library",
+            action="store_true",
+            help="Use timm library for randaugment over PyTorch's implementation",
+        )
+        group.add_argument(
+            "--image-augmentation.rand-augment.timm-config-str",
+            type=str,
+            default="rand-m9-mstd0.5-inc1",
+            help="Number of augmentation transformations to apply sequentially. Defaults to 2.",
+        )
+        return parser
+
+    def __call__(self, data: Dict) -> Dict:
+        if "box_coordinates" in data or "mask" in data or "instance_masks" in data:
+            logger.error(
+                "{} is only supported for classification tasks".format(
+                    self.__class__.__name__
+                )
+            )
+
+        img = data["image"]
+        img_size_min = min(img.size)
+        aa_params = dict(
+            translate_const=int(img_size_min * 0.45),
+            img_mean=tuple([128, 128, 128]),
+        )
+        img = self.aug_fn(self.config_str, aa_params)(img)
+        data["image"] = img
+        return data
+
+    def __repr__(self) -> str:
+        return "{}(config_str={})".format(self.__class__.__name__, self.config_str)

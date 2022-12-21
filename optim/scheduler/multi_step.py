@@ -54,7 +54,7 @@ class MultiStepLRScheduler(BaseLRScheduler):
         )
 
         group.add_argument(
-            "--scheduler.multi-step.lr", type=float, default=None, help="LR value"
+            "--scheduler.multi-step.lr", type=float, default=0.1, help="LR value"
         )
         group.add_argument(
             "--scheduler.multi-step.gamma",

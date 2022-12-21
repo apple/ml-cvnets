@@ -25,8 +25,8 @@ from torchvision.models.detection.faster_rcnn import FasterRCNN
 class SSDLoss(BaseCriteria):
     """SSD Loss"""
 
-    def __init__(self, opts):
-        super(SSDLoss, self).__init__()
+    def __init__(self, opts, *args, **kwargs):
+        super().__init__(opts, *args, **kwargs)
         self.unscaled_reg_loss = 1e-7
         self.unscaled_conf_loss = 1e-7
         self.neg_pos_ratio = getattr(
@@ -98,7 +98,7 @@ class SSDLoss(BaseCriteria):
 
     def _forward_detection_loss(
         self, prediction: Dict, target: Dict, *args, **kwargs
-    ) -> Tensor:
+    ) -> Dict[str, Tensor]:
         # confidence: (batch_size, num_priors, num_classes)
         # predicted_locations :(batch_size, num_priors, 4)
 
@@ -146,12 +146,22 @@ class SSDLoss(BaseCriteria):
             if (
                 self.curr_iter + 1
             ) % self.update_inter == 0 or self.curr_iter == self.max_iter:
-                before_update = round(tensor_to_python_float(self.wt_loc), 4)
+                before_update = round(
+                    tensor_to_python_float(
+                        self.wt_loc, is_distributed=self.is_distributed
+                    ),
+                    4,
+                )
                 self.wt_loc = self.unscaled_conf_loss / self.unscaled_reg_loss
                 self.reset_unscaled_loss_values()
 
                 if self.is_master:
-                    after_update = round(tensor_to_python_float(self.wt_loc), 4)
+                    after_update = round(
+                        tensor_to_python_float(
+                            self.wt_loc, is_distributed=self.is_distributed
+                        ),
+                        4,
+                    )
                     logger.log(
                         f"Updating localization loss multiplier from {before_update} to {after_update}"
                     )
@@ -161,11 +171,15 @@ class SSDLoss(BaseCriteria):
         if self.training and self.wt_loc > 0.0:
             smooth_l1_loss = smooth_l1_loss * self.wt_loc
 
-        return (smooth_l1_loss + classification_loss) / num_pos
+        return {
+            "total_loss": (smooth_l1_loss + classification_loss) / num_pos,
+            "reg_loss": smooth_l1_loss / num_pos,
+            "cls_loss": classification_loss / num_pos,
+        }
 
     def forward(
         self, input_sample: Tensor, prediction: Dict, target: Dict, *args, **kwargs
-    ) -> Tensor:
+    ) -> Dict[str, Tensor]:
         # confidence: (batch_size, num_priors, num_classes)
         # predicted_locations :(batch_size, num_priors, 4)
 

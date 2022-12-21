@@ -12,6 +12,7 @@ import argparse
 from typing import Optional, Tuple, Dict, Union, Any, List
 from torchvision.ops import batched_nms
 from torch.nn import functional as F
+import math
 
 from cvnets.anchor_generator import build_anchor_generator
 from cvnets.matcher_det import build_matcher
@@ -636,3 +637,49 @@ class SingleShotMaskDetector(BaseDetection):
         print("Note: Theoretical MACs depends on user-implementation. Be cautious")
 
         logger.double_dash_line(dashes=65)
+
+    def dummy_input_and_label(self, batch_size: int) -> Dict:
+        """Create dummy input and labels for CI/CD purposes."""
+        img_channels = 3
+        height = 320
+        width = 320
+        n_classes = 80
+
+        def generate_anchors(height, width):
+            """Generate anchors **on-the-fly** based on the input resolution."""
+            anchors = []
+            for output_stride in self.output_strides:
+                if output_stride == -1:
+                    fm_width = fm_height = 1
+                else:
+                    fm_width = int(math.ceil(width / output_stride))
+                    fm_height = int(math.ceil(height / output_stride))
+                fm_anchor = self.anchor_box_generator(
+                    fm_height=fm_height,
+                    fm_width=fm_width,
+                    fm_output_stride=output_stride,
+                )
+                anchors.append(fm_anchor)
+            anchors = torch.cat(anchors, dim=0)
+            return anchors
+
+        # GT boxes have the same shape as anchors. So, we use anchors as GT boxes
+        gt_boxes = generate_anchors(height=height, width=width)
+        gt_boxes = gt_boxes.unsqueeze(0).expand(batch_size, -1, -1)
+
+        gt_box_labels = torch.randint(
+            low=0,
+            high=n_classes,
+            size=(batch_size, gt_boxes.shape[1]),
+            dtype=torch.long,
+        )
+
+        img_tensor = torch.randn(
+            batch_size, img_channels, height, width, dtype=torch.float
+        )
+        labels = {
+            "box_labels": gt_box_labels,
+            "box_coordinates": gt_boxes,
+        }
+
+        return {"samples": img_tensor, "targets": labels}

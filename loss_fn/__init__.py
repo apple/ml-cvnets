@@ -47,7 +47,7 @@ def build_loss_fn(opts):
     return loss_fn
 
 
-def general_loss_fn_args(parser: argparse.ArgumentParser):
+def general_loss_fn_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     group = parser.add_argument_group(
         title="Loss function arguments", description="Loss function arguments"
     )
@@ -65,8 +65,40 @@ def general_loss_fn_args(parser: argparse.ArgumentParser):
     return parser
 
 
+def neural_aug_loss_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    group = parser.add_argument_group(
+        title="Arguments related to Neural Aug loss function",
+        description="Arguments related to Neural Aug loss function",
+    )
+
+    group.add_argument(
+        "--loss.neural-aug.perceptual-metric",
+        type=str,
+        default="psnr",
+        help="Name of the perceptual metric",
+    )
+
+    group.add_argument(
+        "--loss.neural-aug.target-value",
+        type=float,
+        default=20.0,
+        nargs="+",
+        help="Target value of augmented tensor",
+    )
+
+    group.add_argument(
+        "--loss.neural-aug.curriculum-method",
+        type=str,
+        default="linear",
+        choices=["linear", "cosine"],
+        help="Use perceptual score for identifying the samples are good or not. ",
+    )
+    return parser
+
+
 def arguments_loss_fn(parser: argparse.ArgumentParser):
     parser = general_loss_fn_args(parser=parser)
+    parser = neural_aug_loss_args(parser=parser)
 
     # add loss function specific arguments
     for k, v in LOSS_REGISTRY.items():

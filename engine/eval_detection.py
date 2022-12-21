@@ -7,7 +7,6 @@ import os.path
 import numpy as np
 import torch
 import multiprocessing
-from torch.cuda.amp import autocast
 from torch.nn import functional as F
 from tqdm import tqdm
 import glob
@@ -30,6 +29,8 @@ from engine.utils import print_summary
 from engine.detection_utils.coco_map import compute_quant_scores
 from utils.visualization_utils import draw_bounding_boxes
 from utils.download_utils import get_local_path
+
+from .utils import autocast_fn, get_batch_size
 
 # Evaluation on MSCOCO detection task
 object_names = COCODetection.class_names()
@@ -64,6 +65,7 @@ def predict_and_save(
         orig_w (Optional[int]): Original width of the input image. Useful for visualizing detection results. Defaults to None.
     """
     mixed_precision_training = getattr(opts, "common.mixed_precision", False)
+    mixed_precision_dtype = getattr(opts, "common.mixed_precision_dtype", "float16")
 
     if input_np is None and not is_coco_evaluation:
         input_np = to_numpy(input_tensor).squeeze(  # convert to numpy
@@ -89,14 +91,13 @@ def predict_and_save(
     # move data to device
     input_tensor = input_tensor.to(device)
 
-    with autocast(enabled=mixed_precision_training):
+    with autocast_fn(
+        enabled=mixed_precision_training, amp_precision=mixed_precision_dtype
+    ):
         # prediction
+        # We dot scale inside the prediction function because we resize the input tensor such
+        # that the dimensions are divisible by output stride.
         prediction: DetectionPredTuple = model.predict(input_tensor, is_scaling=False)
-
-    # convert tensors to numpy
-    boxes = prediction.boxes.cpu().numpy()
-    labels = prediction.labels.cpu().numpy()
-    scores = prediction.scores.cpu().numpy()
 
     if orig_w is None:
         assert orig_h is None
@@ -104,13 +105,34 @@ def predict_and_save(
     elif orig_h is None:
         assert orig_w is None
         orig_h, orig_w = input_np.shape[:2]
-
     assert orig_h is not None and orig_w is not None
+
+    # convert tensors to numpy
+    boxes = prediction.boxes.cpu().numpy()
+    labels = prediction.labels.cpu().numpy()
+    scores = prediction.scores.cpu().numpy()
+
+    masks = prediction.masks
+
+    # Ensure that there is at least one mask
+    if masks is not None and masks.shape[0] > 0:
+        # masks are in [N, H, W] format
+        # for interpolation, add a dummy batch dimension
+        masks = F.interpolate(
+            masks.unsqueeze(0),
+            size=(orig_h, orig_w),
+            mode="bilinear",
+            align_corners=True,
+        ).squeeze(0)
+        # convert to binary masks
+        masks = masks > 0.5
+        masks = masks.cpu().numpy()
+
     boxes[..., 0::2] = np.clip(a_min=0, a_max=orig_w, a=boxes[..., 0::2] * orig_w)
     boxes[..., 1::2] = np.clip(a_min=0, a_max=orig_h, a=boxes[..., 1::2] * orig_h)
 
     if is_coco_evaluation:
-        return boxes, labels, scores
+        return boxes, labels, scores, masks
 
     detection_res_file_name = None
     if file_name is not None:
@@ -125,17 +147,15 @@ def predict_and_save(
         boxes=boxes,
         labels=labels,
         scores=scores,
-        object_names=object_names,
+        masks=masks,
+        # some models may not use background class which is present in class names.
+        # adjust the class names
+        object_names=object_names[-model.n_detection_classes :]
+        if hasattr(model, "n_detection_classes")
+        else object_names,
         is_bgr_format=True,
         save_path=detection_res_file_name,
     )
-
-
-def _get_batch_size(x):
-    if isinstance(x, torch.Tensor):
-        return x.shape[0]
-    elif isinstance(x, Dict):
-        return x["image"].shape[0]
 
 
 def predict_labeled_dataset(opts, **kwargs):
@@ -157,22 +177,26 @@ def predict_labeled_dataset(opts, **kwargs):
     with torch.no_grad():
         predictions = []
         for img_idx, batch in tqdm(enumerate(val_loader)):
-            input_img, target_label = batch["image"], batch["label"]
+            samples, targets = batch["samples"], batch["targets"]
 
-            input_img = input_img["image"]
+            batch_size = get_batch_size(samples)
+            if isinstance(samples, Dict):
+                assert "image" in samples, "samples does not contain image key"
+                input_tensor = samples["image"]
+            else:
+                input_tensor = samples
 
-            batch_size = _get_batch_size(input_img)
             assert (
                 batch_size == 1
             ), "We recommend to run detection evaluation with a batch size of 1"
 
-            orig_w = target_label["image_width"].item()
-            orig_h = target_label["image_height"].item()
-            image_id = target_label["image_id"].item()
+            orig_w = targets["image_width"].item()
+            orig_h = targets["image_height"].item()
+            image_id = targets["image_id"].item()
 
-            boxes, labels, scores = predict_and_save(
+            boxes, labels, scores, masks = predict_and_save(
                 opts=opts,
-                input_tensor=input_img,
+                input_tensor=input_tensor,
                 model=model,
                 device=device,
                 is_coco_evaluation=True,
@@ -180,7 +204,7 @@ def predict_labeled_dataset(opts, **kwargs):
                 orig_h=orig_h,
             )
 
-            predictions.append([image_id, boxes, labels, scores])
+            predictions.append([image_id, boxes, labels, scores, masks])
 
         compute_quant_scores(opts=opts, predictions=predictions)
 

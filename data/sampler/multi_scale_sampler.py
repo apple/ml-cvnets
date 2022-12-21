@@ -2,12 +2,13 @@
 # For licensing see accompanying LICENSE file.
 # Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
-
+import copy
 import random
 import argparse
 from utils import logger
 from typing import Optional
 from common import DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT
+import numpy as np
 
 from . import register_sampler, BaseSamplerDP, BaseSamplerDDP
 from .utils import _image_batch_pairs
@@ -172,21 +173,17 @@ class MultiScaleSampler(BaseSamplerDP):
         return parser
 
     def __iter__(self):
-        if self.shuffle:
-            random.seed(self.epoch)
-            random.shuffle(self.img_indices)
-            random.shuffle(self.img_batch_tuples)
-
+        img_indices = self.get_indices()
         start_index = 0
-        n_samples = len(self.img_indices)
+        n_samples = len(img_indices)
         while start_index < n_samples:
             crop_h, crop_w, batch_size = random.choice(self.img_batch_tuples)
 
             end_index = min(start_index + batch_size, n_samples)
-            batch_ids = self.img_indices[start_index:end_index]
+            batch_ids = img_indices[start_index:end_index]
             n_batch_samples = len(batch_ids)
             if len(batch_ids) != batch_size:
-                batch_ids += self.img_indices[: (batch_size - n_batch_samples)]
+                batch_ids += img_indices[: (batch_size - n_batch_samples)]
             start_index += batch_size
 
             if len(batch_ids) > 0:
@@ -214,6 +211,7 @@ class MultiScaleSampler(BaseSamplerDP):
                 self.scale_ep_intervals,
             )
         )
+        repr_str += self.extra_repr()
         repr_str += "\n)"
         return repr_str
 
@@ -297,16 +295,7 @@ class MultiScaleSamplerDDP(BaseSamplerDDP):
             ]
 
     def __iter__(self):
-        if self.shuffle:
-            random.seed(self.epoch)
-            indices_rank_i = self.img_indices[
-                self.rank : len(self.img_indices) : self.num_replicas
-            ]
-            random.shuffle(indices_rank_i)
-        else:
-            indices_rank_i = self.img_indices[
-                self.rank : len(self.img_indices) : self.num_replicas
-            ]
+        indices_rank_i = self.get_indices_rank_i()
 
         start_index = 0
         n_samples_rank_i = len(indices_rank_i)
@@ -345,5 +334,6 @@ class MultiScaleSamplerDDP(BaseSamplerDDP):
                 self.scale_ep_intervals,
             )
         )
+        repr_str += self.extra_repr()
         repr_str += "\n )"
         return repr_str

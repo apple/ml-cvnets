@@ -1,3 +1,8 @@
+#
+# For licensing see accompanying LICENSE file.
+# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+#
+
 # Configuration file for the Sphinx documentation builder.
 #
 # This file only contains a selection of the most common options. For a full

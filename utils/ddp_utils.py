@@ -7,6 +7,8 @@
 import socket
 import torch
 import torch.distributed as dist
+from typing import Optional
+
 from utils import logger
 
 
@@ -19,10 +21,26 @@ def dist_barrier():
     dist.barrier()
 
 
+def dist_monitored_barrier(
+    timeout: Optional[float] = None,
+    wait_all_ranks: Optional[bool] = False,
+    group: Optional = None,
+):
+    dist.monitored_barrier(group=group, timeout=timeout, wait_all_ranks=wait_all_ranks)
+
+
 def is_start_rank_node(opts) -> bool:
     node_rank = getattr(opts, "ddp.rank", 0)
     def_rank = getattr(opts, "ddp.start_rank", 0)
     return node_rank == def_rank
+
+
+def get_world_size():
+    return dist.get_world_size()
+
+
+def get_node_rank():
+    return dist.get_rank()
 
 
 def distributed_init(opts) -> int:

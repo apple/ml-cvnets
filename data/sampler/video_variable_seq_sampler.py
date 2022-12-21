@@ -81,20 +81,25 @@ class VideoVariableSeqSampler(VariableBatchSampler):
             "\n\t base_im_size=(h={}, w={}), "
             "\n\t base_batch_size={} "
             "\n\t scales (Height x Width x N_frames)={} "
-            "\n\t n_clips={} "
             "\n\t scale_inc={} "
-            "\n\t scale_inc_factor={} "
-            "\n\t ep_intervals={}".format(
+            "\n\t min_scale_inc_factor={} "
+            "\n\t max_scale_inc_factor={} "
+            "\n\t ep_intervals={}"
+            "\n\t num_repeat={}"
+            "\n\t num_clips={}".format(
                 self.crop_size_h,
                 self.crop_size_w,
                 self.batch_size_gpu0,
                 self.img_batch_tuples,
-                n_clips_str,
                 self.scale_inc,
-                self.scale_inc_factor,
+                self.min_scale_inc_factor,
+                self.max_scale_inc_factor,
                 self.scale_ep_intervals,
+                self.num_repeats,
+                n_clips_str,
             )
         )
+        repr_str += self.extra_repr()
         repr_str += "\n)"
         return repr_str
 
@@ -146,13 +151,11 @@ class VideoVariableSeqSampler(VariableBatchSampler):
         return parser
 
     def __iter__(self):
-        if self.shuffle:
-            random.seed(self.epoch)
-            random.shuffle(self.img_indices)
-            random.shuffle(self.img_batch_tuples)
+        indices = self.get_indices()
 
         start_index = 0
-        while start_index < self.n_samples:
+        indices_len = len(indices)
+        while start_index < indices_len:
             if self.random_video_clips:
                 # randomly sample number of clips and adjust frames per clip
                 n_clips = max(
@@ -168,11 +171,11 @@ class VideoVariableSeqSampler(VariableBatchSampler):
                 batch_size = self.batch_size_gpu0
 
             crop_h, crop_w, n_frames = random.choice(self.img_batch_tuples)
-            end_index = min(start_index + batch_size, self.n_samples)
-            batch_ids = self.img_indices[start_index:end_index]
+            end_index = min(start_index + batch_size, indices_len)
+            batch_ids = indices[start_index:end_index]
             n_batch_samples = len(batch_ids)
             if len(batch_ids) != batch_size:
-                batch_ids += self.img_indices[: (batch_size - n_batch_samples)]
+                batch_ids += indices[: (batch_size - n_batch_samples)]
             start_index += batch_size
 
             if len(batch_ids) > 0:
@@ -253,37 +256,34 @@ class VideoVariableSeqSamplerDDP(VariableBatchSamplerDDP):
             "\n\t base_im_size=(h={}, w={}), "
             "\n\t base_batch_size={} "
             "\n\t scales (Height x Width x N_frames)={} "
-            "\n\t n_clips={} "
             "\n\t scale_inc={} "
-            "\n\t scale_inc_factor={} "
-            "\n\t ep_intervals={}".format(
+            "\n\t min_scale_inc_factor={} "
+            "\n\t max_scale_inc_factor={} "
+            "\n\t ep_intervals={}"
+            "\n\t num_repeat={}"
+            "\n\t num_clips={}".format(
                 self.crop_size_h,
                 self.crop_size_w,
                 self.batch_size_gpu0,
                 self.img_batch_tuples,
-                n_clips_str,
                 self.scale_inc,
-                self.scale_inc_factor,
+                self.min_scale_inc_factor,
+                self.max_scale_inc_factor,
                 self.scale_ep_intervals,
+                self.num_repeats,
+                n_clips_str,
             )
         )
+        repr_str += self.extra_repr()
         repr_str += "\n)"
         return repr_str
 
     def __iter__(self):
-        if self.shuffle:
-            random.seed(self.epoch)
-            indices_rank_i = self.img_indices[
-                self.rank : len(self.img_indices) : self.num_replicas
-            ]
-            random.shuffle(indices_rank_i)
-        else:
-            indices_rank_i = self.img_indices[
-                self.rank : len(self.img_indices) : self.num_replicas
-            ]
+        indices_rank_i = self.get_indices_rank_i()
 
         start_index = 0
-        while start_index < self.n_samples_per_replica:
+        n_samples_rank_i = len(indices_rank_i)
+        while start_index < n_samples_rank_i:
             if self.random_video_clips:
                 # randomly sample number of clips and adjust batch size
                 n_clips = max(
@@ -300,7 +300,7 @@ class VideoVariableSeqSamplerDDP(VariableBatchSamplerDDP):
 
             crop_h, crop_w, n_frames = random.choice(self.img_batch_tuples)
 
-            end_index = min(start_index + batch_size, self.n_samples_per_replica)
+            end_index = min(start_index + batch_size, n_samples_rank_i)
             batch_ids = indices_rank_i[start_index:end_index]
             n_batch_samples = len(batch_ids)
             if n_batch_samples != batch_size:

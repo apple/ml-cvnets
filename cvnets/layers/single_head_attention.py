@@ -6,6 +6,7 @@
 import torch
 from torch import nn, Tensor
 from typing import Tuple, Optional
+from torch.nn import functional as F
 
 from .base_layer import BaseLayer
 from .linear_layer import LinearLayer
@@ -50,19 +51,41 @@ class SingleHeadAttention(BaseLayer):
 
         self.softmax = nn.Softmax(dim=-1)
         self.embed_dim = embed_dim
-        self.scaling = self.embed_dim ** -0.5
+        self.scaling = self.embed_dim**-0.5
 
     def __repr__(self) -> str:
         return "{}(embed_dim={}, attn_dropout={})".format(
             self.__class__.__name__, self.embed_dim, self.attn_dropout.p
         )
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(
+        self,
+        x: Tensor,
+        x_kv: Optional[Tensor] = None,
+        key_padding_mask: Optional[Tensor] = None,
+        attn_mask: Optional[Tensor] = None,
+        *args,
+        **kwargs
+    ) -> Tensor:
         # [N, P, C] --> [N, P, 3C]
-        qkv = self.qkv_proj(x)
+        if x_kv is None:
+            qkv = self.qkv_proj(x)
+            # [N, P, 3C] --> [N, P, C] x 3
+            query, key, value = torch.chunk(qkv, chunks=3, dim=-1)
+        else:
+            query = F.linear(
+                x,
+                weight=self.qkv_proj.weight[: self.embed_dim, ...],
+                bias=self.qkv_proj.bias[: self.embed_dim],
+            )
 
-        # [N, P, 3C] --> [N, P, C] x 3
-        query, key, value = torch.chunk(qkv, chunks=3, dim=-1)
+            # [N, P, C] --> [N, P, 2C]
+            kv = F.linear(
+                x_kv,
+                weight=self.qkv_proj.weight[self.embed_dim :, ...],
+                bias=self.qkv_proj.bias[self.embed_dim :],
+            )
+            key, value = torch.chunk(kv, chunks=2, dim=-1)
 
         query = query * self.scaling
 
@@ -72,6 +95,31 @@ class SingleHeadAttention(BaseLayer):
         # QK^T
         # [N, P, C] x [N, C, P] --> [N, P, P]
         attn = torch.matmul(query, key)
+
+        if attn_mask is not None:
+            # attn_mask shape should be the same as attn
+            assert list(attn_mask.shape) == list(
+                attn.shape
+            ), "Shape of attention mask and attn should be the same. Got: {} and {}".format(
+                attn_mask.shape, attn.shape
+            )
+            attn = attn + attn_mask
+
+        if key_padding_mask is not None:
+            # Do not attend to padding positions
+            # key padding mask size is [N, P]
+            batch_size, num_src_tokens, num_tgt_tokens = attn.shape
+            assert key_padding_mask.dim() == 2 and list(key_padding_mask.shape) == [
+                batch_size,
+                num_tgt_tokens,
+            ], "Key_padding_mask should be 2-dimension with shape [{}, {}]. Got: {}".format(
+                batch_size, num_tgt_tokens, key_padding_mask.shape
+            )
+            attn = attn.masked_fill(
+                key_padding_mask.unsqueeze(1).to(torch.bool),
+                float("-inf"),
+            )
+
         attn = self.softmax(attn)
         attn = self.attn_dropout(attn)
 

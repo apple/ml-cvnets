@@ -2,11 +2,11 @@
 # For licensing see accompanying LICENSE file.
 # Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
-
+import copy
 import random
 import argparse
 from typing import Optional
-
+import math
 import numpy as np
 
 from common import DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT
@@ -45,18 +45,9 @@ class BatchSampler(BaseSamplerDP):
 
         self.crop_size_w = crop_size_w
         self.crop_size_h = crop_size_h
-        self.num_repeats = (
-            getattr(opts, "sampler.bs.num_repeats", 1) if is_training else 1
-        )
 
     def __iter__(self):
-        if self.shuffle:
-            random.seed(self.epoch)
-            img_indices = np.repeat(self.img_indices, repeats=self.num_repeats)
-            img_indices = list(img_indices)
-            random.shuffle(img_indices)
-        else:
-            img_indices = self.img_indices
+        img_indices = self.get_indices()
 
         start_index = 0
         batch_size = self.batch_size_gpu0
@@ -75,21 +66,12 @@ class BatchSampler(BaseSamplerDP):
 
     def __repr__(self):
         repr_str = "{}(".format(self.__class__.__name__)
-        repr_str += (
-            "\n\tbase_im_size=(h={}, w={})"
-            "\n\tbase_batch_size={},"
-            "\n\tnum_repeats={}".format(
-                self.crop_size_h,
-                self.crop_size_w,
-                self.batch_size_gpu0,
-                self.num_repeats,
-            )
+        repr_str += "\n\tbase_im_size=(h={}, w={})" "\n\tbase_batch_size={}".format(
+            self.crop_size_h, self.crop_size_w, self.batch_size_gpu0
         )
+        repr_str += self.extra_repr()
         repr_str += "\n)"
         return repr_str
-
-    def __len__(self):
-        return len(self.img_indices) * self.num_repeats
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser):
@@ -107,12 +89,6 @@ class BatchSampler(BaseSamplerDP):
             default=DEFAULT_IMAGE_HEIGHT,
             type=int,
             help="Base crop size (along height) during training",
-        )
-        group.add_argument(
-            "--sampler.bs.num-repeats",
-            type=int,
-            default=1,
-            help="Repeat each sample x times during an epoch",
         )
         return parser
 
@@ -148,25 +124,9 @@ class BatchSamplerDDP(BaseSamplerDDP):
 
         self.crop_size_w = crop_size_w
         self.crop_size_h = crop_size_h
-        self.num_repeats = (
-            getattr(opts, "sampler.bs.num_repeats", 1) if is_training else 1
-        )
 
     def __iter__(self):
-        if self.shuffle:
-            random.seed(self.epoch)
-
-            img_indices = np.repeat(self.img_indices, repeats=self.num_repeats)
-            img_indices = list(img_indices)
-            indices_rank_i = img_indices[
-                self.rank : len(img_indices) : self.num_replicas
-            ]
-            random.shuffle(indices_rank_i)
-        else:
-            indices_rank_i = self.img_indices[
-                self.rank : len(self.img_indices) : self.num_replicas
-            ]
-
+        indices_rank_i = self.get_indices_rank_i()
         start_index = 0
         batch_size = self.batch_size_gpu0
 
@@ -187,18 +147,9 @@ class BatchSamplerDDP(BaseSamplerDDP):
 
     def __repr__(self):
         repr_str = "{}(".format(self.__class__.__name__)
-        repr_str += (
-            "\n\tbase_im_size=(h={}, w={})"
-            "\n\tbase_batch_size={}"
-            "\n\tnum_repeats={}".format(
-                self.crop_size_h,
-                self.crop_size_w,
-                self.batch_size_gpu0,
-                self.num_repeats,
-            )
+        repr_str += "\n\tbase_im_size=(h={}, w={})" "\n\tbase_batch_size={}".format(
+            self.crop_size_h, self.crop_size_w, self.batch_size_gpu0
         )
+        repr_str += self.extra_repr()
         repr_str += "\n)"
         return repr_str
-
-    def __len__(self):
-        return (len(self.img_indices) // self.num_replicas) * self.num_repeats

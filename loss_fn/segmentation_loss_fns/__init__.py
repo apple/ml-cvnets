@@ -5,20 +5,63 @@
 
 import os
 import importlib
+import argparse
+
+from utils import logger
+
+from ..base_criteria import BaseCriteria
 
 SUPPORTED_SEG_LOSS_FNS = []
+SEG_LOSS_FN_REGISTRY = {}
 
 
 def register_segmentation_loss_fn(name):
-    def register_fn(fn):
+    def register_fn(cls):
         if name in SUPPORTED_SEG_LOSS_FNS:
             raise ValueError(
                 "Cannot register duplicate segmentation loss function ({})".format(name)
             )
+
+        if not issubclass(cls, BaseCriteria):
+            raise ValueError(
+                "Loss function ({}: {}) must extend BaseCriteria".format(
+                    name, cls.__name__
+                )
+            )
+
         SUPPORTED_SEG_LOSS_FNS.append(name)
-        return fn
+        SEG_LOSS_FN_REGISTRY[name] = cls
+        return cls
 
     return register_fn
+
+
+def supported_loss_fn_str(loss_fn_name):
+    supp_str = (
+        "Loss function ({}) is not yet supported. \n Supported functions are:".format(
+            loss_fn_name
+        )
+    )
+    for i, fn_name in enumerate(SUPPORTED_SEG_LOSS_FNS):
+        supp_str += "{} \t".format(fn_name)
+    logger.error(supp_str)
+
+
+def get_segmentation_loss(opts, *args, **kwargs):
+    loss_fn_name = getattr(opts, "loss.segmentation.name", "cross_entropy")
+
+    if loss_fn_name in SUPPORTED_SEG_LOSS_FNS:
+        return SEG_LOSS_FN_REGISTRY[loss_fn_name](opts, *args, **kwargs)
+    else:
+        supported_loss_fn_str(loss_fn_name)
+        return None
+
+
+def arguments_seg_loss_fn(parser: argparse.ArgumentParser):
+    # add loss function specific arguments
+    for k, v in SEG_LOSS_FN_REGISTRY.items():
+        parser = v.add_arguments(parser=parser)
+    return parser
 
 
 # automatically import different loss functions
@@ -32,6 +75,3 @@ for file in os.listdir(loss_fn_dir):
     ):
         model_name = file[: file.find(".py")] if file.endswith(".py") else file
         module = importlib.import_module("loss_fn.segmentation_loss_fns." + model_name)
-
-
-from loss_fn.segmentation_loss_fns.cross_entropy import SegCrossEntropy

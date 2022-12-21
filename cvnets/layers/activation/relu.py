@@ -15,7 +15,7 @@ class ReLU(nn.ReLU):
     Applies Rectified Linear Unit function
     """
 
-    def __init__(self, inplace: Optional[bool] = False) -> None:
+    def __init__(self, inplace: Optional[bool] = False, *args, **kwargs) -> None:
         super().__init__(inplace=inplace)
 
     def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:

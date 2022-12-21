@@ -38,16 +38,15 @@ class VideoBatchSampler(BatchSampler):
         self.clips_per_video = getattr(opts, "sampler.bs.clips_per_video", 1)
 
     def __iter__(self):
-        if self.shuffle:
-            random.seed(self.epoch)
-            random.shuffle(self.img_indices)
+        indices = self.get_indices()
 
         start_index = 0
         batch_size = self.batch_size_gpu0
-        while start_index < self.n_samples:
+        indices_len = len(indices)
+        while start_index < indices_len:
 
-            end_index = min(start_index + batch_size, self.n_samples)
-            batch_ids = self.img_indices[start_index:end_index]
+            end_index = min(start_index + batch_size, indices_len)
+            batch_ids = indices[start_index:end_index]
             start_index += batch_size
 
             if len(batch_ids) > 0:
@@ -92,6 +91,7 @@ class VideoBatchSampler(BatchSampler):
             self.clips_per_video,
             self.default_frames,
         )
+        repr_str += self.extra_repr()
         repr_str += "\n)"
         return repr_str
 
@@ -122,21 +122,13 @@ class VideoBatchSamplerDDP(BatchSamplerDDP):
         self.clips_per_video = getattr(opts, "sampler.bs.clips_per_video", 1)
 
     def __iter__(self):
-        if self.shuffle:
-            random.seed(self.epoch)
-            indices_rank_i = self.img_indices[
-                self.rank : len(self.img_indices) : self.num_replicas
-            ]
-            random.shuffle(indices_rank_i)
-        else:
-            indices_rank_i = self.img_indices[
-                self.rank : len(self.img_indices) : self.num_replicas
-            ]
+        indices_rank_i = self.get_indices_rank_i()
 
         start_index = 0
         batch_size = self.batch_size_gpu0
-        while start_index < self.n_samples_per_replica:
-            end_index = min(start_index + batch_size, self.n_samples_per_replica)
+        indices_len = len(indices_rank_i)
+        while start_index < indices_len:
+            end_index = min(start_index + batch_size, indices_len)
             batch_ids = indices_rank_i[start_index:end_index]
             n_batch_samples = len(batch_ids)
             if n_batch_samples != batch_size:
@@ -165,5 +157,6 @@ class VideoBatchSamplerDDP(BatchSamplerDDP):
             self.clips_per_video,
             self.default_frames,
         )
+        repr_str += self.extra_repr()
         repr_str += "\n)"
         return repr_str

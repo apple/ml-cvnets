@@ -37,9 +37,6 @@ def default_collate_fn(batch: List[Dict], opts):
             except Exception as e:
                 logger.error("Unable to stack the tensors. Error: {}".format(e))
 
-        if k == "image" and getattr(opts, "common.channels_last", False):
-            batch_elements = batch_elements.to(memory_format=torch.channels_last)
-
         new_batch[k] = batch_elements
 
     return new_batch

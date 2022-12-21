@@ -17,9 +17,15 @@ class LeakyReLU(nn.LeakyReLU):
     """
 
     def __init__(
-        self, negative_slope: Optional[float] = 1e-2, inplace: Optional[bool] = False
+        self,
+        negative_slope: Optional[float] = 1e-2,
+        inplace: Optional[bool] = False,
+        *args,
+        **kwargs
     ) -> None:
         super().__init__(negative_slope=negative_slope, inplace=inplace)
 
-    def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:
+    def profile_module(
+        self, input: Tensor, *args, **kwargs
+    ) -> Tuple[Tensor, float, float]:
         return input, 0.0, 0.0

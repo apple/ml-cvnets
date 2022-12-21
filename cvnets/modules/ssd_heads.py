@@ -172,9 +172,6 @@ class SSDHead(BaseModule):
         return input, params, macs
 
 
-# TODO: Remove from public version
-
-
 class SSDInstanceHead(BaseModule):
     """
     Instance segmentation head for SSD model.

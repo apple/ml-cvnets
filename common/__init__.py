@@ -3,6 +3,8 @@
 # Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
 
+MIN_TORCH_VERSION = "1.11.0"
+
 SUPPORTED_IMAGE_EXTNS = [".png", ".jpg", ".jpeg"]  # Add image formats here
 SUPPORTED_MODALITIES = ["image", "video"]
 SUPPORTED_VIDEO_CLIP_VOTING_FN = ["sum", "max"]

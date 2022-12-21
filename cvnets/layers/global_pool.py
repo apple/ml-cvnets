@@ -59,9 +59,9 @@ class GlobalPool(BaseLayer):
 
     def _global_pool(self, x: Tensor, dims: List):
         if self.pool_type == "rms":  # root mean square
-            x = x ** 2
+            x = x**2
             x = torch.mean(x, dim=dims, keepdim=self.keep_dim)
-            x = x ** -0.5
+            x = x**-0.5
         elif self.pool_type == "abs":  # absolute
             x = torch.mean(torch.abs(x), dim=dims, keepdim=self.keep_dim)
         else:

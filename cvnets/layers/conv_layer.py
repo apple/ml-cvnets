@@ -78,7 +78,10 @@ class ConvLayer(BaseLayer):
         kernel_size (Union[int, Tuple[int, int]]): Kernel size for convolution.
         stride (Union[int, Tuple[int, int]]): Stride for convolution. Default: 1
         dilation (Union[int, Tuple[int, int]]): Dilation rate for convolution. Default: 1
-        groups (Optional[int]): Number of groups in convolution. Default: 1
+        padding (Union[int, Tuple[int, int]]): Padding for convolution. When not specified, 
+                                               padding is automatically computed based on kernel size 
+                                               and dilation rage. Default is ``None``
+        groups (Optional[int]): Number of groups in convolution. Default: ``1``
         bias (Optional[bool]): Use bias. Default: ``False``
         padding_mode (Optional[str]): Padding mode. Default: ``zeros``
         use_norm (Optional[bool]): Use normalization layer after convolution. Default: ``True``
@@ -102,6 +105,7 @@ class ConvLayer(BaseLayer):
         kernel_size: Union[int, Tuple[int, int]],
         stride: Optional[Union[int, Tuple[int, int]]] = 1,
         dilation: Optional[Union[int, Tuple[int, int]]] = 1,
+        padding: Optional[Union[int, Tuple[int, int]]] = None,
         groups: Optional[int] = 1,
         bias: Optional[bool] = False,
         padding_mode: Optional[str] = "zeros",
@@ -132,10 +136,11 @@ class ConvLayer(BaseLayer):
         assert isinstance(stride, Tuple)
         assert isinstance(dilation, Tuple)
 
-        padding = (
-            int((kernel_size[0] - 1) / 2) * dilation[0],
-            int((kernel_size[1] - 1) / 2) * dilation[1],
-        )
+        if padding is None:
+            padding = (
+                int((kernel_size[0] - 1) / 2) * dilation[0],
+                int((kernel_size[1] - 1) / 2) * dilation[1],
+            )
 
         if in_channels % groups != 0:
             logger.error(
@@ -231,7 +236,6 @@ class ConvLayer(BaseLayer):
 
         if self.act_name is not None:
             repr_str += ", activation={}".format(self.act_name)
-        repr_str += ", bias={}".format(self.bias)
         repr_str += ")"
         return repr_str
 

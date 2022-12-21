@@ -18,7 +18,7 @@ def compute_psnr(
     if not no_uint8_conversion:
         prediction = prediction.mul(255.0).to(torch.uint8)
         target = target.mul(255.0).to(torch.uint8)
-        MAX_I = 255 ** 2
+        MAX_I = 255**2
     else:
         MAX_I = 1
 

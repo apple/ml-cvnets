@@ -1,5 +1,6 @@
+taskname: '+ MobileNetv1-1.0'
 common:
-  run_label: "run_1"
+  run_label: "train"
   log_freq: 500
   auto_resume: true
   mixed_precision: true

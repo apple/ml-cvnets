@@ -5,7 +5,7 @@
 
 from torch.nn import functional as F
 from torch import Tensor
-from typing import Tuple, Union
+from typing import Tuple, Union, Optional
 import argparse
 
 from . import register_segmentation_loss_fn
@@ -16,8 +16,8 @@ from .. import BaseCriteria
 class SegCrossEntropy(BaseCriteria):
     """Cross entropy loss for the task of semantic segmentation"""
 
-    def __init__(self, opts):
-        super(SegCrossEntropy, self).__init__()
+    def __init__(self, opts, *args, **kwargs):
+        super().__init__(opts, *args, **kwargs)
         self.ignore_idx = getattr(opts, "loss.ignore_idx", -1)
         self.weighted_loss = getattr(
             opts, "loss.segmentation.cross_entropy.class_weights", False
@@ -52,7 +52,9 @@ class SegCrossEntropy(BaseCriteria):
 
         return parser
 
-    def _compute_loss(self, pred_mask, target_mask, weight=None):
+    def _compute_loss(
+        self, pred_mask: Tensor, target_mask: Tensor, weight: Optional[Tensor] = None
+    ):
         b, c, x_h, x_w = pred_mask.shape
         b, y_h, y_w = target_mask.shape
 
@@ -77,7 +79,7 @@ class SegCrossEntropy(BaseCriteria):
     def forward(
         self,
         input_sample: Tensor,
-        prediction: Union[Tensor or Tuple[Tensor, Tensor]],
+        prediction: Union[Tensor, Tuple[Tensor, Tensor]],
         target: Tensor,
         *args,
         **kwargs

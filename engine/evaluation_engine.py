@@ -5,14 +5,16 @@
 
 import torch
 import time
-from torch.cuda.amp import autocast
 
 from metrics import Statistics, metric_monitor
+from options.parse_args import parse_validation_metric_names
 from utils.ddp_utils import is_master
 from utils import logger
 from utils.common_utils import move_to_device
 from engine.utils import print_summary
 from common import DEFAULT_LOG_FREQ, SUPPORTED_VIDEO_CLIP_VOTING_FN
+
+from .utils import get_batch_size, autocast_fn
 
 
 class Evaluator(object):
@@ -28,27 +30,18 @@ class Evaluator(object):
         self.device = getattr(opts, "dev.device", torch.device("cpu"))
         self.use_distributed = getattr(self.opts, "ddp.use_distributed", False)
         self.is_master_node = is_master(opts)
+        self.stage_name = getattr(opts, "common.eval_stage_name", "evaluation")
 
         self.mixed_precision_training = getattr(opts, "common.mixed_precision", False)
-
-        self.metric_names = getattr(opts, "stats.val", ["loss"])
-        if isinstance(self.metric_names, str):
-            self.metric_names = [self.metric_names]
-        assert isinstance(
-            self.metric_names, list
-        ), "Type of metric names should be list. Got: {}".format(
-            type(self.metric_names)
+        self.mixed_precision_dtype = getattr(
+            opts, "common.mixed_precision_dtype", "float16"
         )
 
-        if "loss" in self.metric_names:
-            self.metric_names.pop(self.metric_names.index("loss"))
-
-        self.ckpt_metric = getattr(self.opts, "stats.checkpoint_metric", "top1")
-        assert (
-            self.ckpt_metric in self.metric_names
-        ), "Checkpoint metric should be part of metric names. Metric names: {}, Checkpoint metric: {}".format(
-            self.metric_names, self.ckpt_metric
-        )
+        (
+            self.metric_names,
+            self.ckpt_metric,
+            self.ckpt_submetric,
+        ) = parse_validation_metric_names(self.opts)
 
         if self.is_master_node:
             print_summary(opts=self.opts, model=self.model)
@@ -79,20 +72,23 @@ class Evaluator(object):
             for batch_id, batch in enumerate(self.eval_loader):
                 batch = move_to_device(opts=self.opts, x=batch, device=self.device)
 
-                input_img, target_label = batch["image"], batch["label"]
+                samples, targets = batch["samples"], batch["targets"]
 
-                batch_size = input_img.shape[0]
+                batch_size = get_batch_size(samples)
 
-                with autocast(enabled=self.mixed_precision_training):
+                with autocast_fn(
+                    enabled=self.mixed_precision_training,
+                    amp_precision=self.mixed_precision_dtype,
+                ):
                     # prediction
-                    pred_label = model(input_img)
+                    pred_label = model(samples)
 
                 processed_samples += batch_size
                 metrics = metric_monitor(
                     self.opts,
                     pred_label=pred_label,
-                    target_label=target_label,
-                    loss=0.0,
+                    target_label=targets,
+                    loss=torch.tensor(0.0, dtype=torch.float, device=self.device),
                     use_distributed=self.use_distributed,
                     metric_names=self.metric_names,
                 )
@@ -110,7 +106,7 @@ class Evaluator(object):
                         learning_rate=0.0,
                     )
 
-        evaluation_stats.epoch_summary(epoch=-1, stage="evaluation")
+        evaluation_stats.epoch_summary(epoch=-1, stage=self.stage_name)
 
     def eval_fn_video(self, model):
         log_freq = getattr(self.opts, "common.log_freq", DEFAULT_LOG_FREQ)
@@ -140,9 +136,9 @@ class Evaluator(object):
             for batch_id, batch in enumerate(self.eval_loader):
                 batch = move_to_device(opts=self.opts, x=batch, device=self.device)
 
-                input_img, target_label = batch["image"], batch["label"]
+                samples, targets = batch["samples"], batch["targets"]
                 # target_label is Batch*Num_clips
-                batch_size_ = target_label.shape[0]
+                batch_size_ = get_batch_size(samples)
                 batch_size = batch_size_ // num_clips_per_video
                 if batch_size_ != (batch_size * num_clips_per_video):
                     logger.log(
@@ -152,13 +148,16 @@ class Evaluator(object):
                     )
                     continue
 
-                with autocast(enabled=self.mixed_precision_training):
+                with autocast_fn(
+                    enabled=self.mixed_precision_training,
+                    amp_precision=self.mixed_precision_dtype,
+                ):
                     # prediction
-                    pred_label = model(input_img)
+                    pred_label = model(samples)
 
-                target_label = target_label.reshape(batch_size, num_clips_per_video)
+                targets = targets.reshape(batch_size, num_clips_per_video)
                 # label is the same for all clips in the video
-                target_label = target_label[:, 0]
+                targets = targets[:, 0]
                 pred_label = pred_label.reshape(batch_size, num_clips_per_video, -1)
 
                 if voting_fn == "sum":
@@ -176,8 +175,8 @@ class Evaluator(object):
                 metrics = metric_monitor(
                     self.opts,
                     pred_label=pred_label,
-                    target_label=target_label,
-                    loss=0.0,
+                    target_label=targets,
+                    loss=torch.tensor(0.0, dtype=torch.float, device=self.device),
                     use_distributed=self.use_distributed,
                     metric_names=self.metric_names,
                 )
@@ -195,7 +194,7 @@ class Evaluator(object):
                         learning_rate=0.0,
                     )
 
-        evaluation_stats.epoch_summary(epoch=-1, stage="evaluation")
+        evaluation_stats.epoch_summary(epoch=-1, stage=self.stage_name)
 
     def run(self):
         eval_start_time = time.time()

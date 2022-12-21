@@ -16,7 +16,7 @@ class ClsBinaryCrossEntropy(BaseCriteria):
     """Binary CE for classification tasks"""
 
     def __init__(self, opts, *args, **kwargs) -> None:
-        super().__init__()
+        super().__init__(opts, *args, **kwargs)
 
     def forward(
         self, input_sample: Tensor, prediction: Tensor, target: Tensor, *args, **kwargs

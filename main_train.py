@@ -8,7 +8,6 @@ import torch
 import math
 from torch.cuda.amp import GradScaler
 from torch.distributed.elastic.multiprocessing import errors
-import cv2
 
 from utils import logger
 from options.opts import get_training_arguments
@@ -237,16 +236,6 @@ def main_worker(**kwargs):
             args=(main, opts, kwargs),
             nprocs=num_gpus,
         )
-    # Depreciated: We recommend to use Spawn method
-    # elif use_distributed and not ddp_spawn:
-    #     if world_size < 2:
-    #         logger.error("World size needs be greater than 1. Got: {}.".format(world_size))
-    #
-    #     start_rank = getattr(opts, "ddp.rank", 0)
-    #     kwargs['start_rank'] = start_rank
-    #
-    #     dev_id = getattr(opts, "ddp.device_id", 0)
-    #     distributed_worker(dev_id, main, opts, kwargs)
     else:
         if dataset_workers == -1:
             setattr(opts, "dataset.workers", n_cpus)

@@ -1,5 +1,6 @@
+taskname: '+ MobileViTv1-Small DeepLabv3'
 common:
-  run_label: "run_1"
+  run_label: "train"
   accum_freq: 2
   log_freq: 200
   auto_resume: true

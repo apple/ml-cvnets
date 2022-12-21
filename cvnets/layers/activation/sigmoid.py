@@ -15,7 +15,7 @@ class Sigmoid(nn.Sigmoid):
     Applies the sigmoid function
     """
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__()
 
     def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:

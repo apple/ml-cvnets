@@ -4,7 +4,7 @@
 #
 
 from torch import nn, Tensor
-from typing import Optional, Dict, Tuple, Union
+from typing import Optional, Dict, Tuple, Any
 import argparse
 
 from utils import logger
@@ -53,7 +53,7 @@ class BaseVideoEncoder(nn.Module):
     def extract_end_points_l4(self, x: Tensor, *args, **kwargs) -> Dict:
         raise NotImplementedError
 
-    def extract_features(self, x: Tensor, *args, **kwargs) -> Tensor:
+    def _extract_features(self, x: Tensor, *args, **kwargs) -> Tensor:
         raise NotImplementedError
 
     def forward(self, x: Tensor, *args, **kwargs) -> Tensor:
@@ -82,6 +82,8 @@ class BaseVideoEncoder(nn.Module):
             named_parameters=self.named_parameters,
             weight_decay=weight_decay,
             no_decay_bn_filter_bias=no_decay_bn_filter_bias,
+            *args,
+            **kwargs
         )
         return param_list, [1.0] * len(param_list)
 
@@ -115,3 +117,9 @@ class BaseVideoEncoder(nn.Module):
             )
         )
         logger.double_dash_line(dashes=65)
+
+    def dummy_input_and_label(self, batch_size: int) -> Dict:
+        """Create dummy input and labels for CI/CD purposes. Child classes must override it
+        if functionality is different.
+        """
+        raise NotImplementedError

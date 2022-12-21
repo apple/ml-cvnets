@@ -23,7 +23,7 @@ class ConfusionMatrix(object):
             k = (ground_truth >= 0) & (ground_truth < n_classes)
             inds = n_classes * ground_truth[k].to(torch.int64) + prediction[k]
             self.confusion_mat += torch.bincount(
-                inds, minlength=n_classes ** 2
+                inds, minlength=n_classes**2
             ).reshape(n_classes, n_classes)
 
     def reset(self):

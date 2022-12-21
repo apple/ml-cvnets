@@ -16,14 +16,16 @@ class Hardsigmoid(nn.Hardsigmoid):
     Applies the `Hard Sigmoid <https://arxiv.org/abs/1511.00363v3>`_ function
     """
 
-    def __init__(self, inplace: Optional[bool] = False) -> None:
+    def __init__(self, inplace: Optional[bool] = False, *args, **kwargs) -> None:
         super().__init__(inplace=inplace)
 
-    def forward(self, input: Tensor) -> Tensor:
+    def forward(self, input: Tensor, *args, **kwargs) -> Tensor:
         if hasattr(F, "hardsigmoid"):
             return F.hardsigmoid(input, self.inplace)
         else:
             return F.relu(input + 3) / 6
 
-    def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:
+    def profile_module(
+        self, input: Tensor, *args, **kwargs
+    ) -> Tuple[Tensor, float, float]:
         return input, 0.0, 0.0

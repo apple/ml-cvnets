@@ -98,16 +98,19 @@ class COCODataset(BaseImageDataset):
             # for evaluation purposes, resize only the input and not mask
             data["mask"] = mask
 
-        data["label"] = data["mask"]
-        del data["mask"]
+        output_data = {"samples": data["image"], "targets": data["mask"]}
 
         if self.is_evaluation:
             img_name = path.replace("jpg", "png")
-            data["file_name"] = img_name
-            data["im_width"] = im_width
-            data["im_height"] = im_height
+            mask = output_data.pop("targets")
+            output_data["targets"] = {
+                "mask": mask,
+                "file_name": img_name,
+                "im_width": im_width,
+                "im_height": im_height,
+            }
 
-        return data
+        return output_data
 
     def _gen_seg_mask(self, target, h, w):
         mask = np.zeros((h, w), dtype=np.uint8)

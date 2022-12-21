@@ -16,7 +16,11 @@ class PReLU(nn.PReLU):
     """
 
     def __init__(
-        self, num_parameters: Optional[int] = 1, init: Optional[float] = 0.25
+        self,
+        num_parameters: Optional[int] = 1,
+        init: Optional[float] = 0.25,
+        *args,
+        **kwargs
     ) -> None:
         super().__init__(num_parameters=num_parameters, init=init)
 

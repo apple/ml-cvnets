@@ -13,6 +13,7 @@ from utils.ddp_utils import is_master, is_start_rank_node
 from utils.download_utils import get_local_path
 from common import SUPPORTED_VIDEO_CLIP_VOTING_FN
 
+from .. import register_tasks, register_task_arguments
 from .base_cls import BaseVideoEncoder
 from ...misc.common import load_pretrained_model
 
@@ -35,6 +36,7 @@ def register_video_cls_models(name):
     return register_model_class
 
 
+@register_tasks(name="video_classification")
 def build_video_classification_model(opts, *args, **kwargs):
     model_name = getattr(opts, "model.video_classification.name", None)
     model = None
@@ -84,9 +86,7 @@ def build_video_classification_model(opts, *args, **kwargs):
     pretrained = getattr(opts, "model.video_classification.pretrained", None)
     if pretrained is not None:
         pretrained = get_local_path(opts, path=pretrained)
-        model = load_pretrained_model(
-            model=model, wt_loc=pretrained, is_master_node=is_start_rank_node(opts)
-        )
+        model = load_pretrained_model(model=model, wt_loc=pretrained, opts=opts)
 
     freeze_norm_layers = getattr(
         opts, "model.video_classification.freeze_batch_norm", False
@@ -174,6 +174,7 @@ def std_video_cls_model_args(parser: argparse.ArgumentParser):
     return parser
 
 
+@register_task_arguments(name="video_classification")
 def arguments_video_classification(parser: argparse.ArgumentParser):
     parser = std_video_cls_model_args(parser=parser)
 

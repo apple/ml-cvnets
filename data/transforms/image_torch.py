@@ -75,7 +75,7 @@ class RandomMixup(BaseTransformation):
         if torch.rand(1).item() >= self.p:
             return data
 
-        image_tensor, target_tensor = data.pop("image"), data.pop("label")
+        image_tensor, target_tensor = data.pop("samples"), data.pop("targets")
 
         if image_tensor.ndim != 4:
             logger.error(f"Batch ndim should be 4. Got {image_tensor.ndim}")
@@ -113,8 +113,8 @@ class RandomMixup(BaseTransformation):
         target_rolled.mul_(1.0 - lambda_param)
         target_tensor.mul_(lambda_param).add_(target_rolled)
 
-        data["image"] = image_tensor
-        data["label"] = target_tensor
+        data["samples"] = image_tensor
+        data["targets"] = target_tensor
 
         return data
 
@@ -184,7 +184,7 @@ class RandomCutmix(BaseTransformation):
         if torch.rand(1).item() >= self.p:
             return data
 
-        image_tensor, target_tensor = data.pop("image"), data.pop("label")
+        image_tensor, target_tensor = data.pop("samples"), data.pop("targets")
 
         if image_tensor.ndim != 4:
             logger.error(f"Batch ndim should be 4. Got {image_tensor.ndim}")
@@ -236,8 +236,8 @@ class RandomCutmix(BaseTransformation):
         target_rolled.mul_(1.0 - lambda_param)
         target_tensor.mul_(lambda_param).add_(target_rolled)
 
-        data["image"] = image_tensor
-        data["label"] = target_tensor
+        data["samples"] = image_tensor
+        data["targets"] = target_tensor
 
         return data
 

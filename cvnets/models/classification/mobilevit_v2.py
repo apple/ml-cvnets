@@ -15,13 +15,10 @@ from ...modules import InvertedResidual
 from ...modules import MobileViTBlockv2 as Block
 
 
-# TODO: Add MobileViTv2 paper
-
-
 @register_cls_models("mobilevit_v2")
 class MobileViTv2(BaseEncoder):
     """
-    This class defines the MobileViTv2 architecture
+    This class defines the `MobileViTv2 <https://arxiv.org/abs/2206.02680>`_ architecture
     """
 
     def __init__(self, opts, *args, **kwargs) -> None:
@@ -32,7 +29,7 @@ class MobileViTv2(BaseEncoder):
         image_channels = mobilevit_config["layer0"]["img_channels"]
         out_channels = mobilevit_config["layer0"]["out_channels"]
 
-        super().__init__(*args, **kwargs)
+        super().__init__(opts, *args, **kwargs)
 
         # store model configuration in a dictionary
         self.model_conf_dict = dict()

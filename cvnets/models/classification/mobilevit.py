@@ -34,7 +34,7 @@ class MobileViT(BaseEncoder):
 
         mobilevit_config = get_configuration(opts=opts)
 
-        super().__init__(*args, **kwargs)
+        super().__init__(opts, *args, **kwargs)
 
         # store model configuration in a dictionary
         self.model_conf_dict = dict()

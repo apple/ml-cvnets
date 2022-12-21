@@ -9,24 +9,14 @@ from utils import logger
 from typing import Any
 
 from . import BaseCriteria, register_loss_fn
-from .segmentation_loss_fns import SegCrossEntropy, SUPPORTED_SEG_LOSS_FNS
+from .segmentation_loss_fns import get_segmentation_loss, arguments_seg_loss_fn
 
 
 @register_loss_fn("segmentation")
 class SegmentationLoss(BaseCriteria):
-    def __init__(self, opts):
-        loss_fn_name = getattr(opts, "loss.segmentation.name", "cross_entropy")
-        super(SegmentationLoss, self).__init__()
-        if loss_fn_name == "cross_entropy":
-            self.criteria = SegCrossEntropy(opts=opts)
-        else:
-            temp_str = (
-                "Loss function ({}) not yet supported. "
-                "\n Supported segmentation loss functions are:".format(loss_fn_name)
-            )
-            for i, m_name in enumerate(SUPPORTED_SEG_LOSS_FNS):
-                temp_str += "\n\t {}: {}".format(i, logger.color_text(m_name))
-            logger.error(temp_str)
+    def __init__(self, opts, *args, **kwargs):
+        super().__init__(opts, *args, **kwargs)
+        self.criteria = get_segmentation_loss(opts=opts, *args, **kwargs)
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser):
@@ -39,14 +29,18 @@ class SegmentationLoss(BaseCriteria):
             default="cross_entropy",
             help="Segmentation loss function name",
         )
-        parser = SegCrossEntropy.add_arguments(parser=parser)
+        parser = arguments_seg_loss_fn(parser=parser)
         return parser
 
     def forward(
         self, input_sample: Any, prediction: Any, target: Any, *args, **kwargs
     ) -> Tensor:
         return self.criteria(
-            input_sample=input_sample, prediction=prediction, target=target
+            input_sample=input_sample,
+            prediction=prediction,
+            target=target,
+            *args,
+            **kwargs
         )
 
     def __repr__(self):

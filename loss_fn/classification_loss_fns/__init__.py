@@ -56,11 +56,11 @@ def supported_loss_fn_str(loss_fn_name):
     logger.error(supp_str)
 
 
-def get_classification_loss(opts):
+def get_classification_loss(opts, *args, **kwargs):
     loss_fn_name = getattr(opts, "loss.classification.name", "cross_entropy")
 
     if loss_fn_name in SUPPORTED_CLS_LOSS_FNS:
-        return CLS_LOSS_FN_REGISTRY[loss_fn_name](opts)
+        return CLS_LOSS_FN_REGISTRY[loss_fn_name](opts, *args, **kwargs)
     else:
         supported_loss_fn_str(loss_fn_name)
         return None

@@ -2,7 +2,7 @@
 # For licensing see accompanying LICENSE file.
 # Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
-
+import copy
 import random
 import argparse
 from typing import Optional
@@ -84,9 +84,6 @@ class VariableBatchSampler(BaseSamplerDP):
         self.max_img_scales = max_img_scales
         self.check_scale_div_factor = check_scale_div_factor
         self.scale_inc = scale_inc
-        self.num_repeats = (
-            getattr(opts, "sampler.vbs.num_repeats", 1) if is_training else 1
-        )
 
         if is_training:
             self.img_batch_tuples = _image_batch_pairs(
@@ -105,14 +102,7 @@ class VariableBatchSampler(BaseSamplerDP):
             self.img_batch_tuples = [(crop_size_h, crop_size_w, self.batch_size_gpu0)]
 
     def __iter__(self):
-        if self.shuffle:
-            random.seed(self.epoch)
-            img_indices = np.repeat(self.img_indices, repeats=self.num_repeats)
-            img_indices = list(img_indices)
-            random.shuffle(img_indices)
-        else:
-            img_indices = self.img_indices
-
+        img_indices = self.get_indices()
         start_index = 0
         n_samples = len(img_indices)
         while start_index < n_samples:
@@ -169,8 +159,8 @@ class VariableBatchSampler(BaseSamplerDP):
             "\n\t scales={} "
             "\n\t scale_inc={} "
             "\n\t min_scale_inc_factor={} "
-            "\n\t ep_intervals={}"
-            "\n\t num_repeat={}".format(
+            "\n\t max_scale_inc_factor={} "
+            "\n\t ep_intervals={}".format(
                 self.crop_size_h,
                 self.crop_size_w,
                 self.batch_size_gpu0,
@@ -179,9 +169,9 @@ class VariableBatchSampler(BaseSamplerDP):
                 self.min_scale_inc_factor,
                 self.max_scale_inc_factor,
                 self.scale_ep_intervals,
-                self.num_repeats,
             )
         )
+        repr_str += self.extra_repr()
         repr_str += "\n)"
         return repr_str
 
@@ -264,17 +254,8 @@ class VariableBatchSampler(BaseSamplerDP):
             action="store_true",
             help="Increase image scales during training",
         )
-        group.add_argument(
-            "--sampler.vbs.num-repeats",
-            type=int,
-            default=1,
-            help="Repeat each sample x times during an epoch",
-        )
 
         return parser
-
-    def __len__(self):
-        return len(self.img_indices) * self.num_repeats
 
 
 @register_sampler(name="variable_batch_sampler_ddp")
@@ -346,9 +327,6 @@ class VariableBatchSamplerDDP(BaseSamplerDDP):
         self.max_img_scales = max_img_scales
         self.check_scale_div_factor = check_scale_div_factor
         self.scale_inc = scale_inc
-        self.num_repeats = (
-            getattr(opts, "sampler.vbs.num_repeats", 1) if is_training else 1
-        )
 
         if is_training:
             self.img_batch_tuples = _image_batch_pairs(
@@ -369,34 +347,10 @@ class VariableBatchSamplerDDP(BaseSamplerDDP):
             ]
 
     def __iter__(self):
-        if self.shuffle:
-            random.seed(self.epoch)
-
-            img_indices = np.repeat(self.img_indices, repeats=self.num_repeats)
-            img_indices = list(img_indices)
-
-            n_data_samples = len(img_indices)
-
-            if n_data_samples % self.num_replicas != 0:
-                # Add more samples, so that each replica has the same number of samples
-                num_samples_per_replica = int(
-                    math.ceil(n_data_samples * 1.0 / self.num_replicas)
-                )
-                total_size = num_samples_per_replica * self.num_replicas
-                img_indices += img_indices[: (total_size - n_data_samples)]
-
-            indices_rank_i = img_indices[
-                self.rank : len(img_indices) : self.num_replicas
-            ]
-            random.shuffle(indices_rank_i)
-        else:
-            indices_rank_i = self.img_indices[
-                self.rank : len(self.img_indices) : self.num_replicas
-            ]
-
+        indices_rank_i = self.get_indices_rank_i()
         start_index = 0
         n_samples_rank_i = len(indices_rank_i)
-        while start_index < self.n_samples_per_replica:
+        while start_index < n_samples_rank_i:
             crop_h, crop_w, batch_size = random.choice(self.img_batch_tuples)
 
             end_index = min(start_index + batch_size, n_samples_rank_i)
@@ -451,8 +405,7 @@ class VariableBatchSamplerDDP(BaseSamplerDDP):
             "\n\t scale_inc={} "
             "\n\t min_scale_inc_factor={} "
             "\n\t max_scale_inc_factor={} "
-            "\n\t ep_intervals={} "
-            "\n\t num_repeat={}".format(
+            "\n\t ep_intervals={} ".format(
                 self.crop_size_h,
                 self.crop_size_w,
                 self.batch_size_gpu0,
@@ -461,11 +414,8 @@ class VariableBatchSamplerDDP(BaseSamplerDDP):
                 self.min_scale_inc_factor,
                 self.max_scale_inc_factor,
                 self.scale_ep_intervals,
-                self.num_repeats,
             )
         )
+        repr_str += self.extra_repr()
         repr_str += "\n )"
         return repr_str
-
-    def __len__(self):
-        return (len(self.img_indices) // self.num_replicas) * self.num_repeats

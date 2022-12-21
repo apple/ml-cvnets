@@ -6,84 +6,68 @@
 import argparse
 from typing import Optional
 
-from data.sampler import arguments_sampler
+from common import SUPPORTED_MODALITIES
+from cvnets import modeling_arguments
 from data.collate_fns import arguments_collate_fn
-from options.utils import load_config_file
 from data.datasets import arguments_dataset
-from cvnets import arguments_model, arguments_nn_layers, arguments_ema
-from cvnets.anchor_generator import arguments_anchor_gen
+from data.sampler import arguments_sampler
+from data.text_tokenizer import arguments_tokenizer
+from data.transforms import arguments_augmentation
+from data.video_reader import arguments_video_reader
 from loss_fn import arguments_loss_fn
+from metrics import arguments_stats
 from optim import arguments_optimizer
 from optim.scheduler import arguments_scheduler
-from common import SUPPORTED_MODALITIES
-from data.transforms import arguments_augmentation
-from metrics import arguments_stats
-from data.video_reader import arguments_video_reader
-from cvnets.matcher_det import arguments_box_matcher
+from options.utils import load_config_file
 from utils import logger
 
 
 class ParseKwargs(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        namespace_dict = vars(namespace)
-
-        if len(values) > 0:
-            override_dict = {}
-            # values are list of key-value pairs
-            for value in values:
-                key = None
-                try:
-                    key, value = value.split("=")
-                except ValueError as e:
-                    logger.error(
-                        "For override arguments, a key-value pair of the form key=value is expected"
+        # convert values into dict
+        override_dict = {}
+        for val in values:
+            if val.find("=") < 0:
+                logger.error(
+                    "For override arguments, a key-value pair of the form key=value is expected. Got: {}".format(
+                        val
                     )
+                )
+            val_list = val.split("=")
+            if len(val_list) != 2:
+                logger.error(
+                    "For override arguments, a key-value pair of the form key=value is expected with only one value per key. Got: {}".format(
+                        val
+                    )
+                )
+            override_dict[val_list[0]] = val_list[1]
 
-                if key in namespace_dict:
-                    value_namespace = namespace_dict[key]
-                    if value_namespace is None and value is None:
-                        value = None
-                    elif value_namespace is None and value is not None:
-                        # possibly a string or list of strings or list of integers
-
-                        # check if string is a list or not
-                        value = value.split(",")
-                        if len(value) == 1:
-                            # its a string
-                            value = str(value[0])
-
-                            # check if its empty string or not
-                            if value == "" or value.lower() == "none":
-                                value = None
-                        else:
-                            # its a list of integers or strings
-                            try:
-                                # convert to int
-                                value = [int(v) for v in value]
-                            except:
-                                # pass because its a string
-                                pass
-                    else:
-                        try:
-                            if value.lower() == "true":  # check for boolean
-                                value = True
-                            elif value.lower() == "false":
-                                value = False
-                            else:
-                                desired_type = type(value_namespace)
-                                value = desired_type(value)
-                        except ValueError as e:
-                            logger.warning(
-                                "Type mismatch while over-riding. Skipping key: {}".format(
-                                    key
-                                )
-                            )
-                            continue
-
-                    override_dict[key] = value
-            setattr(namespace, "override_args", override_dict)
-        else:
-            setattr(namespace, "override_args", None)
+        # determine the type of each value from parser actions and set accordingly
+        options = parser._actions
+        for option in options:
+            option_dest = option.dest
+            if option_dest in override_dict:
+                val = override_dict[option_dest]
+                if type(option.default) == bool and option.nargs == 0:
+                    # Boolean argument
+                    # value could be false, False, true, True
+                    override_dict[option_dest] = (
+                        True if val.lower().find("true") > -1 else False
+                    )
+                elif option.nargs is None:
+                    # when nargs is not defined, it is usually a string, int, and float.
+                    override_dict[option_dest] = option.type(val)
+                elif option.nargs in ["+", "*"]:
+                    # for list, we expect value to be comma separated
+                    val_list = val.split(",")
+                    override_dict[option_dest] = [option.type(v) for v in val_list]
+                else:
+                    logger.error(
+                        "Following option is not yet supported for overriding. Please specify in config file. Got: {}".format(
+                            option
+                        )
+                    )
+        setattr(namespace, "override_args", override_dict)
 
 
 def arguments_common(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -107,6 +91,12 @@ def arguments_common(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
         default="run_1",
         help="Label id for the current run",
     )
+    group.add_argument(
+        "--common.eval-stage-name",
+        type=str,
+        default="evaluation",
+        help="Name to be used while logging in evaluation stage.",
+    )
 
     group.add_argument(
         "--common.resume", type=str, default=None, help="Resume location"
@@ -126,6 +116,12 @@ def arguments_common(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
 
     group.add_argument(
         "--common.mixed-precision", action="store_true", help="Mixed precision training"
+    )
+    group.add_argument(
+        "--common.mixed-precision-dtype",
+        type=str,
+        default="float16",
+        help="Mixed precision training data type",
     )
     group.add_argument(
         "--common.accum-freq",
@@ -158,6 +154,12 @@ def arguments_common(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
         type=int,
         default=5,
         help="Keep k-best checkpoints",
+    )
+    group.add_argument(
+        "--common.save-all-checkpoints",
+        action="store_true",
+        default=False,
+        help="If True, will save checkpoints from all epochs",
     )
 
     group.add_argument(
@@ -209,6 +211,14 @@ def arguments_common(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
         help="You can use this flag for debugging purposes.",
     )
 
+    # intermediate checkpoint related args
+    group.add_argument(
+        "--common.save-interval-freq",
+        type=int,
+        default=0,
+        help="Save checkpoints every N updates. Defaults to 0",
+    )
+
     return parser
 
 
@@ -246,20 +256,24 @@ def arguments_ddp(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     return parser
 
 
+def parser_to_opts(parser: argparse.ArgumentParser):
+    # parse args
+    opts = parser.parse_args()
+    opts = load_config_file(opts)
+    return opts
+
+
 def get_training_arguments(parse_args: Optional[bool] = True):
     parser = argparse.ArgumentParser(description="Training arguments", add_help=True)
+
+    # cvnet arguments, including models
+    parser = modeling_arguments(parser=parser)
 
     # sampler related arguments
     parser = arguments_sampler(parser=parser)
 
     # dataset related arguments
     parser = arguments_dataset(parser=parser)
-
-    # anchor generator arguments
-    parser = arguments_anchor_gen(parser=parser)
-
-    # arguments related to box matcher
-    parser = arguments_box_matcher(parser=parser)
 
     # Video reader related arguments
     parser = arguments_video_reader(parser=parser)
@@ -269,11 +283,6 @@ def get_training_arguments(parse_args: Optional[bool] = True):
 
     # transform related arguments
     parser = arguments_augmentation(parser=parser)
-
-    # model related arguments
-    parser = arguments_nn_layers(parser=parser)
-    parser = arguments_model(parser=parser)
-    parser = arguments_ema(parser=parser)
 
     # loss function arguments
     parser = arguments_loss_fn(parser=parser)
@@ -291,11 +300,11 @@ def get_training_arguments(parse_args: Optional[bool] = True):
     # common
     parser = arguments_common(parser=parser)
 
+    # text tokenizer arguments
+    parser = arguments_tokenizer(parser=parser)
+
     if parse_args:
-        # parse args
-        opts = parser.parse_args()
-        opts = load_config_file(opts)
-        return opts
+        return parser_to_opts(parser)
     else:
         return parser
 
@@ -336,10 +345,7 @@ def get_conversion_arguments():
     )
 
     # parse args
-    opts = parser.parse_args()
-    opts = load_config_file(opts)
-
-    return opts
+    return parser_to_opts(parser)
 
 
 def get_bencmarking_arguments():
@@ -369,10 +375,7 @@ def get_bencmarking_arguments():
     )
 
     # parse args
-    opts = parser.parse_args()
-    opts = load_config_file(opts)
-
-    return opts
+    return parser_to_opts(parser)
 
 
 def get_segmentation_eval_arguments():
@@ -429,10 +432,7 @@ def get_segmentation_eval_arguments():
     )
 
     # parse args
-    opts = parser.parse_args()
-    opts = load_config_file(opts)
-
-    return opts
+    return parser_to_opts(parser)
 
 
 def get_detection_eval_arguments():
@@ -472,10 +472,7 @@ def get_detection_eval_arguments():
     )
 
     # parse args
-    opts = parser.parse_args()
-    opts = load_config_file(opts)
-
-    return opts
+    return parser_to_opts(parser)
 
 
 def get_loss_landscape_args():
@@ -514,6 +511,4 @@ def get_loss_landscape_args():
     )
 
     # parse args
-    opts = parser.parse_args()
-    opts = load_config_file(opts)
-    return opts
+    return parser_to_opts(parser)

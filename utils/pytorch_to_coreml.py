@@ -72,7 +72,7 @@ def convert_pytorch_to_coreml(
             inputs=[
                 ct.ImageType(name="input", shape=input_tensor.shape, scale=1.0 / 255.0)
             ],
-            convert_to="neuralnetwork",
+            convert_to="neuralnetwork",  # mlprogram
             # preprocessing_args={"scale": 1.0/255.0},
             # minimum_deployment_target=ct.target.iOS15,
             # compute_precision=ct.precision.FLOAT16

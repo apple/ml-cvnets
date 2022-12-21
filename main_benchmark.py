@@ -6,6 +6,7 @@
 import torch
 import time
 from torch.cuda.amp import autocast
+from typing import Optional
 
 from cvnets import get_model
 from options.opts import get_bencmarking_arguments
@@ -13,6 +14,7 @@ from utils import logger
 from utils.tensor_utils import create_rand_tensor
 from utils.common_utils import device_setup
 from utils.pytorch_to_coreml import convert_pytorch_to_coreml
+from engine.utils import autocast_fn
 
 
 def cpu_timestamp(*args, **kwargs):
@@ -27,9 +29,15 @@ def cuda_timestamp(cuda_sync=False, device=None, *args, **kwargs):
     return time.perf_counter()
 
 
-def step(time_fn, model, example_inputs, autocast_enable: False):
+def step(
+    time_fn,
+    model,
+    example_inputs,
+    autocast_enable: False,
+    amp_precision: Optional[str] = "float16",
+):
     start_time = time_fn()
-    with autocast(enabled=autocast_enable):
+    with autocast_fn(enabled=autocast_enable, amp_precision=amp_precision):
         model(example_inputs)
     end_time = time_fn(cuda_sync=True)
     return end_time - start_time
@@ -57,6 +65,7 @@ def main_benchmark():
         if device == torch.device("cpu")
         else getattr(opts, "common.mixed_precision", False)
     )
+    mixed_precision_dtype = getattr(opts, "common.mixed_precision_dtype", "float16")
 
     # load the model
     model = get_model(opts)
@@ -90,6 +99,7 @@ def main_benchmark():
                 model=model,
                 example_inputs=example_inp,
                 autocast_enable=mixed_precision,
+                amp_precision=mixed_precision_dtype,
             )
 
         n_steps = n_samples = 0.0
@@ -101,6 +111,7 @@ def main_benchmark():
                 model=model,
                 example_inputs=example_inp,
                 autocast_enable=mixed_precision,
+                amp_precision=mixed_precision_dtype,
             )
             n_steps += step_time
             n_samples += batch_size

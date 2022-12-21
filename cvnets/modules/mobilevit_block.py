@@ -357,12 +357,9 @@ class MobileViTBlock(BaseModule):
         return res, params, macs
 
 
-# TODO: Add reference to MobileViTv2 paper
-
-
 class MobileViTBlockv2(BaseModule):
     """
-    This class defines the `MobileViTv2 block <>`_
+    This class defines the `MobileViTv2 <https://arxiv.org/abs/2206.02680>`_ block
 
     Args:
         opts: command line arguments

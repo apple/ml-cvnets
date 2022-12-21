@@ -47,13 +47,37 @@ class LayerNorm(nn.LayerNorm):
             elementwise_affine=elementwise_affine,
         )
 
+    def forward(self, x: Tensor) -> Tensor:
+        n_dim = x.ndim
+        if x.shape[1] == self.normalized_shape[0] and n_dim > 2:  # channel-first format
+            s, u = torch.std_mean(x, dim=1, keepdim=True, unbiased=False)
+            x = (x - u) / (s + self.eps)
+            if self.weight is not None:
+                # Using fused operation for performing affine transformation: x = (x * weight) + bias
+                n_dim = x.ndim - 2
+                new_shape = [1, self.normalized_shape[0]] + [1] * n_dim
+                x = torch.addcmul(
+                    input=self.bias.reshape(*[new_shape]),
+                    value=1.0,
+                    tensor1=x,
+                    tensor2=self.weight.reshape(*[new_shape]),
+                )
+            return x
+        elif x.shape[-1] == self.normalized_shape[0]:  # channel-last format
+            return super().forward(x)
+        else:
+            raise NotImplementedError(
+                "LayerNorm is supported for channel-first and channel-last format only"
+            )
+
     def profile_module(self, input: Tensor) -> (Tensor, float, float):
         params = sum([p.numel() for p in self.parameters()])
         return input, params, 0.0
 
 
 @register_norm_fn(name="layer_norm_2d")
-class LayerNorm2D(nn.GroupNorm):
+@register_norm_fn(name="layer_norm_nchw")
+class LayerNorm2D_NCHW(nn.GroupNorm):
     """
     Applies `Layer Normalization <https://arxiv.org/abs/1607.06450>`_ over a 4D input tensor
 
@@ -89,3 +113,32 @@ class LayerNorm2D(nn.GroupNorm):
     def profile_module(self, input: Tensor) -> (Tensor, float, float):
         params = sum([p.numel() for p in self.parameters()])
         return input, params, 0.0
+
+
+@register_norm_fn(name="layer_norm_fp32")
+class LayerNormFP32(LayerNorm):
+    """
+    Applies `Layer Normalization <https://arxiv.org/abs/1607.06450>`_ over a input tensor with FP32 precision
+    """
+
+    def __init__(
+        self,
+        normalized_shape: Union[int, List[int], Size],
+        eps: Optional[float] = 1e-5,
+        elementwise_affine: Optional[bool] = True,
+        *args,
+        **kwargs
+    ):
+        super().__init__(
+            normalized_shape=normalized_shape,
+            eps=eps,
+            elementwise_affine=elementwise_affine,
+            *args,
+            **kwargs
+        )
+
+    def forward(self, x: Tensor) -> Tensor:
+        # Convert input from dtype X to FP32 and perform normalization operation.
+        # This may help with underflow/overflow issues that we typically see with normalization layers
+        inp_dtype = x.dtype
+        return super().forward(x.to(torch.float32)).to(inp_dtype)

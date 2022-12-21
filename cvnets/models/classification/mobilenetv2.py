@@ -41,7 +41,7 @@ class MobileNetV2(BaseEncoder):
             val = round(0.2 * width_mult, 3)
             classifier_dropout = bound_fn(min_val=0.0, max_val=0.2, value=val)
 
-        super().__init__(*args, **kwargs)
+        super().__init__(opts, *args, **kwargs)
 
         last_channel = make_divisible(
             last_channel * max(1.0, width_mult), self.round_nearest

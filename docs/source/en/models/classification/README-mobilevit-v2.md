@@ -97,20 +97,20 @@ Multi-node training of MobileViTv2-2.0 with 4 8-GPU nodes on the ImageNet-21k-P 
 
 Node-0
 ```
-cvnets-train --common.config-file config/classification/imagenet_21k/mobilevit_v2.yaml --common.results-loc mobilevitv2_results_in21k/width_2_0_0 --ddp.rank 0 --ddp.world-size 32 --ddp.dist-url 'tcp://IP_OF_NODE0:FREEPORT' --ddp.backend nccl --common.bolt-logging --common.override-kwargs optim.weight_decay=0.05 model.classification.mitv2.width_multiplier=2.0 model.classification.pretrained="LOCATION_OF_IMAGENET_1k_CHECKPOINT"
+cvnets-train --common.config-file config/classification/imagenet_21k/mobilevit_v2.yaml --common.results-loc mobilevitv2_results_in21k/width_2_0_0 --ddp.rank 0 --ddp.world-size 32 --ddp.dist-url 'tcp://IP_OF_NODE0:FREEPORT' --ddp.backend nccl --common.override-kwargs optim.weight_decay=0.05 model.classification.mitv2.width_multiplier=2.0 model.classification.pretrained="LOCATION_OF_IMAGENET_1k_CHECKPOINT"
 ```
 Node-1
 ```
-cvnets-train --common.config-file config/classification/imagenet_21k/mobilevit_v2.yaml --common.results-loc mobilevitv2_results_in21k/width_2_0_0 --ddp.rank 8 --ddp.world-size 32 --ddp.dist-url 'tcp://IP_OF_NODE0:FREEPORT' --ddp.backend nccl --common.bolt-logging --common.override-kwargs optim.weight_decay=0.05 model.classification.mitv2.width_multiplier=2.0 model.classification.pretrained="LOCATION_OF_IMAGENET_1k_CHECKPOINT"
+cvnets-train --common.config-file config/classification/imagenet_21k/mobilevit_v2.yaml --common.results-loc mobilevitv2_results_in21k/width_2_0_0 --ddp.rank 8 --ddp.world-size 32 --ddp.dist-url 'tcp://IP_OF_NODE0:FREEPORT' --ddp.backend nccl --common.override-kwargs optim.weight_decay=0.05 model.classification.mitv2.width_multiplier=2.0 model.classification.pretrained="LOCATION_OF_IMAGENET_1k_CHECKPOINT"
 ```
 Node-2
 ```
-cvnets-train --common.config-file config/classification/imagenet_21k/mobilevit_v2.yaml --common.results-loc mobilevitv2_results_in21k/width_2_0_0 --ddp.rank 16 --ddp.world-size 32 --ddp.dist-url 'tcp://IP_OF_NODE0:FREEPORT' --ddp.backend nccl --common.bolt-logging --common.override-kwargs optim.weight_decay=0.05 model.classification.mitv2.width_multiplier=2.0 model.classification.pretrained="LOCATION_OF_IMAGENET_1k_CHECKPOINT"
+cvnets-train --common.config-file config/classification/imagenet_21k/mobilevit_v2.yaml --common.results-loc mobilevitv2_results_in21k/width_2_0_0 --ddp.rank 16 --ddp.world-size 32 --ddp.dist-url 'tcp://IP_OF_NODE0:FREEPORT' --ddp.backend nccl --common.override-kwargs optim.weight_decay=0.05 model.classification.mitv2.width_multiplier=2.0 model.classification.pretrained="LOCATION_OF_IMAGENET_1k_CHECKPOINT"
 ```
 
 Node-3
 ```
-cvnets-train --common.config-file config/classification/imagenet_21k/mobilevit_v2.yaml --common.results-loc mobilevitv2_results_in21k/width_2_0_0 --ddp.rank 24 --ddp.world-size 32 --ddp.dist-url 'tcp://IP_OF_NODE0:FREEPORT' --ddp.backend nccl --common.bolt-logging --common.override-kwargs optim.weight_decay=0.05 model.classification.mitv2.width_multiplier=2.0 model.classification.pretrained="LOCATION_OF_IMAGENET_1k_CHECKPOINT"
+cvnets-train --common.config-file config/classification/imagenet_21k/mobilevit_v2.yaml --common.results-loc mobilevitv2_results_in21k/width_2_0_0 --ddp.rank 24 --ddp.world-size 32 --ddp.dist-url 'tcp://IP_OF_NODE0:FREEPORT' --ddp.backend nccl --common.override-kwargs optim.weight_decay=0.05 model.classification.mitv2.width_multiplier=2.0 model.classification.pretrained="LOCATION_OF_IMAGENET_1k_CHECKPOINT"
 ```
 
 ---- 
@@ -128,20 +128,20 @@ Multi-node training of MobileViTv2-1.75 with 4 8-GPU nodes on the ImageNet-21k-P
 
 Node-0
 ```
-cvnets-train --common.config-file config/classification/imagenet_21k/mobilevit_v2.yaml --common.results-loc mobilevitv2_results_in21k/width_1_7_5 --ddp.rank 0 --ddp.world-size 32 --ddp.dist-url 'tcp://IP_OF_NODE0:FREEPORT' --ddp.backend nccl --common.bolt-logging --common.override-kwargs optim.weight_decay=0.039 model.classification.mitv2.width_multiplier=1.75 model.classification.pretrained="LOCATION_OF_IMAGENET_1k_CHECKPOINT"
+cvnets-train --common.config-file config/classification/imagenet_21k/mobilevit_v2.yaml --common.results-loc mobilevitv2_results_in21k/width_1_7_5 --ddp.rank 0 --ddp.world-size 32 --ddp.dist-url 'tcp://IP_OF_NODE0:FREEPORT' --ddp.backend nccl --common.override-kwargs optim.weight_decay=0.039 model.classification.mitv2.width_multiplier=1.75 model.classification.pretrained="LOCATION_OF_IMAGENET_1k_CHECKPOINT"
 ```
 Node-1
 ```
-cvnets-train --common.config-file config/classification/imagenet_21k/mobilevit_v2.yaml --common.results-loc mobilevitv2_results_in21k/width_1_7_5 --ddp.rank 8 --ddp.world-size 32 --ddp.dist-url 'tcp://IP_OF_NODE0:FREEPORT' --ddp.backend nccl --common.bolt-logging --common.override-kwargs optim.weight_decay=0.039 model.classification.mitv2.width_multiplier=1.75 model.classification.pretrained="LOCATION_OF_IMAGENET_1k_CHECKPOINT"
+cvnets-train --common.config-file config/classification/imagenet_21k/mobilevit_v2.yaml --common.results-loc mobilevitv2_results_in21k/width_1_7_5 --ddp.rank 8 --ddp.world-size 32 --ddp.dist-url 'tcp://IP_OF_NODE0:FREEPORT' --ddp.backend nccl --common.override-kwargs optim.weight_decay=0.039 model.classification.mitv2.width_multiplier=1.75 model.classification.pretrained="LOCATION_OF_IMAGENET_1k_CHECKPOINT"
 ```
 Node-2
 ```
-cvnets-train --common.config-file config/classification/imagenet_21k/mobilevit_v2.yaml --common.results-loc mobilevitv2_results_in21k/width_1_7_5 --ddp.rank 16 --ddp.world-size 32 --ddp.dist-url 'tcp://IP_OF_NODE0:FREEPORT' --ddp.backend nccl --common.bolt-logging --common.override-kwargs optim.weight_decay=0.039 model.classification.mitv2.width_multiplier=1.75 model.classification.pretrained="LOCATION_OF_IMAGENET_1k_CHECKPOINT"
+cvnets-train --common.config-file config/classification/imagenet_21k/mobilevit_v2.yaml --common.results-loc mobilevitv2_results_in21k/width_1_7_5 --ddp.rank 16 --ddp.world-size 32 --ddp.dist-url 'tcp://IP_OF_NODE0:FREEPORT' --ddp.backend nccl --common.override-kwargs optim.weight_decay=0.039 model.classification.mitv2.width_multiplier=1.75 model.classification.pretrained="LOCATION_OF_IMAGENET_1k_CHECKPOINT"
 ```
 
 Node-3
 ```
-cvnets-train --common.config-file config/classification/imagenet_21k/mobilevit_v2.yaml --common.results-loc mobilevitv2_results_in21k/width_1_7_5 --ddp.rank 24 --ddp.world-size 32 --ddp.dist-url 'tcp://IP_OF_NODE0:FREEPORT' --ddp.backend nccl --common.bolt-logging --common.override-kwargs optim.weight_decay=0.039 model.classification.mitv2.width_multiplier=1.75 model.classification.pretrained="LOCATION_OF_IMAGENET_1k_CHECKPOINT"
+cvnets-train --common.config-file config/classification/imagenet_21k/mobilevit_v2.yaml --common.results-loc mobilevitv2_results_in21k/width_1_7_5 --ddp.rank 24 --ddp.world-size 32 --ddp.dist-url 'tcp://IP_OF_NODE0:FREEPORT' --ddp.backend nccl --common.override-kwargs optim.weight_decay=0.039 model.classification.mitv2.width_multiplier=1.75 model.classification.pretrained="LOCATION_OF_IMAGENET_1k_CHECKPOINT"
 ```
 </details>
 

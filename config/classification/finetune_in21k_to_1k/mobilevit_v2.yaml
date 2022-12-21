@@ -1,5 +1,6 @@
+taskname: '+ MobileViTv2-2.0 IN21K to IN1K finetune'
 common:
-  run_label: "run_1"
+  run_label: "train"
   log_freq: 500
   auto_resume: true
   mixed_precision: true

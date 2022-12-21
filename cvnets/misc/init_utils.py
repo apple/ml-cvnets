@@ -59,13 +59,13 @@ def _init_nn_layers(
             nn.init.zeros_(module.bias)
     elif init_method == "normal":
         if module.weight is not None:
-            std = 1.0 / module.weight.size(1) if std_val is None else std_val
+            std = 1.0 / module.weight.size(1) ** 0.5 if std_val is None else std_val
             nn.init.normal_(module.weight, mean=0.0, std=std)
         if module.bias is not None:
             nn.init.zeros_(module.bias)
     elif init_method == "trunc_normal":
         if module.weight is not None:
-            std = 1.0 / module.weight.size(1) if std_val is None else std_val
+            std = 1.0 / module.weight.size(1) ** 0.5 if std_val is None else std_val
             nn.init.trunc_normal_(module.weight, mean=0.0, std=std)
         if module.bias is not None:
             nn.init.zeros_(module.bias)

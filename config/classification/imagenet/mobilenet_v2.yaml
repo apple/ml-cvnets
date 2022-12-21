@@ -1,5 +1,6 @@
+taskname: '+ MobileNetv2-1.0'
 common:
-  run_label: "run_1"
+  run_label: "train"
   log_freq: 500
   auto_resume: true
   mixed_precision: true
@@ -9,7 +10,7 @@ dataset:
   root_val: "/mnt/imagenet/validation"
   name: "imagenet"
   category: "classification"
-  train_batch_size0: 128 # effective batch size is 1024 (128 * 8 GPUs)
+  train_batch_size0: 256 # effective batch size is 1024 (256 * 4 GPUs)
   val_batch_size0: 100
   eval_batch_size0: 100
   workers: 8

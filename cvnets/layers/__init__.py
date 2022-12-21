@@ -23,7 +23,6 @@ from .normalization_layers import get_normalization_layer, norm_layers_tuple
 from .pixel_shuffle import PixelShuffle
 from .upsample import UpSample
 from .pooling import MaxPool2d, AvgPool2d
-from .positional_encoding import SinusoidalPositionalEncoding, LearnablePositionEncoding
 from .normalization_layers import AdjustBatchNormMomentum
 from .adaptive_pool import AdaptiveAvgPool2d
 from .flatten import Flatten
@@ -32,6 +31,9 @@ from .dropout import Dropout, Dropout2d
 from .single_head_attention import SingleHeadAttention
 from .softmax import Softmax
 from .linear_attention import LinearSelfAttention
+from .embedding import Embedding
+from .stocastic_depth import StochasticDepth
+from .positional_embedding import PositionalEmbedding
 
 __all__ = [
     "ConvLayer",
@@ -49,14 +51,16 @@ __all__ = [
     "AvgPool2d",
     "Dropout",
     "Dropout2d",
-    "SinusoidalPositionalEncoding",
-    "LearnablePositionEncoding",
     "AdjustBatchNormMomentum",
     "Flatten",
     "MultiHeadAttention",
     "SingleHeadAttention",
     "Softmax",
     "LinearSelfAttention",
+    "Embedding",
+    "PositionalEmbedding",
+    "norm_layers_tuple",
+    "StochasticDepth",
 ]
 
 

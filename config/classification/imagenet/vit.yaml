@@ -1,50 +1,58 @@
+taskname: '+ ViT-B/16'
 common:
-  run_label: "run_1"
+  run_label: "train"
   log_freq: 500
   auto_resume: true
   mixed_precision: true
-  tensorboard_logging: false
+  grad_clip: 1.0
 dataset:
   root_train: "/mnt/imagenet/training"
   root_val: "/mnt/imagenet/validation"
   name: "imagenet"
   category: "classification"
-  train_batch_size0: 256 # effective batch size is 1024 (256 * 4 GPUs)
+  train_batch_size0: 256 # effective batch size is 2048 (256 * 8 GPUs)
   val_batch_size0: 100
   eval_batch_size0: 100
-  workers: 10
+  workers: 8
   persistent_workers: false
   pin_memory: true
 image_augmentation:
   random_resized_crop:
     enable: true
-    interpolation: "bicubic"
+    interpolation: "bilinear"
   resize:
     enable: true
-    size: 256 # shorter size is 256
-    interpolation: "bicubic"
+    size: 232 # shorter size is 256
+    interpolation: "bilinear"
   center_crop:
     enable: true
     size: 224
   random_horizontal_flip:
     enable: true
-  rand_augment:
+  auto_augment:
     enable: true
   random_erase:
-    enable: true
+    enable: false
     p: 0.25
   mixup:
     enable: true
     alpha: 0.2
+    p: 1.0
   cutmix:
     enable: true
     alpha: 1.0
+    p: 1.0
 sampler:
-  name: "batch_sampler"
-  bs:
+  name: "variable_batch_sampler"
+  vbs:
     crop_size_width: 224
     crop_size_height: 224
-    num_repeats: 1 # change this value for enabling repeated augmentation
+    max_n_scales: 5
+    min_crop_size_width: 128
+    max_crop_size_width: 320
+    min_crop_size_height: 128
+    max_crop_size_height: 320
+    check_scale: 32
 loss:
   category: "classification"
   classification:
@@ -52,7 +60,7 @@ loss:
     label_smoothing: 0.1
 optim:
   name: "adamw"
-  weight_decay: 0.05
+  weight_decay: 0.2
   no_decay_bn_filter_bias: true
   adamw:
     beta1: 0.9
@@ -64,25 +72,30 @@ scheduler:
   warmup_iterations: 7500
   warmup_init_lr: 1.e-6
   cosine:
-    max_lr: 0.001
+    max_lr: 0.002
     min_lr: 0.00002
 model:
   classification:
     name: "vit"
+    gradient_checkpointing: true
     vit:
-      mode: "tiny"
+      mode: "base"
+      learnable_pos_emb: true
+      dropout: 0.2
     activation:
       name: "gelu"
   activation:
     name: "gelu"
+  normalization:
+    name: "batch_norm"
+    momentum: 0.1
   layer:
-    global_pool: "mean"
-    conv_init: "kaiming_uniform"
+    conv_init: "kaiming_normal"
     linear_init: "trunc_normal"
     linear_init_std_dev: 0.02
 ema:
   enable: true
-  momentum: 0.0001
+  momentum: 0.0005
 stats:
   val: [ "loss", "top1", "top5" ]
   train: ["loss"]

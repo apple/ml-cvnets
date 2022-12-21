@@ -132,14 +132,26 @@ class BaseSegHead(nn.Module):
         raise NotImplementedError
 
     def get_trainable_parameters(
-        self, weight_decay: float = 0.0, no_decay_bn_filter_bias: bool = False
+        self,
+        weight_decay: float = 0.0,
+        no_decay_bn_filter_bias: bool = False,
+        *args,
+        **kwargs
     ):
         param_list = parameter_list(
             named_parameters=self.named_parameters,
             weight_decay=weight_decay,
             no_decay_bn_filter_bias=no_decay_bn_filter_bias,
+            *args,
+            **kwargs
         )
         return param_list, [self.lr_multiplier] * len(param_list)
+
+    def update_classifier(self, opts, n_classes: int) -> None:
+        """
+        This function updates the classification layer in a model. Useful for finetuning purposes.
+        """
+        raise NotImplementedError
 
 
 def _check_out_channels(config: dict, layer_name: str) -> int:

@@ -66,6 +66,29 @@ def sampler_common_args(parser: argparse.ArgumentParser):
     parser.add_argument(
         "--sampler.name", type=str, default="batch_sampler", help="Name of the sampler"
     )
+    parser.add_argument(
+        "--sampler.use-shards",
+        action="store_true",
+        help="Use data sharding. Only applicable to DDP",
+    )
+    parser.add_argument(
+        "--sampler.num-repeats",
+        type=int,
+        default=1,
+        help="Repeat samples, as in repeated augmentation",
+    )
+
+    parser.add_argument(
+        "--sampler.truncated-repeat-aug-sampler",
+        action="store_true",
+        help="Use truncated repeated augmentation sampler",
+    )
+
+    parser.add_argument(
+        "--sampler.disable-shuffle-sharding",
+        action="store_true",
+        help="Disable shuffling while sharding for extremely large datasets",
+    )
 
     return parser
 

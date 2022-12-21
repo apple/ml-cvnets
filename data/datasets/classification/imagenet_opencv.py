@@ -7,6 +7,7 @@ from torchvision.datasets import ImageFolder
 from typing import Optional, Tuple, Dict
 import numpy as np
 import math
+import warnings
 
 from utils import logger
 
@@ -39,6 +40,10 @@ class ImagenetOpenCVDataset(BaseImageDataset, ImageFolder):
         *args,
         **kwargs
     ) -> None:
+        warnings.warn(
+            "The use of dataset.name=imagenet_opencv is depreciated. Please use dataset.name=imagenet",
+            DeprecationWarning,
+        )
         BaseImageDataset.__init__(
             self, opts=opts, is_training=is_training, is_evaluation=is_evaluation
         )
@@ -49,6 +54,10 @@ class ImagenetOpenCVDataset(BaseImageDataset, ImageFolder):
 
         self.n_classes = len(list(self.class_to_idx.keys()))
         setattr(opts, "model.classification.n_classes", self.n_classes)
+
+        setattr(opts, "dataset.collate_fn_name_train", "imagenet_collate_fn")
+        setattr(opts, "dataset.collate_fn_name_val", "imagenet_collate_fn")
+        setattr(opts, "dataset.collate_fn_name_eval", "imagenet_collate_fn")
 
     def _training_transforms(self, size: tuple or int):
         """
@@ -123,7 +132,8 @@ class ImagenetOpenCVDataset(BaseImageDataset, ImageFolder):
         data = {"image": input_img}
         data = transform_fn(data)
 
-        data["label"] = target
+        data["samples"] = data.pop("image")
+        data["targets"] = target
         data["sample_id"] = img_index
 
         return data

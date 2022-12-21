@@ -13,16 +13,20 @@ from .classification_loss_fns import get_classification_loss, arguments_cls_loss
 
 @register_loss_fn("classification")
 class ClassificationLoss(BaseCriteria):
-    def __init__(self, opts):
-        super(ClassificationLoss, self).__init__()
+    def __init__(self, opts, *args, **kwargs):
+        super().__init__(opts, *args, **kwargs)
 
-        self.criteria = get_classification_loss(opts=opts)
+        self.criteria = get_classification_loss(opts=opts, *args, **kwargs)
 
     def forward(
         self, input_sample: Tensor, prediction: Tensor, target: Tensor, *args, **kwargs
     ) -> Tensor:
         return self.criteria(
-            input_sample=input_sample, prediction=prediction, target=target
+            input_sample=input_sample,
+            prediction=prediction,
+            target=target,
+            *args,
+            **kwargs
         )
 
     @classmethod

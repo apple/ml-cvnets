@@ -1,14 +1,13 @@
+taskname: '+ MobileViTv1-Small'
 common:
-  run_label: "run_1"
+  run_label: "train"
   log_freq: 500
   auto_resume: true
   mixed_precision: true
-  tensorboard_logging: false # enable it if you want to log on tensorboard
-  bolt_logging: false # enable it if you want to log on bolt metrics tab. Caution: Bolt interacts weirdly with PyTorch DDP. May result in stalls
 dataset:
   root_train: "/mnt/imagenet/training" # Please update the location of training set
   root_val: "/mnt/imagenet/validation" # Please update the location of validation set
-  name: "imagenet_opencv"
+  name: "imagenet"
   category: "classification"
   train_batch_size0: 128 # In our experiments, we used an effective batch size of 1024 (128 images/GPU * 8 GPUs)
   val_batch_size0: 100
@@ -16,14 +15,19 @@ dataset:
   workers: 8
   persistent_workers: true
   pin_memory: true
-# Note that MobileViT is trained using OpenCV while the current CVNets version uses PIL. For training MobileViT models,
-# we recommend to use v0.1 of cvnets library that supports OpenCV across different tasks
 image_augmentation:
   random_resized_crop:
     enable: true
     interpolation: "bilinear"
   random_horizontal_flip:
     enable: true
+  resize:
+    enable: true
+    size: 288 # shorter size is 256
+    interpolation: "bilinear"
+  center_crop:
+    enable: true
+    size: 256
 sampler:
   name: "variable_batch_sampler"
   vbs:
@@ -51,7 +55,7 @@ scheduler:
   name: "cosine"
   is_iteration_based: false
   max_epochs: 300
-  warmup_iterations: 3000
+  warmup_iterations: 20000 # longer warm-up
   warmup_init_lr: 0.0002
   cosine:
     max_lr: 0.002
@@ -71,7 +75,7 @@ model:
     activation:
       name: "swish"
   normalization:
-    name: "batch_norm_2d"
+    name: "batch_norm"
     momentum: 0.1
   activation:
     name: "swish"

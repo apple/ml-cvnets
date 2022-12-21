@@ -8,30 +8,25 @@ import argparse
 from utils import logger
 
 from . import BaseCriteria, register_loss_fn
-from .distillation_loss_fns import VanillaDistillationLoss, SUPPORTED_DISTILL_LOSS_FNS
+from .distillation_loss_fns import get_distillation_loss, arguments_distill_loss_fn
 
 
 @register_loss_fn("distillation")
 class DistillationLoss(BaseCriteria):
-    def __init__(self, opts):
+    def __init__(self, opts, *args, **kwargs):
         loss_fn_name = getattr(opts, "loss.distillation.name", "vanilla")
-        super(DistillationLoss, self).__init__()
-        if loss_fn_name == "vanilla":
-            self.criteria = VanillaDistillationLoss(opts=opts)
-        else:
-            temp_str = (
-                "Loss function ({}) not yet supported. "
-                "\n Supported distillation loss functions are:".format(loss_fn_name)
-            )
-            for i, m_name in enumerate(SUPPORTED_DISTILL_LOSS_FNS):
-                temp_str += "\n\t {}: {}".format(i, logger.color_text(m_name))
-            logger.error(temp_str)
+        super().__init__(opts, *args, **kwargs)
+        self.criteria = get_distillation_loss(opts=opts, *args, **kwargs)
 
     def forward(
         self, input_sample: Tensor, prediction: Tensor, target: Tensor, *args, **kwargs
     ) -> Tensor:
         return self.criteria(
-            input_sample=input_sample, prediction=prediction, target=target
+            input_sample=input_sample,
+            prediction=prediction,
+            target=target,
+            *args,
+            **kwargs
         )
 
     @classmethod
@@ -45,8 +40,13 @@ class DistillationLoss(BaseCriteria):
             default="vanilla",
             help="Distillation loss function name",
         )
-        parser = VanillaDistillationLoss.add_arguments(parser=parser)
+        parser = arguments_distill_loss_fn(parser=parser)
         return parser
 
+    def extra_repr(self) -> str:
+        if hasattr(self.criteria, "extra_repr"):
+            return self.criteria.extra_repr()
+        return ""
+
     def __repr__(self):
-        return self.criteria.__repr__()
+        return "{}({}\n)".format(self.criteria.__class__.__name__, self.extra_repr())

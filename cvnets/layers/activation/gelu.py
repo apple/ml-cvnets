@@ -15,8 +15,10 @@ class GELU(nn.GELU):
     Applies the `Gaussian Error Linear Units <https://arxiv.org/abs/1606.08415>`_ function
     """
 
-    def __init__(self) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__()
 
-    def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:
+    def profile_module(
+        self, input: Tensor, *args, **kwargs
+    ) -> Tuple[Tensor, float, float]:
         return input, 0.0, 0.0

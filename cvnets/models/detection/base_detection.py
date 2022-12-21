@@ -4,7 +4,7 @@
 #
 
 from torch import nn, Tensor
-from typing import NamedTuple, Dict, Any, Tuple
+from typing import Dict, Tuple
 import argparse
 
 from utils import logger
@@ -13,9 +13,13 @@ from ..classification import BaseEncoder
 from ... import parameter_list
 from ...misc.init_utils import initialize_weights
 
+from collections import namedtuple
 
-DetectionPredTuple = NamedTuple(
-    "DetectionPredTuple", [("labels", Any), ("scores", Any), ("boxes", Any)]
+
+DetectionPredTuple = namedtuple(
+    typename="DetectionPredTuple",
+    field_names=("labels", "scores", "boxes", "masks"),
+    defaults=(None, None, None, None),
 )
 
 
@@ -59,13 +63,19 @@ class BaseDetection(nn.Module):
         initialize_weights(opts=opts, modules=layer.modules())
 
     def get_trainable_parameters(
-        self, weight_decay: float = 0.0, no_decay_bn_filter_bias: bool = False
+        self,
+        weight_decay: float = 0.0,
+        no_decay_bn_filter_bias: bool = False,
+        *args,
+        **kwargs
     ):
         """Returns a list of trainable parameters"""
         param_list = parameter_list(
             named_parameters=self.named_parameters,
             weight_decay=weight_decay,
             no_decay_bn_filter_bias=no_decay_bn_filter_bias,
+            *args,
+            **kwargs
         )
         return param_list, [1.0] * len(param_list)
 
@@ -105,6 +115,12 @@ class BaseDetection(nn.Module):
     def profile_model(self, input: Tensor):
         """
         Child classes must implement this function to compute FLOPs and parameters
+        """
+        raise NotImplementedError
+
+    def dummy_input_and_label(self, batch_size: int) -> Dict:
+        """Create dummy input and labels for CI/CD purposes. Child classes must override it
+        if functionality is different.
         """
         raise NotImplementedError
 

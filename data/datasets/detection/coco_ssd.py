@@ -6,6 +6,7 @@
 import torch
 from typing import Optional, Tuple, Dict
 import math
+import argparse
 
 from utils import logger
 from cvnets.matcher_det import build_matcher
@@ -59,6 +60,10 @@ class COCODetectionSSD(COCODetection):
         setattr(opts, "dataset.collate_fn_name_train", "coco_ssd_collate_fn")
         setattr(opts, "dataset.collate_fn_name_val", "coco_ssd_collate_fn")
         setattr(opts, "dataset.collate_fn_name_eval", "coco_ssd_collate_fn")
+
+    @classmethod
+    def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        return parser
 
     def _training_transforms(self, size: tuple, ignore_idx: Optional[int] = 255):
         """Training data augmentation methods
@@ -131,8 +136,8 @@ class COCODetectionSSD(COCODetection):
         )
 
         output_data = {
-            "image": {"image": data["image"]},
-            "label": {
+            "samples": {"image": data.pop("image")},
+            "targets": {
                 "box_labels": gt_labels,
                 "box_coordinates": gt_coordinates,
                 "image_id": torch.tensor(image_id),
@@ -168,81 +173,52 @@ class COCODetectionSSD(COCODetection):
 
 @register_collate_fn(name="coco_ssd_collate_fn")
 def coco_ssd_collate_fn(batch, opts):
-
-    new_batch = {"image": dict(), "label": dict()}
+    new_batch = {
+        "samples": {"image": []},
+        "targets": {
+            "box_labels": [],
+            "box_coordinates": [],
+            "image_id": [],
+            "image_width": [],
+            "image_height": [],
+        },
+    }
 
     for b_id, batch_ in enumerate(batch):
         # prepare inputs
-        if "image" in batch_["image"]:
-            if "image" in new_batch["image"]:
-                new_batch["image"]["image"].append(batch_["image"]["image"])
-            else:
-                new_batch["image"]["image"] = [batch_["image"]["image"]]
+        new_batch["samples"]["image"].append(batch_["samples"]["image"])
 
         # prepare outputs
-        if "box_labels" in batch_["label"]:
-            if "box_labels" in new_batch["label"]:
-                new_batch["label"]["box_labels"].append(batch_["label"]["box_labels"])
-            else:
-                new_batch["label"]["box_labels"] = [batch_["label"]["box_labels"]]
-
-        if "box_coordinates" in batch_["label"]:
-            if "box_coordinates" in new_batch["label"]:
-                new_batch["label"]["box_coordinates"].append(
-                    batch_["label"]["box_coordinates"]
-                )
-            else:
-                new_batch["label"]["box_coordinates"] = [
-                    batch_["label"]["box_coordinates"]
-                ]
-
-        if "image_id" in batch_["label"]:
-            if "image_id" in new_batch["label"]:
-                new_batch["label"]["image_id"].append(batch_["label"]["image_id"])
-            else:
-                new_batch["label"]["image_id"] = [batch_["label"]["image_id"]]
-
-        if "image_width" in batch_["label"]:
-            if "image_width" in new_batch["label"]:
-                new_batch["label"]["image_width"].append(batch_["label"]["image_width"])
-            else:
-                new_batch["label"]["image_width"] = [batch_["label"]["image_width"]]
-
-        if "image_height" in batch_["label"]:
-            if "image_height" in new_batch["label"]:
-                new_batch["label"]["image_height"].append(
-                    batch_["label"]["image_height"]
-                )
-            else:
-                new_batch["label"]["image_height"] = [batch_["label"]["image_height"]]
+        new_batch["targets"]["box_labels"].append(batch_["targets"]["box_labels"])
+        new_batch["targets"]["box_coordinates"].append(
+            batch_["targets"]["box_coordinates"]
+        )
+        new_batch["targets"]["image_id"].append(batch_["targets"]["image_id"])
+        new_batch["targets"]["image_width"].append(batch_["targets"]["image_width"])
+        new_batch["targets"]["image_height"].append(batch_["targets"]["image_height"])
 
     # stack inputs
-    new_batch["image"]["image"] = torch.stack(new_batch["image"]["image"], dim=0)
+    new_batch["samples"]["image"] = torch.stack(new_batch["samples"]["image"], dim=0)
 
     # stack outputs
-    if "box_labels" in new_batch["label"]:
-        new_batch["label"]["box_labels"] = torch.stack(
-            new_batch["label"]["box_labels"], dim=0
-        )
+    new_batch["targets"]["box_labels"] = torch.stack(
+        new_batch["targets"]["box_labels"], dim=0
+    )
 
-    if "box_coordinates" in new_batch["label"]:
-        new_batch["label"]["box_coordinates"] = torch.stack(
-            new_batch["label"]["box_coordinates"], dim=0
-        )
+    new_batch["targets"]["box_coordinates"] = torch.stack(
+        new_batch["targets"]["box_coordinates"], dim=0
+    )
 
-    if "image_id" in new_batch["label"]:
-        new_batch["label"]["image_id"] = torch.stack(
-            new_batch["label"]["image_id"], dim=0
-        )
+    new_batch["targets"]["image_id"] = torch.stack(
+        new_batch["targets"]["image_id"], dim=0
+    )
 
-    if "image_width" in new_batch["label"]:
-        new_batch["label"]["image_width"] = torch.stack(
-            new_batch["label"]["image_width"], dim=0
-        )
+    new_batch["targets"]["image_width"] = torch.stack(
+        new_batch["targets"]["image_width"], dim=0
+    )
 
-    if "image_height" in new_batch["label"]:
-        new_batch["label"]["image_height"] = torch.stack(
-            new_batch["label"]["image_height"], dim=0
-        )
+    new_batch["targets"]["image_height"] = torch.stack(
+        new_batch["targets"]["image_height"], dim=0
+    )
 
     return new_batch

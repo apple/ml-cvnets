@@ -1,0 +1,114 @@
+taskname: '+ MobileViT Mask RCNN'
+common:
+  run_label: "train"
+  accum_freq: 1
+  log_freq: 500
+  auto_resume: true
+  mixed_precision: true
+dataset:
+  root_train: "/mnt/vision_datasets/coco"
+  root_val: "/mnt/vision_datasets/coco"
+  category: "detection"
+  # In order to have a batch size of 2 for max. resolution in VBS, we set base batch size on GPU0 to 4
+  # Effective base batch size for 1024x1024 is 32 (4 * 8 GPUs)
+  # Note that because of variable batch sampler, batch size is different. As a result, our MaskRCNN implementation
+  # takes fewer optimization updates for training.
+  train_batch_size0: 4
+  val_batch_size0: 4
+  eval_batch_size0: 1
+  workers: 8
+  persistent_workers: false
+  pin_memory: true
+  name: "coco_mask_rcnn"
+image_augmentation:
+  # for evaluation
+  resize:
+    enable: true
+    size: [1024, 1024]
+    interpolation: "bilinear"
+sampler:
+  name: variable_batch_sampler
+  vbs:
+    check_scale: 32
+    crop_size_height: 1024
+    crop_size_width: 1024
+    max_crop_size_height: 1280
+    max_crop_size_width: 1280
+    max_n_scales: 10
+    min_crop_size_height: 512
+    min_crop_size_width: 512
+loss:
+  category: "detection"
+  detection:
+    name: "mask_rcnn_loss_with_na"
+    mask_rcnn_loss:
+      classifier_weight: 1
+      box_reg_weight: 1
+      mask_weight: 1
+      objectness_weight: 1
+      rpn_box_reg: 1
+  neural_aug:
+    perceptual_metric: "psnr"
+    curriculum_method: "cosine"
+    target_value: [ 40, 10 ]
+optim:
+  name: "sgd"
+  weight_decay: 4.e-5
+  no_decay_bn_filter_bias: true
+  sgd:
+    momentum: 0.9
+scheduler:
+  name: "multi_step"
+  max_epochs: 100
+  warmup_iterations: 500
+  warmup_init_lr: 0.001
+  multi_step:
+    gamma: 0.1
+    lr: 0.1
+    milestones: [60, 84]
+model:
+  detection:
+    name: "mask_rcnn"
+    mask_rcnn:
+      backbone_lr_multiplier: 0.1
+      norm_layer: "sync_batch_norm"
+  classification:
+    name: "mobilevit"
+    pretrained: "https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/examples/range_augment/classification/mobilevit_small.pt"
+    gradient_checkpointing: false
+    classifier_dropout: 0.1
+    mit:
+      mode: "small"
+      ffn_dropout: 0.0
+      attn_dropout: 0.0
+      dropout: 0.1
+      number_heads: 4
+      no_fuse_local_global_features: false
+      conv_kernel_size: 3
+    activation:
+      name: "swish"
+  learn_augmentation:
+    brightness: true
+    contrast: true
+    noise: true
+    mode: "distribution"
+  normalization:
+    name: "sync_batch_norm"
+    momentum: 0.1
+  activation:
+    name: "relu"
+    inplace: false
+  layer:
+    global_pool: "mean"
+    conv_init: "kaiming_normal"
+    linear_init: "normal"
+ema:
+  enable: true
+  momentum: 0.0005
+stats:
+  val: [ "loss", "coco_map"]
+  train: ["loss"]
+  checkpoint_metric: "coco_map"
+  checkpoint_metric_max: true
+  coco_map:
+    iou_types: [ "bbox", "segm" ]

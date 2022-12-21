@@ -5,7 +5,10 @@
 
 from torch.nn import functional as F
 from torch import Tensor
+from typing import Dict
 import argparse
+
+from utils import logger
 
 from . import register_classification_loss_fn
 from .. import BaseCriteria
@@ -15,12 +18,12 @@ from .. import BaseCriteria
 class ClsCrossEntropy(BaseCriteria):
     """Cross entropy for classification tasks"""
 
-    def __init__(self, opts):
+    def __init__(self, opts, *args, **kwargs):
         ignore_idx = getattr(opts, "loss.ignore_idx", -1)
         use_class_wts = getattr(
             opts, "loss.classification.cross_entropy.class_weights", False
         )
-        super(ClsCrossEntropy, self).__init__()
+        super().__init__(opts, *args, **kwargs)
 
         self.ignore_idx = ignore_idx
         self.use_class_wts = use_class_wts

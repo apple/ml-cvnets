@@ -1,5 +1,6 @@
+taskname: '+ MobileViTv2-1.0 PSPNet'
 common:
-  run_label: "run_1"
+  run_label: "train"
   accum_freq: 1
   accum_after_epoch: -1
   log_freq: 200

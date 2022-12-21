@@ -181,7 +181,7 @@ class SSDAnchorGenerator(BaseAnchorGenerator):
 
             # change h/w ratio of the small sized box based on aspect ratios
             for ratio in aspect_ratio:
-                ratio = ratio ** 0.5
+                ratio = ratio**0.5
                 default_anchors_ctr.extend(
                     [
                         [cx, cy, min_size_w * ratio, min_size_h / ratio],

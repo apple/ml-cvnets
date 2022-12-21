@@ -5,11 +5,11 @@
 
 import os
 import importlib
-
+from typing import List, Dict
 import torch.nn
+import argparse
 
 from utils import logger
-import argparse
 
 from .base_optim import BaseOptim
 
@@ -32,20 +32,82 @@ def register_optimizer(name: str):
     return register_optimizer_class
 
 
-def build_optimizer(model: torch.nn.Module, opts) -> BaseOptim:
+def check_trainable_parameters(model: torch.nn.Module, model_params: List) -> None:
+    """Helper function to check if any model parameters w/ gradients are not part of model_params"""
+
+    # get model parameter names
+    model_trainable_params = []
+    for p_name, param in model.named_parameters():
+        if param.requires_grad:
+            model_trainable_params.append(p_name)
+
+    initialized_params = []
+    for param_info in model_params:
+        if not isinstance(param_info, Dict):
+            logger.error(
+                "Expected format is a Dict with three keys: params, weight_decay, param_names"
+            )
+
+        if not {"params", "weight_decay", "param_names"}.issubset(param_info.keys()):
+            logger.error(
+                "Parameter dict should have three keys: params, weight_decay, param_names"
+            )
+
+        param_names = param_info.pop("param_names")
+        if isinstance(param_names, List):
+            initialized_params.extend(param_names)
+        elif isinstance(param_names, str):
+            initialized_params.append(param_names)
+        else:
+            raise NotImplementedError
+
+    uninitialized_params = set(model_trainable_params) ^ set(initialized_params)
+    if len(uninitialized_params) > 0:
+        logger.error(
+            "Following parameters are defined in the model, but won't be part of optimizer. "
+            "Please check get_trainable_parameters function. "
+            "Use --optim.bypass-parameters-check flag to bypass this check. "
+            "Parameter list = {}".format(uninitialized_params)
+        )
+
+
+def remove_param_name_key(model_params: List) -> None:
+    """Helper function to remove param_names key from model_params"""
+    for param_info in model_params:
+        if not isinstance(param_info, Dict):
+            logger.error(
+                "Expected format is a Dict with three keys: params, weight_decay, param_names"
+            )
+
+        if not {"params", "weight_decay", "param_names"}.issubset(param_info.keys()):
+            logger.error(
+                "Parameter dict should have three keys: params, weight_decay, param_names"
+            )
+
+        param_info.pop("param_names")
+
+
+def build_optimizer(model: torch.nn.Module, opts, *args, **kwargs) -> BaseOptim:
     optim_name = getattr(opts, "optim.name", "sgd").lower()
     optimizer = None
     weight_decay = getattr(opts, "optim.weight_decay", 0.0)
     no_decay_bn_filter_bias = getattr(opts, "optim.no_decay_bn_filter_bias", False)
 
-    if hasattr(model, "module"):
-        model_params, lr_mult = model.module.get_trainable_parameters(
-            weight_decay=weight_decay, no_decay_bn_filter_bias=no_decay_bn_filter_bias
-        )
+    unwrapped_model = model.module if hasattr(model, "module") else model
+
+    model_params, lr_mult = unwrapped_model.get_trainable_parameters(
+        weight_decay=weight_decay,
+        no_decay_bn_filter_bias=no_decay_bn_filter_bias,
+        *args,
+        **kwargs
+    )
+
+    # check to ensure that all trainable model parameters are passed to the model
+    if not getattr(opts, "optim.bypass_parameters_check", False):
+        check_trainable_parameters(model=unwrapped_model, model_params=model_params)
     else:
-        model_params, lr_mult = model.get_trainable_parameters(
-            weight_decay=weight_decay, no_decay_bn_filter_bias=no_decay_bn_filter_bias
-        )
+        remove_param_name_key(model_params=model_params)
+
     setattr(opts, "optim.lr_multipliers", lr_mult)
     if optim_name in OPTIM_REGISTRY:
         optimizer = OPTIM_REGISTRY[optim_name](opts, model_params)
@@ -74,6 +136,11 @@ def general_optim_args(parser: argparse.ArgumentParser) -> argparse.ArgumentPars
         "--optim.no-decay-bn-filter-bias",
         action="store_true",
         help="No weight decay in normalization layers and bias",
+    )
+    group.add_argument(
+        "--optim.bypass-parameters-check",
+        action="store_true",
+        help="Bypass parameter check when creating optimizer",
     )
     return parser
 

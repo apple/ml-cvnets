@@ -159,17 +159,23 @@ class ADE20KDataset(BaseImageDataset):
             # for evaluation purposes, resize only the input and not mask
             data["mask"] = self.convert_mask_to_tensor(mask)
 
-        data["label"] = data["mask"] - 1  # ignore background during training
-        del data["mask"]
+        output_data = {
+            "samples": data["image"],
+            "targets": data["mask"] - 1,  # ignore background during training
+        }
 
         if self.is_evaluation:
             im_width, im_height = img.size
             img_name = self.images[img_index].split(os.sep)[-1].replace("jpg", "png")
-            data["file_name"] = img_name
-            data["im_width"] = im_width
-            data["im_height"] = im_height
+            mask = output_data.pop("targets")
+            output_data["targets"] = {
+                "mask": mask,
+                "file_name": img_name,
+                "im_width": im_width,
+                "im_height": im_height,
+            }
 
-        return data
+        return output_data
 
     @staticmethod
     def adjust_mask_value():

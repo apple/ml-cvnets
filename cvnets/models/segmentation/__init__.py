@@ -8,9 +8,10 @@ import importlib
 from utils import logger
 import argparse
 from utils.download_utils import get_local_path
-from utils.ddp_utils import is_master, is_start_rank_node
+from utils.ddp_utils import is_master
 from utils.common_utils import check_frozen_norm_layer
 
+from .. import register_tasks, register_task_arguments
 from .base_seg import BaseSegmentation
 from ...misc.common import load_pretrained_model
 from ..classification import build_classification_model
@@ -34,6 +35,7 @@ def register_segmentation_models(name):
     return register_model_class
 
 
+@register_tasks(name="segmentation")
 def build_segmentation_model(opts):
     seg_model_name = getattr(opts, "model.segmentation.name", None)
     model = None
@@ -78,12 +80,30 @@ def build_segmentation_model(opts):
             supp_model_str += "\n\t {}: {}".format(i, logger.color_text(m_name))
         logger.error(supp_model_str)
 
+    finetune_task = getattr(opts, "model.segmentation.finetune_pretrained_model", False)
     pretrained = getattr(opts, "model.segmentation.pretrained", None)
-    if pretrained is not None:
-        pretrained = get_local_path(opts, path=pretrained)
-        model = load_pretrained_model(
-            model=model, wt_loc=pretrained, is_master_node=is_start_rank_node(opts)
+    if finetune_task:
+        n_pretrained_classes = getattr(
+            opts, "model.segmentation.n_pretrained_classes", None
         )
+        n_classes = getattr(opts, "model.segmentation.n_classes", None)
+        assert n_pretrained_classes is not None
+        assert n_classes is not None
+
+        # The model structure is the same as pre-trained model now
+        model.update_classifier(opts, n_classes=n_pretrained_classes)
+
+        # load the weights
+        if pretrained is not None:
+            pretrained = get_local_path(opts, path=pretrained)
+            model = load_pretrained_model(model=model, wt_loc=pretrained, opts=opts)
+
+        # Now, re-initialize the classification layer
+        model.update_classifier(opts, n_classes=n_classes)
+
+    elif pretrained is not None:
+        pretrained = get_local_path(opts, path=pretrained)
+        model = load_pretrained_model(model=model, wt_loc=pretrained, opts=opts)
 
     freeze_norm_layers = getattr(opts, "model.segmentation.freeze_batch_norm", False)
     if freeze_norm_layers:
@@ -100,96 +120,9 @@ def build_segmentation_model(opts):
     return model
 
 
-def common_seg_args(parser: argparse.ArgumentParser):
-    group = parser.add_argument_group(
-        title="Segmentation arguments", description="Segmentation arguments"
-    )
-
-    group.add_argument(
-        "--model.segmentation.name", type=str, default=None, help="Model name"
-    )
-    group.add_argument(
-        "--model.segmentation.n-classes",
-        type=int,
-        default=20,
-        help="Number of classes in the dataset",
-    )
-    group.add_argument(
-        "--model.segmentation.pretrained",
-        type=str,
-        default=None,
-        help="Path of the pretrained segmentation model. Useful for evaluation",
-    )
-    group.add_argument(
-        "--model.segmentation.lr-multiplier",
-        type=float,
-        default=1.0,
-        help="Multiply the learning rate in segmentation network (e.g., decoder)",
-    )
-    group.add_argument(
-        "--model.segmentation.classifier-dropout",
-        type=float,
-        default=0.1,
-        help="Dropout rate in classifier",
-    )
-    parser.add_argument(
-        "--model.segmentation.use-aux-head",
-        action="store_true",
-        help="Use auxiliary output",
-    )
-    group.add_argument(
-        "--model.segmentation.aux-dropout",
-        default=0.1,
-        type=float,
-        help="Dropout in auxiliary branch",
-    )
-
-    group.add_argument(
-        "--model.segmentation.output-stride",
-        type=int,
-        default=None,
-        help="Output stride in classification network",
-    )
-    group.add_argument(
-        "--model.segmentation.replace-stride-with-dilation",
-        action="store_true",
-        help="Replace stride with dilation",
-    )
-
-    group.add_argument(
-        "--model.segmentation.activation.name",
-        default=None,
-        type=str,
-        help="Non-linear function type",
-    )
-    group.add_argument(
-        "--model.segmentation.activation.inplace",
-        action="store_true",
-        help="Inplace non-linear functions",
-    )
-    group.add_argument(
-        "--model.segmentation.activation.neg-slope",
-        default=0.1,
-        type=float,
-        help="Negative slope in leaky relu",
-    )
-    group.add_argument(
-        "--model.segmentation.freeze-batch-norm",
-        action="store_true",
-        help="Freeze batch norm layers",
-    )
-
-    group.add_argument(
-        "--model.segmentation.use-level5-exp",
-        action="store_true",
-        help="Use output of Level 5 expansion layer in base feature extractor",
-    )
-
-    return parser
-
-
+@register_task_arguments(name="segmentation")
 def arguments_segmentation(parser: argparse.ArgumentParser):
-    parser = common_seg_args(parser)
+    parser = BaseSegmentation.add_arguments(parser)
 
     # add segmentation specific arguments
     for k, v in SEG_MODEL_REGISTRY.items():

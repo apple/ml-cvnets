@@ -3,31 +3,32 @@
 # Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
 
-import random
-import torch
-import numpy as np
 import os
-from typing import Union, Dict, Optional, Tuple
-from torch import Tensor
-from sys import platform
+import random
+from typing import Dict, Optional, List, Tuple, Any
 
+import numpy as np
+import torch
+from packaging import version
+from torch import Tensor
+
+from common import MIN_TORCH_VERSION
+from cvnets.layers import norm_layers_tuple
 from utils import logger
 from utils.ddp_utils import is_master
-from cvnets.layers import norm_layers_tuple
 
 
-def check_compatibility():
-    ver = torch.__version__.split(".")
-    major_version = int(ver[0])
-    minor_version = int(ver[0])
-
-    if major_version < 1 and minor_version < 7:
+def check_compatibility() -> None:
+    curr_torch_version = torch.__version__
+    if version.parse(curr_torch_version) < version.parse(MIN_TORCH_VERSION):
         logger.error(
-            "Min pytorch version required is 1.7.0. Got: {}".format(".".join(ver))
+            "Min. pytorch version required is {}. Got: {}".format(
+                MIN_TORCH_VERSION, curr_torch_version
+            )
         )
 
 
-def check_frozen_norm_layer(model: torch.nn.Module) -> (bool, int):
+def check_frozen_norm_layer(model: torch.nn.Module) -> Tuple[bool, int]:
 
     if hasattr(model, "module"):
         model = model.module
@@ -42,6 +43,7 @@ def check_frozen_norm_layer(model: torch.nn.Module) -> (bool, int):
 
 
 def device_setup(opts):
+    """Helper function for setting up the device"""
     random_seed = getattr(opts, "common.seed", 0)
     random.seed(random_seed)
     torch.manual_seed(random_seed)
@@ -67,10 +69,17 @@ def device_setup(opts):
             import torch.backends.cudnn as cudnn
 
             torch.backends.cudnn.enabled = True
-            cudnn.benchmark = False
-            cudnn.deterministic = True
+            torch.backends.cudnn.benchmark = False
+            torch.backends.cudnn.deterministic = True
             if is_master_node:
                 logger.log("CUDNN is enabled")
+
+        allow_tf32 = not getattr(opts, "common.disable_tf32", False)
+        if torch.cuda.is_available():
+            # TF32 is enabled by default in PyTorch < 1.12, but disabled in new versions.
+            # See for details: https://github.com/pytorch/pytorch/issues/67384
+            # Disable it using common.disable_tf32 flag
+            torch.backends.cuda.matmul.allow_tf32 = allow_tf32
 
     setattr(opts, "dev.device", device)
     setattr(opts, "dev.num_gpus", n_gpus)
@@ -79,8 +88,9 @@ def device_setup(opts):
 
 
 def create_directories(dir_path: str, is_master_node: bool) -> None:
+    """Helper function to create directories"""
     if not os.path.isdir(dir_path):
-        os.makedirs(dir_path)
+        os.makedirs(dir_path, exist_ok=True)
         if is_master_node:
             logger.log("Directory created at: {}".format(dir_path))
     else:
@@ -90,39 +100,28 @@ def create_directories(dir_path: str, is_master_node: bool) -> None:
 
 def move_to_device(
     opts,
-    x: Union[Dict, Tensor],
+    x: Any,
     device: Optional[str] = "cpu",
     non_blocking: Optional[bool] = True,
     *args,
     **kwargs
-) -> Union[Dict, Tensor]:
-
-    # if getattr(opts, "dataset.decode_data_on_gpu", False):
-    #    # data is already on GPU
-    #    return x
-
+) -> Any:
+    """Helper function to move data to a device"""
     if isinstance(x, Dict):
-        # return the tensor because if its already on device
-        if "on_gpu" in x and x["on_gpu"]:
-            return x
-
         for k, v in x.items():
-            if isinstance(v, Dict):
-                x[k] = move_to_device(opts=opts, x=v, device=device)
-            elif isinstance(v, Tensor):
-                x[k] = v.to(device=device, non_blocking=non_blocking)
+            x[k] = move_to_device(
+                opts=opts, x=v, device=device, non_blocking=non_blocking
+            )
 
     elif isinstance(x, Tensor):
+        # only tensors can be moved to a device
         x = x.to(device=device, non_blocking=non_blocking)
-    else:
-        logger.error(
-            "Inputs of type  Tensor or Dict of Tensors are only supported right now"
-        )
+    elif isinstance(x, List):
+        x = [move_to_device(opts, a, device, non_blocking) for a in x]
     return x
 
 
 def is_coreml_conversion(opts) -> bool:
-    coreml_convert = getattr(opts, "common.enable_coreml_compatible_module", False)
-    if coreml_convert:
+    if getattr(opts, "common.enable_coreml_compatible_module", False):
         return True
     return False

@@ -13,12 +13,9 @@ from .dropout import Dropout
 from ..misc.profiler import module_profile
 
 
-# TODO: Add link to the paper
-
-
 class LinearSelfAttention(BaseLayer):
     """
-    This layer applies a self-attention with linear complexity, as described in `this paper <>`_
+    This layer applies a self-attention with linear complexity, as described in `MobileViTv2 <https://arxiv.org/abs/2206.02680>`_ paper.
     This layer can be used for self- as well as cross-attention.
 
     Args:
@@ -88,7 +85,7 @@ class LinearSelfAttention(BaseLayer):
             channels == 1
         ), "The inner-product between input and latent node (query) is a scalar"
 
-        up_scale_factor = int(num_pixels ** 0.5)
+        up_scale_factor = int(num_pixels**0.5)
         patch_h = patch_w = int(context_scores.shape[-1] ** 0.5)
         # [1, 1, P, N] --> [1, P, h, w]
         context_scores = context_scores.reshape(1, num_pixels, patch_h, patch_w)

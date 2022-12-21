@@ -59,13 +59,7 @@ class SqueezeExcitation(BaseModule):
             use_norm=False,
             use_act=False,
         )
-        if scale_fn_name == "sigmoid":
-            act_fn = get_activation_fn(act_type="sigmoid")
-        elif scale_fn_name == "hard_sigmoid":
-            act_fn = get_activation_fn(act_type="hard_sigmoid", inplace=True)
-        else:
-            raise NotImplementedError
-
+        act_fn = get_activation_fn(act_type=scale_fn_name, inplace=True)
         super().__init__()
         self.se_layer = nn.Sequential()
         self.se_layer.add_module(

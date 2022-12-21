@@ -12,6 +12,7 @@ from utils.ddp_utils import is_master
 from utils import logger
 
 from .dataset_base import BaseImageDataset
+from .multi_modal_img_text import arguments_multi_modal_img_text
 
 
 SUPPORTED_TASKS = []
@@ -50,8 +51,8 @@ def supported_dataset_str(dataset_name, dataset_category):
         for i, m_name in enumerate(supp_list):
             d_name, t_name1 = m_name.split(SEPARATOR)
             if t_name == t_name1:
-                supp_str += "{} \t".format(d_name)
-    logger.error(supp_str)
+                supp_str += "\n\t\t{}".format(d_name)
+    logger.error(supp_str + "\n")
 
 
 def evaluation_datasets(opts):
@@ -106,50 +107,6 @@ def train_val_datasets(opts):
         print("{}".format(valid_dataset))
     return train_dataset, valid_dataset
 
-
-def trove_dataset_args(parser: argparse.ArgumentParser):
-    group = parser.add_argument_group("Trove arguments")
-    group.add_argument(
-        "--dataset.trove.enable", action="store_true", help="Use trove for data loading"
-    )
-    group.add_argument(
-        "--dataset.trove.mount-path",
-        type=str,
-        default="/mnt/vision_datasets",
-        help="Local path for mounting dataset",
-    )
-    group.add_argument(
-        "--dataset.trove.disk-cache-dir",
-        type=str,
-        default="/mnt/trove_cache",
-        help="Local path for caching dataset",
-    )
-    group.add_argument(
-        "--dataset.trove.disk-cache-max-size-gb",
-        type=int,
-        default=0,
-        help="Disk cache size in GB",
-    )
-    group.add_argument(
-        "--dataset.trove.disk-cache-mount-size-gb",
-        type=int,
-        default=0,
-        help="Disk cache mount size in GB.",
-    )
-    group.add_argument("--dataset.trove.uri", type=str, default=None, help="Trove URI")
-    group.add_argument(
-        "--dataset.trove.dir-train",
-        type=str,
-        default=None,
-        help="Location of train dataset inside trove.",
-    )
-    group.add_argument(
-        "--dataset.trove.dir-val",
-        type=str,
-        default=None,
-        help="Location of validation dataset inside trove.",
-    )
-    return parser
 
 
 def general_dataset_args(parser: argparse.ArgumentParser):
@@ -274,12 +231,31 @@ def general_dataset_args(parser: argparse.ArgumentParser):
         help="Batch sampler or not.",
     )
 
+    group.add_argument(
+        "--dataset.padding-index",
+        type=int,
+        default=None,
+        help="Padding index for text vocabulary",
+    )
+
+    group.add_argument(
+        "--dataset.text-vocab-size", type=int, default=-1, help="Text vocabulary size"
+    )
+
     return parser
 
 
 def arguments_dataset(parser: argparse.ArgumentParser):
     parser = general_dataset_args(parser=parser)
-    parser = trove_dataset_args(parser=parser)
+
+    try:
+        from internal.utils.server_utils import dataset_server_args
+        parser = dataset_server_args(parser)
+    except ImportError as e:
+        pass
+
+    # add zero-shot arguments
+    parser = arguments_multi_modal_img_text(parser=parser)
 
     # add dataset specific arguments
     for k, v in DATASET_REGISTRY.items():

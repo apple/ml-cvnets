@@ -3,9 +3,11 @@
 # Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
 
-import yaml
-import os
+import argparse
 import collections
+import os
+
+import yaml
 
 from utils import logger
 from utils.ddp_utils import is_master
@@ -84,3 +86,33 @@ def load_config_file(opts):
                 setattr(opts, override_k, override_v)
 
     return opts
+
+
+def extend_selected_args_with_prefix(
+    parser: argparse.ArgumentParser, check_string: str, add_prefix: str
+) -> argparse.ArgumentParser:
+    """
+    Helper function to add a prefix to certain arguments.
+    An example use case is distillation, where we want to add --teacher as a prefix to all --model.* arguments
+    """
+    # all arguments are stored as actions
+    options = parser._actions
+
+    for option in options:
+        option_strings = option.option_strings
+        # option strings are stored as a list
+        for option_string in option_strings:
+            if option_string.split(".")[0] == check_string:
+                parser.add_argument(
+                    add_prefix + option.dest.replace("_", "-"),
+                    nargs="?"
+                    if isinstance(option, argparse._StoreTrueAction)
+                    else option.nargs,
+                    const=option.const,
+                    default=option.default,
+                    type=option.type,
+                    choices=option.choices,
+                    help=option.help,
+                    metavar=option.metavar,
+                )
+    return parser

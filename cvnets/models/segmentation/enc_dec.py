@@ -5,6 +5,7 @@
 
 from torch import Tensor
 from typing import Union, Dict, Tuple, Optional
+import argparse
 
 from utils import logger
 
@@ -38,6 +39,10 @@ class SegEncoderDecoder(BaseSegmentation):
         )
         self.use_l5_exp = use_l5_exp
 
+    @classmethod
+    def add_arguments(cls, parser: argparse.ArgumentParser):
+        return parser
+
     def get_trainable_parameters(
         self,
         weight_decay: Optional[float] = 0.0,
@@ -49,10 +54,18 @@ class SegEncoderDecoder(BaseSegmentation):
         different learning rates can be used for backbone and segmentation head
         """
         encoder_params, enc_lr_mult = self.encoder.get_trainable_parameters(
-            weight_decay=weight_decay, no_decay_bn_filter_bias=no_decay_bn_filter_bias
+            weight_decay=weight_decay,
+            no_decay_bn_filter_bias=no_decay_bn_filter_bias,
+            module_name="encoder.",
+            *args,
+            **kwargs
         )
         decoder_params, dec_lr_mult = self.seg_head.get_trainable_parameters(
-            weight_decay=weight_decay, no_decay_bn_filter_bias=no_decay_bn_filter_bias
+            weight_decay=weight_decay,
+            no_decay_bn_filter_bias=no_decay_bn_filter_bias,
+            module_name="seg_head.",
+            *args,
+            **kwargs
         )
 
         total_params = sum([p.numel() for p in self.parameters()])
@@ -71,11 +84,28 @@ class SegEncoderDecoder(BaseSegmentation):
 
     def forward(
         self, x: Tensor, *args, **kwargs
-    ) -> Union[Tuple[Tensor, Tensor], Tensor]:
+    ) -> Union[Tuple[Tensor, Tensor], Tensor, Dict]:
         enc_end_points: Dict = self.encoder.extract_end_points_all(
             x, use_l5=True, use_l5_exp=self.use_l5_exp
         )
-        return self.seg_head(enc_out=enc_end_points, *args, **kwargs)
+
+        if "augmented_tensor" in enc_end_points:
+            output_dict = {
+                "augmented_tensor": enc_end_points.pop("augmented_tensor"),
+                "segmentation_output": self.seg_head(
+                    enc_out=enc_end_points, *args, **kwargs
+                ),
+            }
+            return output_dict
+        else:
+            return self.seg_head(enc_out=enc_end_points, *args, **kwargs)
+
+    def update_classifier(self, opts, n_classes: int) -> None:
+        """
+        This function updates the classification layer in a model. Useful for finetuning purposes.
+        """
+        if hasattr(self.seg_head, "update_classifier"):
+            self.seg_head.update_classifier(opts, n_classes)
 
     def profile_model(self, input: Tensor) -> None:
         """
@@ -155,13 +185,13 @@ class SegEncoderDecoder(BaseSegmentation):
                 "\n** Theoretical and FVCore MACs may vary as theoretical MACs do not account "
                 "for certain operations which may or may not be accounted in FVCore"
             )
+        except ModuleNotFoundError as mnfe:
+            logger.warning(
+                "Please install fvcore to profile {} model".format(
+                    self.__class__.__name__
+                )
+            )
         except Exception:
             pass
-
-        print("Note: Theoretical MACs depends on user-implementation. Be cautious")
-        print(
-            "Note on parameter computation: Overall parameters (sanity check) includes auxiliary "
-            "network parameters (if enabled) while overall parameters does not include such parameters."
-        )
 
         logger.double_dash_line(dashes=65)

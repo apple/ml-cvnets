@@ -6,33 +6,27 @@
 import os
 import importlib
 import argparse
+from typing import Optional
+
+import torch.nn
+
+from utils import logger
 
 SUPPORTED_ACT_FNS = []
+ACT_FN_REGISTRY = {}
 
 
 def register_act_fn(name):
-    def register_fn(fn):
+    def register_fn(cls):
         if name in SUPPORTED_ACT_FNS:
             raise ValueError(
                 "Cannot register duplicate activation function ({})".format(name)
             )
         SUPPORTED_ACT_FNS.append(name)
-        return fn
+        ACT_FN_REGISTRY[name] = cls
+        return cls
 
     return register_fn
-
-
-# automatically import different activation functions
-act_dir = os.path.dirname(__file__)
-for file in os.listdir(act_dir):
-    path = os.path.join(act_dir, file)
-    if (
-        not file.startswith("_")
-        and not file.startswith(".")
-        and (file.endswith(".py") or os.path.isdir(path))
-    ):
-        model_name = file[: file.find(".py")] if file.endswith(".py") else file
-        module = importlib.import_module("cvnets.layers.activation." + model_name)
 
 
 def arguments_activation_fn(parser: argparse.ArgumentParser):
@@ -61,28 +55,46 @@ def arguments_activation_fn(parser: argparse.ArgumentParser):
     return parser
 
 
-# import later to avoid circular loop
-from .gelu import GELU
-from .hard_sigmoid import Hardsigmoid
-from .hard_swish import Hardswish
-from .leaky_relu import LeakyReLU
-from .prelu import PReLU
-from .relu import ReLU
-from .relu6 import ReLU6
-from .sigmoid import Sigmoid
-from .swish import Swish
-from .tanh import Tanh
+def build_activation_layer(
+    act_type: Optional[str] = "relu",
+    num_parameters: Optional[int] = -1,
+    inplace: Optional[bool] = True,
+    negative_slope: Optional[float] = 0.1,
+    *args,
+    **kwargs
+) -> torch.nn.Module:
+    """
+    Helper function to build the activation function
+    """
+    if act_type is None:
+        act_type = "none"
+    act_type = act_type.lower()
+    act_layer = None
+    if act_type in ACT_FN_REGISTRY:
+        act_layer = ACT_FN_REGISTRY[act_type](
+            num_parameters=num_parameters,
+            inplace=inplace,
+            negative_slope=negative_slope,
+            *args,
+            **kwargs
+        )
+    else:
+        logger.error(
+            "Supported activation layers are: {}. Supplied argument is: {}".format(
+                SUPPORTED_ACT_FNS, act_type
+            )
+        )
+    return act_layer
 
 
-__all__ = [
-    "GELU",
-    "Hardsigmoid",
-    "Hardswish",
-    "LeakyReLU",
-    "PReLU",
-    "ReLU",
-    "ReLU6",
-    "Sigmoid",
-    "Swish",
-    "Tanh",
-]
+# automatically import different activation functions
+act_dir = os.path.dirname(__file__)
+for file in os.listdir(act_dir):
+    path = os.path.join(act_dir, file)
+    if (
+        not file.startswith("_")
+        and not file.startswith(".")
+        and (file.endswith(".py") or os.path.isdir(path))
+    ):
+        model_name = file[: file.find(".py")] if file.endswith(".py") else file
+        module = importlib.import_module("cvnets.layers.activation." + model_name)

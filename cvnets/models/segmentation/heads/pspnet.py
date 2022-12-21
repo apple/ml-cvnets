@@ -10,9 +10,10 @@ from typing import Optional, Dict, Tuple
 
 from .base_seg_head import BaseSegHead
 from . import register_segmentation_head
-from ....layers import ConvLayer, UpSample, Dropout2d
+from ....layers import ConvLayer
 from ....modules import PSP
 from ....misc.profiler import module_profile
+from ....misc.init_utils import initialize_weights
 
 
 @register_segmentation_head(name="pspnet")
@@ -59,6 +60,25 @@ class PSPNet(BaseSegHead):
             bias=True,
         )
         self.reset_head_parameters(opts=opts)
+
+    def update_classifier(self, opts, n_classes: int) -> None:
+        """
+        This function updates the classification layer in a model. Useful for finetuning purposes.
+        """
+        in_channels = self.classifier.in_channels
+        conv_layer = ConvLayer(
+            opts=opts,
+            in_channels=in_channels,
+            out_channels=n_classes,
+            kernel_size=1,
+            stride=1,
+            use_norm=False,
+            use_act=False,
+            bias=True,
+        )
+
+        initialize_weights(opts, modules=conv_layer)
+        self.classifier = conv_layer
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:

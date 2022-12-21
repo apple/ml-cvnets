@@ -15,8 +15,8 @@ class Tanh(nn.Tanh):
     Applies Tanh function
     """
 
-    def __init__(self):
-        super(Tanh, self).__init__()
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__()
 
     def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:
         return input, 0.0, 0.0

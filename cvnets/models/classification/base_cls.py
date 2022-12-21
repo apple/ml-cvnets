@@ -2,9 +2,10 @@
 # For licensing see accompanying LICENSE file.
 # Copyright (C) 2022 Apple Inc. All Rights Reserved.
 #
-
+import torch
 from torch import nn, Tensor
-from typing import Optional, Dict, Tuple, Union
+from torch.utils.checkpoint import checkpoint as gradient_checkpoint_fn
+from typing import Optional, Dict, Tuple, Union, Any
 import argparse
 
 from utils import logger
@@ -14,13 +15,15 @@ from ...layers import norm_layers_tuple, LinearLayer
 from ...misc.profiler import module_profile
 from ...misc.init_utils import initialize_weights, initialize_fc_layer
 
+from ...neural_augmentor import build_neural_augmentor
+
 
 class BaseEncoder(nn.Module):
     """
     Base class for different classification models
     """
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, opts, *args, **kwargs) -> None:
         super().__init__()
         self.conv_1 = None
         self.layer_1 = None
@@ -45,10 +48,83 @@ class BaseEncoder(nn.Module):
             self.dilate_l5 = True
 
         self.model_conf_dict = dict()
+        self.neural_augmentor = build_neural_augmentor(opts=opts, *args, **kwargs)
+        self.gradient_checkpointing = getattr(
+            opts, "model.classification.gradient_checkpointing", False
+        )
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser):
         """Add model-specific arguments"""
+        group = parser.add_argument_group(
+            title="".format(cls.__name__), description="".format(cls.__name__)
+        )
+
+        group.add_argument(
+            "--model.classification.classifier-dropout",
+            type=float,
+            default=0.0,
+            help="Dropout rate in classifier",
+        )
+
+        group.add_argument(
+            "--model.classification.name", type=str, default=None, help="Model name"
+        )
+        group.add_argument(
+            "--model.classification.n-classes",
+            type=int,
+            default=1000,
+            help="Number of classes in the dataset",
+        )
+        group.add_argument(
+            "--model.classification.pretrained",
+            type=str,
+            default=None,
+            help="Path of the pretrained backbone",
+        )
+        group.add_argument(
+            "--model.classification.freeze-batch-norm",
+            action="store_true",
+            help="Freeze batch norm layers",
+        )
+        group.add_argument(
+            "--model.classification.activation.name",
+            default=None,
+            type=str,
+            help="Non-linear function name (e.g., relu)",
+        )
+        group.add_argument(
+            "--model.classification.activation.inplace",
+            action="store_true",
+            help="Inplace non-linear functions",
+        )
+        group.add_argument(
+            "--model.classification.activation.neg-slope",
+            default=0.1,
+            type=float,
+            help="Negative slope in leaky relu",
+        )
+
+        group.add_argument(
+            "--model.classification.finetune-pretrained-model",
+            action="store_true",
+            help="Finetune a pretrained model",
+        )
+        group.add_argument(
+            "--model.classification.n-pretrained-classes",
+            type=int,
+            default=None,
+            help="Number of pre-trained classes",
+        )
+
+        group.add_argument(
+            "--model.classification.gradient-checkpointing",
+            action="store_true",
+            help="Checkpoint output of each spatial level in the classification backbone. Note that"
+            "we only take care of checkpointing in {}. If custom forward functions are used, please"
+            "implement checkpointing accordingly",
+        )
+
         return parser
 
     def check_model(self):
@@ -68,7 +144,7 @@ class BaseEncoder(nn.Module):
         """Initialize model weights"""
         initialize_weights(opts=opts, modules=self.modules())
 
-    def update_classifier(self, opts, n_classes: int):
+    def update_classifier(self, opts, n_classes: int) -> None:
         """
         This function updates the classification layer in a model. Useful for finetuning purposes.
         """
@@ -93,7 +169,15 @@ class BaseEncoder(nn.Module):
             layer.bias.data.mul_(head_init_scale)
 
             self.classifier = layer
-        return
+
+    def _forward_layer(self, layer: nn.Module, x: Tensor) -> Tensor:
+        # Larger models with large input image size may not be able to fit into memory.
+        # We can use gradient checkpointing to enable training with large models and large inputs
+        return (
+            gradient_checkpoint_fn(layer, x)
+            if self.gradient_checkpointing
+            else layer(x)
+        )
 
     def extract_end_points_all(
         self,
@@ -104,46 +188,70 @@ class BaseEncoder(nn.Module):
         **kwargs
     ) -> Dict[str, Tensor]:
         out_dict = {}  # Use dictionary over NamedTuple so that JIT is happy
-        x = self.conv_1(x)  # 112 x112
-        x = self.layer_1(x)  # 112 x112
+
+        if self.training and self.neural_augmentor is not None:
+            x = self.neural_augmentor(x)
+            out_dict["augmented_tensor"] = x
+
+        x = self._forward_layer(self.conv_1, x)  # 112 x112
+        x = self._forward_layer(self.layer_1, x)  # 112 x112
         out_dict["out_l1"] = x
 
-        x = self.layer_2(x)  # 56 x 56
+        x = self._forward_layer(self.layer_2, x)  # 56 x 56
         out_dict["out_l2"] = x
 
-        x = self.layer_3(x)  # 28 x 28
+        x = self._forward_layer(self.layer_3, x)  # 28 x 28
         out_dict["out_l3"] = x
 
-        x = self.layer_4(x)  # 14 x 14
+        x = self._forward_layer(self.layer_4, x)  # 14 x 14
         out_dict["out_l4"] = x
 
         if use_l5:
-            x = self.layer_5(x)  # 7 x 7
+            x = self._forward_layer(self.layer_5, x)  # 7 x 7
             out_dict["out_l5"] = x
 
             if use_l5_exp:
-                x = self.conv_1x1_exp(x)
+                x = self._forward_layer(self.conv_1x1_exp, x)
                 out_dict["out_l5_exp"] = x
         return out_dict
 
     def extract_end_points_l4(self, x: Tensor, *args, **kwargs) -> Dict[str, Tensor]:
         return self.extract_end_points_all(x, use_l5=False)
 
-    def extract_features(self, x: Tensor, *args, **kwargs) -> Tensor:
-        x = self.conv_1(x)
-        x = self.layer_1(x)
-        x = self.layer_2(x)
-        x = self.layer_3(x)
+    def _extract_features(self, x: Tensor, *args, **kwargs) -> Tensor:
+        x = self._forward_layer(self.conv_1, x)
+        x = self._forward_layer(self.layer_1, x)
+        x = self._forward_layer(self.layer_2, x)
+        x = self._forward_layer(self.layer_3, x)
 
-        x = self.layer_4(x)
-        x = self.layer_5(x)
-        x = self.conv_1x1_exp(x)
+        x = self._forward_layer(self.layer_4, x)
+        x = self._forward_layer(self.layer_5, x)
+        x = self._forward_layer(self.conv_1x1_exp, x)
         return x
 
-    def forward(self, x: Tensor, *args, **kwargs) -> Tensor:
-        x = self.extract_features(x)
+    def _forward_classifier(self, x: Tensor, *args, **kwargs) -> Tensor:
+        # We add another classifier function so that the classifiers
+        # that do not adhere to the structure of BaseEncoder can still
+        # use neural augmentor
+        x = self._extract_features(x)
         x = self.classifier(x)
         return x
+
+    def forward(self, x: Any, *args, **kwargs) -> Any:
+        if self.neural_augmentor is not None:
+            if self.training:
+                x_aug = self.neural_augmentor(x)
+                prediction = self._forward_classifier(x_aug)  # .detach()
+                out_dict = {"augmented_tensor": x_aug, "logits": prediction}
+            else:
+                out_dict = {
+                    "augmented_tensor": None,
+                    "logits": self._forward_classifier(x),
+                }
+            return out_dict
+        else:
+            x = self._forward_classifier(x, *args, **kwargs)
+            return x
 
     def freeze_norm_layers(self) -> None:
         """Freeze normalization layers"""
@@ -166,6 +274,8 @@ class BaseEncoder(nn.Module):
             named_parameters=self.named_parameters,
             weight_decay=weight_decay,
             no_decay_bn_filter_bias=no_decay_bn_filter_bias,
+            *args,
+            **kwargs
         )
         return param_list, [1.0] * len(param_list)
 
@@ -199,6 +309,20 @@ class BaseEncoder(nn.Module):
             )
             logger.singe_dash_line()
         return input, overall_params, overall_macs
+
+    def dummy_input_and_label(self, batch_size: int) -> Dict:
+        """Create dummy input and labels for CI/CD purposes. Child classes must override it
+        if functionality is different.
+        """
+        img_channels = 3
+        height = 224
+        width = 224
+        n_labels = 10
+        img_tensor = torch.randn(
+            batch_size, img_channels, height, width, dtype=torch.float
+        )
+        label_tensor = torch.randint(low=0, high=n_labels, size=(batch_size,)).long()
+        return {"samples": img_tensor, "targets": label_tensor}
 
     def profile_model(
         self, input: Tensor, is_classification: Optional[bool] = True, *args, **kwargs

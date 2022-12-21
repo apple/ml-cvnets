@@ -4,76 +4,100 @@
 #
 
 import sys
+from pathlib import Path
+import pytest
 
 sys.path.append("..")
 
 import torch
+from torch import Tensor
+from typing import Dict
 
-
-from options.opts import get_training_arguments
 from cvnets import get_model
 from loss_fn import build_loss_fn
-from utils.tensor_utils import create_rand_tensor
-from utils import logger
+
+from tests.configs import get_config
 
 
-def test_model(*args, **kwargs):
-    opts = get_training_arguments()
+# We use a batch size of 1 to catch error that may arise due to reshaping operations inside the model
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_model(config_file: str, batch_size: int):
+    opts = get_config(config_file=config_file)
+    setattr(opts, "common.debug_mode", True)
 
     model = get_model(opts)
-    loss_fn = build_loss_fn(opts)
 
-    inp = create_rand_tensor(opts)
+    criteria = build_loss_fn(opts)
 
-    if getattr(opts, "common.channels_last", False):
-        inp = inp.to(memory_format=torch.channels_last)
-        model = model.to(memory_format=torch.channels_last)
+    inputs = None
+    targets = None
+    if hasattr(model, "dummy_input_and_label"):
+        inputs_and_targets = model.dummy_input_and_label(batch_size)
+        inputs = inputs_and_targets["samples"]
+        targets = inputs_and_targets["targets"]
 
-        if not inp.is_contiguous(memory_format=torch.channels_last):
-            logger.warning(
-                "Unable to convert input to channels_last format. Setting model to contiguous format"
-            )
-            model = model.to(memory_format=torch.contiguous_format)
-
-    # FLOPs computed using model.profile_model and fvcore can be different because
-    # model.profile_model ignore some of the operations (e.g., addition) while
-    # fvcore accounts for all operations (e.g., addition)
-    model.profile_model(inp)
-    model.eval()
-    out = model(inp)
-
-    try:
-        # compute flops using FVCore also
-        from fvcore.nn import FlopCountAnalysis
-
-        flop_analyzer = FlopCountAnalysis(model.eval(), inp)
-        flop_analyzer.unsupported_ops_warnings(False)
-        flop_analyzer.uncalled_modules_warnings(False)
-        total_flops = flop_analyzer.total()
-
-        print(
-            "Flops computed using FVCore for an input of size={} are {:>8.3f} G".format(
-                list(inp.shape), total_flops / 1e9
-            )
+    assert inputs is not None, (
+        "Input tensor can't be None. This is likely because "
+        "{} does not implement dummy_input_and_label function".format(
+            model.__class__.__name__
         )
-    except ModuleNotFoundError:
-        pass
+    )
+    assert targets is not None, (
+        "Label tensor can't be None. This is likely because "
+        "{} does not implement dummy_input_and_label function".format(
+            model.__class__.__name__
+        )
+    )
+
+    # if getattr(opts, "common.channels_last", False):
+    #    inputs = inputs.to(memory_format=torch.channels_last)
+    #    model = model.to(memory_format=torch.channels_last)
 
     try:
-        n_classes = out.shape[1]
+        outputs = model(inputs)
 
-        pred = torch.argmax(out, dim=1)
-        targets = torch.randint(0, n_classes, size=pred.shape)
-        loss = loss_fn(None, out, targets)
-        loss.backward()
+        loss = criteria(
+            input_sample=inputs,
+            prediction=outputs,
+            target=targets,
+            epoch=0,
+            iterations=0,
+        )
+        print(loss)
 
-        print(model)
-        print(loss_fn)
-        print("Random Input : {}".format(inp.shape))
-        print("Random Target: {}".format(targets.shape))
-        print("Random Output: {}".format(out.shape))
-    except:
-        print(model)
+        if isinstance(loss, Tensor):
+            loss.backward()
+        elif isinstance(loss, Dict):
+            loss["total_loss"].backward()
+        else:
+            raise RuntimeError("The output of criteria should be either Dict or Tensor")
+
+        # If there are unused parameters in gradient computation, print them
+        # This may be useful for debugging purposes
+        for name, param in model.named_parameters():
+            if param.grad is None:
+                print(name)
+
+    except Exception as e:
+        if (
+            isinstance(e, ValueError)
+            and str(e).find("Expected more than 1 value per channel when training") > -1
+            and batch_size == 1
+        ):
+            # For segmentation models (e.g., PSPNet), we pool the tensor so that they have a spatial size of 1.
+            # In such a case, batch norm needs a batch size > 1. Otherwise, we can't compute the statistics, raising
+            # ValueError("Expected more than 1 value per channel when training"). If we encounter this error
+            # for a batch size of 1, we skip it.
+            pytest.skip(str(e))
+        else:
+            raise e
+
+
+def pytest_generate_tests(metafunc):
+    configs = [
+        str(x) for x in Path("config").rglob("**/*.yaml") if "tune" not in str(x)
+    ]
+    metafunc.parametrize("config_file", configs)
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@
 #
 
 import copy
-
+import warnings
 import torch
 from torch import Tensor
 from torch.utils import data
@@ -93,60 +93,15 @@ class BaseImageDataset(data.Dataset):
     @staticmethod
     def load_from_server(opts, is_training):
         try:
-            import turitrove as trove
+            from internal.utils.server_utils import load_from_data_server
+
+            opts = load_from_data_server(opts=opts, is_training=is_training)
         except ImportError as e:
+            import traceback
+            traceback.print_exc()
             logger.error(
-                "Trove is required for server side data loading. Please  install it."
+                "Unable to load data. Please load data manually. Error: {}".format(e)
             )
-        mount_path = getattr(opts, "dataset.trove.mount_path", "/mnt/vision_datasets")
-        disk_cache_max_size_gb = getattr(
-            opts, "dataset.trove.disk_cache_max_size_gb", None
-        )
-        disk_cache_mount_size_gb = getattr(
-            opts, "dataset.trove.disk_cache_mount_size_gb", None
-        )
-        disk_cache_dir = getattr(
-            opts, "dataset.trove.disk_cache_dir", "/mnt/trove_cache/"
-        )
-        trove_uri = getattr(opts, "dataset.trove.uri", None)
-
-        if trove_uri is None:
-            logger.error(
-                "URI cannot be None for trove. Please specify using --dataset.trove.uri"
-            )
-
-        logger.disable_printing()
-
-        if is_start_rank_node(opts) and len(trove.mount()) == 0:
-            mc = trove.MountConfiguration()
-            mc.prefetch_strategy = trove.PrefetchStrategy.ALL
-            mc.disk_cache_max_size_gb = disk_cache_max_size_gb
-            mc.disk_cache_mount_size_gb = disk_cache_mount_size_gb
-            mc.disk_cache_dir = disk_cache_dir
-            mc.prevent_cacheless_mounts = True
-
-            d = trove.mount(trove_uri=trove_uri, local_dir=mount_path, config=mc)
-        else:
-            while len(trove.mount()) < 1:
-                time.sleep(1)
-                continue
-        logger.enable_printing()
-
-        if is_training:
-            path_prefix = getattr(opts, "dataset.trove.dir_train", None)
-            if path_prefix is None:
-                logger.error(
-                    "Path prefix cannot be None. Please specify using --dataset.trove.train-path-prefix"
-                )
-            setattr(opts, "dataset.root_train", "{}/{}".format(mount_path, path_prefix))
-        else:
-            path_prefix = getattr(opts, "dataset.trove.dir_val", None)
-            if path_prefix is not None:
-                setattr(
-                    opts, "dataset.root_val", "{}/{}".format(mount_path, path_prefix)
-                )
-            else:
-                setattr(opts, "dataset.root_val", None)
 
         return opts
 
@@ -237,18 +192,21 @@ class BaseImageDataset(data.Dataset):
 
     @staticmethod
     def read_image_opencv(path: str):
+        warnings.warn(
+            "The use of read_image_opencv function is depreciated. Please use read_image_pil",
+            DeprecationWarning,
+        )
         return cv2.imread(
             path, cv2.IMREAD_COLOR
         )  # Image is read in BGR Format and not RGB format
 
     @staticmethod
     def read_mask_opencv(path: str):
+        warnings.warn(
+            "The use of read_mask_opencv function is depreciated. Please use read_mask_pil",
+            DeprecationWarning,
+        )
         return cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-
-    def to_device(
-        self, data: Union[Dict, Tensor], *args, **kwargs
-    ) -> Union[Dict, Tensor]:
-        return move_to_device(x=data, device=self.device, *args, **kwargs)
 
     @staticmethod
     def convert_mask_to_tensor(mask):
@@ -267,25 +225,6 @@ class BaseImageDataset(data.Dataset):
         pass
 
     def __repr__(self):
-        return "{}(root={}, is_training={})".format(
+        return "{}(\n\troot={}\n\t is_training={})".format(
             self.__class__.__name__, self.root, self.is_training
         )
-
-
-def move_to_device(
-    x: Union[Dict, Tensor], device: Optional[str] = "cpu", *args, **kwargs
-) -> Union[Dict, Tensor]:
-    if isinstance(x, Dict):
-        for k, v in x.items():
-            if isinstance(v, Dict):
-                x[k] = move_to_device(v, device=device)
-            elif isinstance(v, Tensor):
-                x[k] = v.to(device=device, non_blocking=True)
-
-    elif isinstance(x, Tensor):
-        x = x.to(device=device)
-    else:
-        logger.error(
-            "Inputs of type  Tensor or Dict of Tensors are only supported right now"
-        )
-    return x

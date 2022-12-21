@@ -21,12 +21,13 @@ class AdamWOptimizer(BaseOptim, AdamW):
         beta1 = getattr(opts, "optim.adamw.beta1", 0.9)
         beta2 = getattr(opts, "optim.adamw.beta2", 0.98)
         ams_grad = getattr(opts, "optim.adamw.amsgrad", False)
+        eps = getattr(opts, "optim.adamw.eps", None)
         AdamW.__init__(
             self,
             params=model_params,
             lr=self.lr,
             betas=(beta1, beta2),
-            eps=self.eps,
+            eps=self.eps if eps is None else eps,
             weight_decay=self.weight_decay,
             amsgrad=ams_grad,
         )
@@ -42,6 +43,9 @@ class AdamWOptimizer(BaseOptim, AdamW):
         )
         group.add_argument(
             "--optim.adamw.amsgrad", action="store_true", help="Use AMSGrad in ADAM"
+        )
+        group.add_argument(
+            "--optim.adamw.eps", type=float, default=None, help="Epsilon in Adam"
         )
         return parser
 

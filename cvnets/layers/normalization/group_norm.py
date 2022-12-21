@@ -16,7 +16,7 @@ class GroupNorm(nn.GroupNorm):
 
     Args:
         num_groups (int): number of groups to separate the input channels into
-        num_channels (int): :math:`C` from an expected input of size :math:`(N, C, *)`
+        num_features (int): :math:`C` from an expected input of size :math:`(N, C, *)`
         eps (Optional, float): Value added to the denominator for numerical stability. Default: 1e-5
         affine (bool): If ``True``, use learnable affine parameters. Default: ``True``
 
@@ -33,14 +33,14 @@ class GroupNorm(nn.GroupNorm):
     def __init__(
         self,
         num_groups: int,
-        num_channels: int,
+        num_features: int,
         eps: Optional[float] = 1e-5,
         affine: Optional[bool] = True,
         *args,
         **kwargs
     ) -> None:
         super().__init__(
-            num_groups=num_groups, num_channels=num_channels, eps=eps, affine=affine
+            num_groups=num_groups, num_channels=num_features, eps=eps, affine=affine
         )
 
     def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:

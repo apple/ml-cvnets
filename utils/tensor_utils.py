@@ -9,13 +9,15 @@ from torch import Tensor
 from torch import distributed as dist
 from typing import Union, Optional, Tuple
 
+from utils.third_party.ddp_functional_utils import (
+    all_gather as all_gather_with_backward,
+)
 from common import (
     DEFAULT_IMAGE_HEIGHT,
     DEFAULT_IMAGE_WIDTH,
     DEFAULT_IMAGE_CHANNELS,
     DEFAULT_VIDEO_FRAMES,
 )
-from .ddp_utils import dist_barrier
 
 
 def image_size_from_opts(opts) -> Tuple[int, int]:
@@ -113,6 +115,15 @@ def all_gather_list(data):
     # dist_barrier()
     dist.all_gather_object(data_list, data)
     return data_list
+
+
+def gather_all_features(features: Tensor, dim=0):
+    return torch.cat(all_gather_with_backward(features), dim=dim)
+    # world_size = dist.get_world_size()
+    # gathered_data = [torch.zeros_like(features)] * world_size
+    # dist.all_gather(gathered_data, features)
+    # gathered_data = torch.cat(gathered_data, dim=dim)
+    # return gathered_data
 
 
 def tensor_to_python_float(

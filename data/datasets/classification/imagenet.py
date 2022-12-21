@@ -75,7 +75,7 @@ class ImagenetDataset(BaseImageDataset, ImageFolder):
                 --> Tensor --> Optional(RandomErasing) --> Optional(MixUp) --> Optional(CutMix)
 
         .. note::
-            1. AutoAugment and RandAugment are mutually exclusive.
+            1. AutoAugment, RandAugment and TrivialAugmentWide are mutually exclusive.
             2. Mixup and CutMix are applied on batches are implemented in trainer.
         """
         aug_list = [
@@ -88,14 +88,24 @@ class ImagenetDataset(BaseImageDataset, ImageFolder):
         rand_augment = getattr(
             self.opts, "image_augmentation.rand_augment.enable", False
         )
-        if auto_augment and rand_augment:
+        trivial_augment_wide = getattr(
+            self.opts, "image_augmentation.trivial_augment_wide.enable", False
+        )
+        if bool(auto_augment) + bool(rand_augment) + bool(trivial_augment_wide) > 1:
             logger.error(
-                "AutoAugment and RandAugment are mutually exclusive. Use either of them, but not both"
+                "AutoAugment, RandAugment and TrivialAugmentWide are mutually exclusive. Use either of them, but not more than one"
             )
         elif auto_augment:
             aug_list.append(T.AutoAugment(opts=self.opts))
         elif rand_augment:
-            aug_list.append(T.RandAugment(opts=self.opts))
+            if getattr(
+                self.opts, "image_augmentation.rand_augment.use_timm_library", False
+            ):
+                aug_list.append(T.RandAugmentTimm(opts=self.opts))
+            else:
+                aug_list.append(T.RandAugment(opts=self.opts))
+        elif trivial_augment_wide:
+            aug_list.append(T.TrivialAugmentWide(opts=self.opts))
 
         aug_list.append(T.ToTensor(opts=self.opts))
 
@@ -150,7 +160,8 @@ class ImagenetDataset(BaseImageDataset, ImageFolder):
             data = {"image": input_img}
             data = transform_fn(data)
 
-        data["label"] = target
+        data["samples"] = data.pop("image")
+        data["targets"] = target
         data["sample_id"] = img_index
 
         return data
@@ -181,8 +192,8 @@ class ImagenetDataset(BaseImageDataset, ImageFolder):
 @register_collate_fn(name="imagenet_collate_fn")
 def imagenet_collate_fn(batch: List, opts) -> Dict:
     batch_size = len(batch)
-    img_size = [batch_size, *batch[0]["image"].shape]
-    img_dtype = batch[0]["image"].dtype
+    img_size = [batch_size, *batch[0]["samples"].shape]
+    img_dtype = batch[0]["samples"].dtype
 
     images = torch.zeros(size=img_size, dtype=img_dtype)
     # fill with -1, so that we can ignore corrupted images
@@ -190,8 +201,8 @@ def imagenet_collate_fn(batch: List, opts) -> Dict:
     sample_ids = torch.zeros(size=[batch_size], dtype=torch.long)
     valid_indexes = []
     for i, batch_i in enumerate(batch):
-        label_i = batch_i.pop("label")
-        images[i] = batch_i.pop("image")
+        label_i = batch_i.pop("targets")
+        images[i] = batch_i.pop("samples")
         labels[i] = label_i  # label is an int
         sample_ids[i] = batch_i.pop("sample_id")  # sample id is an int
         if label_i != -1:
@@ -206,9 +217,4 @@ def imagenet_collate_fn(batch: List, opts) -> Dict:
     if channels_last:
         images = images.to(memory_format=torch.channels_last)
 
-    return {
-        "image": images,
-        "label": labels,
-        "sample_id": sample_ids,
-        "on_gpu": images.is_cuda,
-    }
+    return {"samples": images, "targets": labels, "sample_id": sample_ids}

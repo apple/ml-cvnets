@@ -38,7 +38,7 @@ class MobileNetV3(BaseEncoder):
 
         mv3_config = get_configuration(opts)
 
-        super().__init__(*args, **kwargs)
+        super().__init__(opts, *args, **kwargs)
 
         self.conv_1 = nn.Sequential()
         self.conv_1.add_module(
@@ -175,6 +175,7 @@ class MobileNetV3(BaseEncoder):
             for kernel_size, expansion_factor, in_channels, use_se, use_hs, stride in [
                 mv3_config[i]
             ]:
+                block_name = "mv3_s_{}_idx_{}".format(stride, count)
                 output_channel = make_divisible(
                     in_channels * width_mult, self.round_nearest
                 )
@@ -190,12 +191,10 @@ class MobileNetV3(BaseEncoder):
                     stride=stride,
                     expand_ratio=expansion_factor,
                     dilation=prev_dilation if count == 0 else self.dilation,
-                    use_hs=use_hs,
+                    act_fn_name="hard_swish" if use_hs else "relu",
                     use_se=use_se,
                 )
-                mv3_block.add_module(
-                    name="mv3_s_{}_idx_{}".format(stride, count), module=layer
-                )
+                mv3_block.add_module(name=block_name, module=layer)
                 count += 1
                 input_channel = output_channel
         return mv3_block, input_channel

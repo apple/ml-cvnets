@@ -123,13 +123,26 @@ class TransformerEncoder(BaseModule):
         )
 
     def forward(
-        self, x: Tensor, x_prev: Optional[Tensor] = None, *args, **kwargs
+        self,
+        x: Tensor,
+        x_prev: Optional[Tensor] = None,
+        key_padding_mask: Optional[Tensor] = None,
+        attn_mask: Optional[Tensor] = None,
+        *args,
+        **kwargs
     ) -> Tensor:
 
         # Multi-head attention
         res = x
         x = self.pre_norm_mha[0](x)  # norm
-        x = self.pre_norm_mha[1](x_q=x, x_kv=x_prev)  # mha
+        x = self.pre_norm_mha[1](
+            x_q=x,
+            x_kv=x_prev,
+            key_padding_mask=key_padding_mask,
+            attn_mask=attn_mask,
+            *args,
+            **kwargs
+        )  # mha
         x = self.pre_norm_mha[2](x)  # dropout
         x = x + res
 
@@ -153,12 +166,9 @@ class TransformerEncoder(BaseModule):
         return input, params, macs
 
 
-# TODO: Add link to MobileViTv2 paper
-
-
 class LinearAttnFFN(BaseModule):
     """
-    This class defines the pre-norm transformer encoder with linear self-attention in `MobileViTv2 paper <>`_
+    This class defines the pre-norm transformer encoder with linear self-attention in `MobileViTv2 <https://arxiv.org/abs/2206.02680>`_ paper
     Args:
         opts: command line arguments
         embed_dim (int): :math:`C_{in}` from an expected input of size :math:`(B, C_{in}, P, N)`
