@@ -193,6 +193,7 @@ class MobileNetV3(BaseEncoder):
                     dilation=prev_dilation if count == 0 else self.dilation,
                     act_fn_name="hard_swish" if use_hs else "relu",
                     use_se=use_se,
+                    kernel_size=kernel_size,
                 )
                 mv3_block.add_module(name=block_name, module=layer)
                 count += 1
