@@ -2,7 +2,7 @@
 
 CVNets is a computer vision toolkit that allows researchers and engineers to train standard and novel mobile- 
 and non-mobile computer vision models for variety of tasks, including object classification, object detection,
-semantic segmentation, and foundation models (e.g., CLIP).
+semantic segmentation, and foundation models (e.g, CLIP).
 
 ## Table of contents
 
