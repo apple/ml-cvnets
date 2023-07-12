@@ -21,6 +21,11 @@ semantic segmentation, and foundation models (e.g., CLIP).
    * ***July 2023***: Version 0.4 of the CVNets library includes
       *  [Bytes Are All You Need: Transformers Operating Directly On File Bytes
 ](https://arxiv.org/abs/2306.00238)
+      * [RangeAugment: Efficient online augmentation with Range Learning](https://arxiv.org/abs/2212.10553)
+      * Training and evaluating foundation models (CLIP)
+      * Mask R-CNN
+      * EfficientNet, Swin Transformer, and ViT
+      * Enhanced distillation support
 
 ## Installation
 
