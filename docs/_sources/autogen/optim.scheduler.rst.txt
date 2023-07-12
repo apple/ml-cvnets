@@ -1,0 +1,61 @@
+optim.scheduler package
+=======================
+
+Submodules
+----------
+
+optim.scheduler.base\_scheduler module
+--------------------------------------
+
+.. automodule:: optim.scheduler.base_scheduler
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+optim.scheduler.cosine module
+-----------------------------
+
+.. automodule:: optim.scheduler.cosine
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+optim.scheduler.cyclic module
+-----------------------------
+
+.. automodule:: optim.scheduler.cyclic
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+optim.scheduler.fixed module
+----------------------------
+
+.. automodule:: optim.scheduler.fixed
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+optim.scheduler.multi\_step module
+----------------------------------
+
+.. automodule:: optim.scheduler.multi_step
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+optim.scheduler.polynomial module
+---------------------------------
+
+.. automodule:: optim.scheduler.polynomial
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: optim.scheduler
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cvnets.models.base_model &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../cvnets.html">cvnets</a></li>
+          <li class="breadcrumb-item"><a href="../models.html">cvnets.models</a></li>
+      <li class="breadcrumb-item active">cvnets.models.base_model</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cvnets.models.base_model</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+
+<span class="kn">from</span> <span class="nn">cvnets.layers</span> <span class="kn">import</span> <span class="n">norm_layers_tuple</span>
+<span class="kn">from</span> <span class="nn">cvnets.misc.common</span> <span class="kn">import</span> <span class="n">get_tensor_sizes</span><span class="p">,</span> <span class="n">parameter_list</span>
+<span class="kn">from</span> <span class="nn">cvnets.misc.init_utils</span> <span class="kn">import</span> <span class="n">initialize_weights</span>
+<span class="kn">from</span> <span class="nn">options.parse_args</span> <span class="kn">import</span> <span class="n">JsonValidator</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">from</span> <span class="nn">utils.common_utils</span> <span class="kn">import</span> <span class="n">check_frozen_norm_layer</span>
+<span class="kn">from</span> <span class="nn">utils.ddp_utils</span> <span class="kn">import</span> <span class="n">is_master</span>
+
+
+<div class="viewcode-block" id="BaseAnyNNModel"><a class="viewcode-back" href="../../../autogen/cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel">[docs]</a><span class="k">class</span> <span class="nc">BaseAnyNNModel</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for any neural network&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BaseAnyNNModel.__init__"><a class="viewcode-back" href="../../../autogen/cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opts</span> <span class="o">=</span> <span class="n">opts</span></div>
+
+<div class="viewcode-block" id="BaseAnyNNModel.add_arguments"><a class="viewcode-back" href="../../../autogen/cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add model-specific arguments&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">cls</span> <span class="o">!=</span> <span class="n">BaseAnyNNModel</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">parser</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.resume-exclude-scopes&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Comma-separated list of parameter scopes (regex strings) to exclude when &quot;</span>
+            <span class="s2">&quot;loading a pre-trained model&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.ignore-missing-scopes&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Comma-separated list of parameter scopes (regex strings) to ignore &quot;</span>
+            <span class="s2">&quot;if they are missing from the pre-training model&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.rename-scopes-map&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">JsonValidator</span><span class="p">(</span><span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]),</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;A mapping from checkpoint variable names to match the existing model names.&quot;</span>
+            <span class="s2">&quot; The mapping is represented as a List[List[str]], e.g. [[&#39;before&#39;, &#39;after&#39;], [&#39;this&#39;, &#39;that&#39;]].&quot;</span>
+            <span class="s2">&quot; Note: only loading from Yaml file is supported for this argument.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.freeze-modules&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Comma-separated list of parameter scopes (regex strings) to freeze.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="BaseAnyNNModel.reset_parameters"><a class="viewcode-back" href="../../../autogen/cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel.reset_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">reset_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize model weights&quot;&quot;&quot;</span>
+        <span class="n">initialize_weights</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="n">modules</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="BaseAnyNNModel.forward"><a class="viewcode-back" href="../../../autogen/cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Implement the model-specific forward function in sub-classes.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+    <span class="k">def</span> <span class="nf">_apply_layer_wise_lr</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">weight_decay</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">no_decay_bn_filter_bias</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;This function can be used to adjust the learning rate of each layer in a model. The</span>
+<span class="sd">        functionality of this function may vary from model to model, so we do not implement</span>
+<span class="sd">        it in the base class and expects child model classes will implement this function, if desired.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Please implement _apply_layer_wise_lr function for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="BaseAnyNNModel.get_trainable_parameters"><a class="viewcode-back" href="../../../autogen/cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel.get_trainable_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">get_trainable_parameters</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">weight_decay</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">no_decay_bn_filter_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">module_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Mapping</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get parameters for training along with the learning rate.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            weight_decay: weight decay</span>
+<span class="sd">            no_decay_bn_filter_bias: Do not decay BN and biases. Defaults to False.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">             Returns a tuple of length 2. The first entry is a list of dictionary with three keys</span>
+<span class="sd">             (params, weight_decay, param_names). The second entry is a list of floats containing</span>
+<span class="sd">             learning rate for each parameter.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            Kwargs may contain module_name. To avoid multiple arguments with the same name,</span>
+<span class="sd">            we pop it and concatenate with encoder or head name</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">param_list</span> <span class="o">=</span> <span class="n">parameter_list</span><span class="p">(</span>
+            <span class="n">named_parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">,</span>
+            <span class="n">weight_decay</span><span class="o">=</span><span class="n">weight_decay</span><span class="p">,</span>
+            <span class="n">no_decay_bn_filter_bias</span><span class="o">=</span><span class="n">no_decay_bn_filter_bias</span><span class="p">,</span>
+            <span class="n">module_name</span><span class="o">=</span><span class="n">module_name</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">param_list</span><span class="p">,</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">param_list</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseAnyNNModel.dummy_input_and_label"><a class="viewcode-back" href="../../../autogen/cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel.dummy_input_and_label">[docs]</a>    <span class="k">def</span> <span class="nf">dummy_input_and_label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create dummy input and labels for CI/CD purposes. Child classes should implement it.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Please implement dummy_input_and_label function for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseAnyNNModel.get_exportable_model"><a class="viewcode-back" href="../../../autogen/cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel.get_exportable_model">[docs]</a>    <span class="k">def</span> <span class="nf">get_exportable_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;This function can be used to prepare the architecture for inference. For example,</span>
+<span class="sd">        re-parameterizing branches when possible. The functionality of this method may vary</span>
+<span class="sd">        from model to model, so child model classes have to implement this method, if such a</span>
+<span class="sd">        transformation exists.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="BaseAnyNNModel.freeze_norm_layers"><a class="viewcode-back" href="../../../autogen/cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel.freeze_norm_layers">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">freeze_norm_layers</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">BaseAnyNNModel</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Freeze normalization layers in the model</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            opts: Command-line arguments</span>
+<span class="sd">            model: An instance of `BaseAnyNNModel`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">is_maseter_node</span> <span class="o">=</span> <span class="n">is_master</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">modules</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">norm_layers_tuple</span><span class="p">):</span>
+                <span class="n">m</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+                <span class="n">m</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">m</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">m</span><span class="o">.</span><span class="n">training</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># check if layers are frozen or not</span>
+        <span class="n">frozen_state</span><span class="p">,</span> <span class="n">count_norm</span> <span class="o">=</span> <span class="n">check_frozen_norm_layer</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">count_norm</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">frozen_state</span> <span class="ow">and</span> <span class="n">is_maseter_node</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;Something is wrong while freezing normalization layers. Please check&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">is_maseter_node</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Normalization layers are frozen&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseAnyNNModel.build_model"><a class="viewcode-back" href="../../../autogen/cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel.build_model">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">build_model</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseAnyNNModel</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build a model from command-line arguments. Sub-classes must implement this method</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            opts: Command-line arguments</span>
+
+<span class="sd">        ...note::</span>
+<span class="sd">            This function is typically implemented in the base class for each task and</span>
+<span class="sd">            implementation is reused by all models in that task.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Please implement build_model function for </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseAnyNNModel.info"><a class="viewcode-back" href="../../../autogen/cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel.info">[docs]</a>    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Prints model, parameters, and FLOPs on start rank.&quot;&quot;&quot;</span>
+
+        <span class="n">train_mode</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="c1"># do profiling in eval mode</span>
+            <span class="n">train_mode</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">logger</span><span class="o">.</span><span class="n">color_text</span><span class="p">(</span><span class="s2">&quot;Model&quot;</span><span class="p">))</span>
+        <span class="c1"># print the model skeleton</span>
+        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">double_dash_line</span><span class="p">(</span><span class="n">dashes</span><span class="o">=</span><span class="mi">65</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:&gt;35}</span><span class="s2"> Summary&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">double_dash_line</span><span class="p">(</span><span class="n">dashes</span><span class="o">=</span><span class="mi">65</span><span class="p">)</span>
+
+        <span class="c1"># compute the network parameters</span>
+        <span class="n">overall_params</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">()])</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:&lt;20}</span><span class="s2"> = </span><span class="si">{:&gt;8.3f}</span><span class="s2"> M&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;Overall parameters&quot;</span><span class="p">,</span> <span class="n">overall_params</span> <span class="o">/</span> <span class="mf">1e6</span><span class="p">))</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Compute FLOPs using FVCore</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">input_fvcore</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dummy_input_and_label</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="s2">&quot;samples&quot;</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">NotImplementedError</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;Profiling not available, dummy_input_and_label not implemented for this model.&quot;</span>
+                <span class="p">)</span>
+                <span class="k">return</span>
+
+            <span class="c1"># compute flops using FVCore</span>
+            <span class="kn">from</span> <span class="nn">fvcore.nn</span> <span class="kn">import</span> <span class="n">FlopCountAnalysis</span><span class="p">,</span> <span class="n">flop_count_table</span>
+
+            <span class="n">flop_analyzer</span> <span class="o">=</span> <span class="n">FlopCountAnalysis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_fvcore</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;FVCore Analysis:&quot;</span><span class="p">)</span>
+            <span class="c1"># print input sizes</span>
+            <span class="n">input_sizes</span> <span class="o">=</span> <span class="n">get_tensor_sizes</span><span class="p">(</span><span class="n">input_fvcore</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Input sizes: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">input_sizes</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">flop_count_table</span><span class="p">(</span><span class="n">flop_analyzer</span><span class="p">))</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">** Please be cautious when using the results in papers. &quot;</span>
+                <span class="s2">&quot;Certain operations may or may not be accounted in FLOP computation in FVCore. &quot;</span>
+                <span class="s2">&quot;Therefore, you want to manually ensure that FLOP computation is correct.&quot;</span>
+            <span class="p">)</span>
+
+            <span class="n">uncalled_modules</span> <span class="o">=</span> <span class="n">flop_analyzer</span><span class="o">.</span><span class="n">uncalled_modules</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">uncalled_modules</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Uncalled Modules:</span><span class="se">\n</span><span class="si">{</span><span class="n">uncalled_modules</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No uncalled modules detected by fvcore.&quot;</span><span class="p">)</span>
+
+            <span class="n">unsupported_ops</span> <span class="o">=</span> <span class="n">flop_analyzer</span><span class="o">.</span><span class="n">unsupported_ops</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">unsupported_ops</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported Ops:</span><span class="se">\n</span><span class="si">{</span><span class="n">unsupported_ops</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No unsupported ops detected by fvcore.&quot;</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">ignore_exception_with_warning</span><span class="p">(</span>
+                <span class="s2">&quot;Unable to compute FLOPs using FVCore. Please check&quot;</span>
+            <span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">double_dash_line</span><span class="p">(</span><span class="n">dashes</span><span class="o">=</span><span class="mi">65</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">train_mode</span><span class="p">:</span>
+            <span class="c1"># switching back to train mode.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">train</span><span class="p">()</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

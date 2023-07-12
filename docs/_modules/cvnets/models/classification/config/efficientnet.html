@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cvnets.models.classification.config.efficientnet &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../../_static/jquery.js"></script>
+        <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
+        <script src="../../../../../_static/doctools.js"></script>
+        <script src="../../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../../../cvnets.html">cvnets</a></li>
+          <li class="breadcrumb-item"><a href="../../../models.html">cvnets.models</a></li>
+      <li class="breadcrumb-item active">cvnets.models.classification.config.efficientnet</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cvnets.models.classification.config.efficientnet</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
+
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">from</span> <span class="nn">utils.math_utils</span> <span class="kn">import</span> <span class="n">make_divisible</span>
+
+
+<div class="viewcode-block" id="CompoundScalingConfig"><a class="viewcode-back" href="../../../../../autogen/cvnets.models.classification.config.html#cvnets.models.classification.config.efficientnet.CompoundScalingConfig">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">CompoundScalingConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;This class stores the compound scaling configuration&quot;&quot;&quot;</span>
+
+    <span class="n">width_mult</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">depth_mult</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">train_resolution</span><span class="p">:</span> <span class="nb">int</span></div>
+
+
+<div class="viewcode-block" id="EfficientNetBlockConfig"><a class="viewcode-back" href="../../../../../autogen/cvnets.models.classification.config.html#cvnets.models.classification.config.efficientnet.EfficientNetBlockConfig">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">EfficientNetBlockConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;This class stores the config for each block in EfficientNet i.e. MBConv layers</span>
+<span class="sd">    in Table 1 of `EfficientNet paper &lt;https://arxiv.org/abs/1905.11946&gt;`_</span>
+<span class="sd">    Notably, this class takes width_mult and depth_mult as input too and adjusts</span>
+<span class="sd">    layers&#39; depth and width, as is required in different modes of EfficientNet.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="EfficientNetBlockConfig.__init__"><a class="viewcode-back" href="../../../../../autogen/cvnets.models.classification.config.html#cvnets.models.classification.config.efficientnet.EfficientNetBlockConfig.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">expand_ratio</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">kernel</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">stride</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">in_channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">out_channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">width_mult</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">depth_mult</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">expand_ratio</span> <span class="o">=</span> <span class="n">expand_ratio</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span> <span class="o">=</span> <span class="n">kernel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stride</span> <span class="o">=</span> <span class="n">stride</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_channels</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">make_divisible</span><span class="p">(</span><span class="n">in_channels</span> <span class="o">*</span> <span class="n">width_mult</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">make_divisible</span><span class="p">(</span><span class="n">out_channels</span> <span class="o">*</span> <span class="n">width_mult</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_layers</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">num_layers</span> <span class="o">*</span> <span class="n">depth_mult</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="get_configuration"><a class="viewcode-back" href="../../../../../autogen/cvnets.models.classification.config.html#cvnets.models.classification.config.efficientnet.get_configuration">[docs]</a><span class="k">def</span> <span class="nf">get_configuration</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+    <span class="n">network_mode</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.classification.efficientnet.mode&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">network_mode</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">&quot;EfficientNet mode can&#39;t be none. Please specify --model.classification.efficientnet.mode&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">network_mode</span> <span class="o">=</span> <span class="n">network_mode</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">network_config</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+    <span class="c1"># EfficientNet scales depth, width and resolution.</span>
+    <span class="c1"># We will make use of resolution in the yaml configuration file, but leave it here for the sake of completeness</span>
+
+    <span class="n">compound_scaling_cfg</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;b0&quot;</span><span class="p">:</span> <span class="n">CompoundScalingConfig</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">224</span><span class="p">),</span>
+        <span class="s2">&quot;b1&quot;</span><span class="p">:</span> <span class="n">CompoundScalingConfig</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.1</span><span class="p">,</span> <span class="mi">240</span><span class="p">),</span>
+        <span class="s2">&quot;b2&quot;</span><span class="p">:</span> <span class="n">CompoundScalingConfig</span><span class="p">(</span><span class="mf">1.1</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">,</span> <span class="mi">260</span><span class="p">),</span>
+        <span class="s2">&quot;b3&quot;</span><span class="p">:</span> <span class="n">CompoundScalingConfig</span><span class="p">(</span><span class="mf">1.2</span><span class="p">,</span> <span class="mf">1.4</span><span class="p">,</span> <span class="mi">300</span><span class="p">),</span>
+        <span class="s2">&quot;b4&quot;</span><span class="p">:</span> <span class="n">CompoundScalingConfig</span><span class="p">(</span><span class="mf">1.4</span><span class="p">,</span> <span class="mf">1.8</span><span class="p">,</span> <span class="mi">380</span><span class="p">),</span>
+        <span class="s2">&quot;b5&quot;</span><span class="p">:</span> <span class="n">CompoundScalingConfig</span><span class="p">(</span><span class="mf">1.6</span><span class="p">,</span> <span class="mf">2.2</span><span class="p">,</span> <span class="mi">456</span><span class="p">),</span>
+        <span class="s2">&quot;b6&quot;</span><span class="p">:</span> <span class="n">CompoundScalingConfig</span><span class="p">(</span><span class="mf">1.8</span><span class="p">,</span> <span class="mf">2.6</span><span class="p">,</span> <span class="mi">528</span><span class="p">),</span>
+        <span class="s2">&quot;b7&quot;</span><span class="p">:</span> <span class="n">CompoundScalingConfig</span><span class="p">(</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.1</span><span class="p">,</span> <span class="mi">600</span><span class="p">),</span>
+        <span class="s2">&quot;b8&quot;</span><span class="p">:</span> <span class="n">CompoundScalingConfig</span><span class="p">(</span><span class="mf">2.2</span><span class="p">,</span> <span class="mf">3.6</span><span class="p">,</span> <span class="mi">672</span><span class="p">),</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="n">network_mode</span> <span class="ow">in</span> <span class="n">compound_scaling_cfg</span><span class="p">:</span>
+        <span class="n">compound_scaling_cfg_mode_i</span> <span class="o">=</span> <span class="n">compound_scaling_cfg</span><span class="p">[</span><span class="n">network_mode</span><span class="p">]</span>
+        <span class="n">width_mult</span> <span class="o">=</span> <span class="n">compound_scaling_cfg_mode_i</span><span class="o">.</span><span class="n">width_mult</span>
+        <span class="n">depth_mult</span> <span class="o">=</span> <span class="n">compound_scaling_cfg_mode_i</span><span class="o">.</span><span class="n">depth_mult</span>
+
+        <span class="c1"># pre-feed depth and width multipliers as they are always used and same across layers.</span>
+        <span class="n">block_builder</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
+            <span class="n">EfficientNetBlockConfig</span><span class="p">,</span> <span class="n">width_mult</span><span class="o">=</span><span class="n">width_mult</span><span class="p">,</span> <span class="n">depth_mult</span><span class="o">=</span><span class="n">depth_mult</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Build the configuration at each spatial level.</span>
+        <span class="c1"># The format of configuraiton is: (expand_ratio, kernel, stride, in_channels, out_channels, num_layers)</span>
+
+        <span class="c1"># Configuration at output stride of 2</span>
+        <span class="n">network_config</span><span class="p">[</span><span class="s2">&quot;layer_1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">block_builder</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span>
+
+        <span class="c1"># Configuration at output stride of 4</span>
+        <span class="n">network_config</span><span class="p">[</span><span class="s2">&quot;layer_2&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">block_builder</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">24</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+        <span class="p">]</span>
+
+        <span class="c1"># Configuration at output stride of 8</span>
+        <span class="n">network_config</span><span class="p">[</span><span class="s2">&quot;layer_3&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">block_builder</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">24</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+        <span class="p">]</span>
+
+        <span class="c1"># Configuration at output stride of 16</span>
+        <span class="n">network_config</span><span class="p">[</span><span class="s2">&quot;layer_4&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">block_builder</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+            <span class="n">block_builder</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="mi">112</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="c1"># Configuration at output stride of 32</span>
+        <span class="n">network_config</span><span class="p">[</span><span class="s2">&quot;layer_5&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">block_builder</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">112</span><span class="p">,</span> <span class="mi">192</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+            <span class="n">block_builder</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">192</span><span class="p">,</span> <span class="mi">320</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="n">network_config</span><span class="p">[</span><span class="s2">&quot;last_channels&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">network_config</span><span class="p">[</span><span class="s2">&quot;layer_5&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">out_channels</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">&quot;Current supported modes for EfficientNet are b[0-7]. Got: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">network_mode</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Count the total number of layers throughout all blocks.</span>
+    <span class="c1"># This will be used for stochastic depth (if enabled)</span>
+    <span class="n">total_layers</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">layer_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;layer_1&quot;</span><span class="p">,</span> <span class="s2">&quot;layer_2&quot;</span><span class="p">,</span> <span class="s2">&quot;layer_3&quot;</span><span class="p">,</span> <span class="s2">&quot;layer_4&quot;</span><span class="p">,</span> <span class="s2">&quot;layer_5&quot;</span><span class="p">]:</span>
+        <span class="k">for</span> <span class="n">block_config</span> <span class="ow">in</span> <span class="n">network_config</span><span class="p">[</span><span class="n">layer_name</span><span class="p">]:</span>
+            <span class="n">total_layers</span> <span class="o">+=</span> <span class="n">block_config</span><span class="o">.</span><span class="n">num_layers</span>
+    <span class="n">network_config</span><span class="p">[</span><span class="s2">&quot;total_layers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">total_layers</span>
+    <span class="k">return</span> <span class="n">network_config</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

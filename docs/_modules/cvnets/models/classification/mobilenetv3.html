@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cvnets.models.classification.mobilenetv3 &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../../cvnets.html">cvnets</a></li>
+          <li class="breadcrumb-item"><a href="../../models.html">cvnets.models</a></li>
+      <li class="breadcrumb-item active">cvnets.models.classification.mobilenetv3</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cvnets.models.classification.mobilenetv3</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+
+<span class="kn">from</span> <span class="nn">cvnets.layers</span> <span class="kn">import</span> <span class="n">ConvLayer2d</span><span class="p">,</span> <span class="n">Dropout</span><span class="p">,</span> <span class="n">GlobalPool</span><span class="p">,</span> <span class="n">LinearLayer</span>
+<span class="kn">from</span> <span class="nn">cvnets.layers.activation</span> <span class="kn">import</span> <span class="n">build_activation_layer</span>
+<span class="kn">from</span> <span class="nn">cvnets.models</span> <span class="kn">import</span> <span class="n">MODEL_REGISTRY</span>
+<span class="kn">from</span> <span class="nn">cvnets.models.classification.base_image_encoder</span> <span class="kn">import</span> <span class="n">BaseImageEncoder</span>
+<span class="kn">from</span> <span class="nn">cvnets.models.classification.config.mobilenetv3</span> <span class="kn">import</span> <span class="n">get_configuration</span>
+<span class="kn">from</span> <span class="nn">cvnets.modules</span> <span class="kn">import</span> <span class="n">InvertedResidualSE</span>
+<span class="kn">from</span> <span class="nn">utils.math_utils</span> <span class="kn">import</span> <span class="n">bound_fn</span><span class="p">,</span> <span class="n">make_divisible</span>
+
+
+<div class="viewcode-block" id="MobileNetV3"><a class="viewcode-back" href="../../../../autogen/cvnets.models.classification.html#cvnets.models.classification.mobilenetv3.MobileNetV3">[docs]</a><span class="nd">@MODEL_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;mobilenetv3&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;classification&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">MobileNetV3</span><span class="p">(</span><span class="n">BaseImageEncoder</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class implements the `MobileNetv3 architecture &lt;https://arxiv.org/abs/1905.02244&gt;`_</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MobileNetV3.__init__"><a class="viewcode-back" href="../../../../autogen/cvnets.models.classification.html#cvnets.models.classification.mobilenetv3.MobileNetV3.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">width_mult</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.classification.mobilenetv3.width_multiplier&quot;</span><span class="p">,</span> <span class="mf">1.0</span>
+        <span class="p">)</span>
+        <span class="n">num_classes</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.classification.n_classes&quot;</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
+        <span class="n">classifier_dropout</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.classification.classifier_dropout&quot;</span><span class="p">,</span> <span class="mf">0.0</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">classifier_dropout</span> <span class="o">==</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">classifier_dropout</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="mf">0.2</span> <span class="o">*</span> <span class="n">width_mult</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+            <span class="n">classifier_dropout</span> <span class="o">=</span> <span class="n">bound_fn</span><span class="p">(</span><span class="n">min_val</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">max_val</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">val</span><span class="p">)</span>
+
+        <span class="n">image_channels</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="n">input_channels</span> <span class="o">=</span> <span class="n">make_divisible</span><span class="p">(</span><span class="mi">16</span> <span class="o">*</span> <span class="n">width_mult</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+
+        <span class="n">mv3_config</span> <span class="o">=</span> <span class="n">get_configuration</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_1</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;conv_3x3_bn&quot;</span><span class="p">,</span>
+            <span class="n">module</span><span class="o">=</span><span class="n">ConvLayer2d</span><span class="p">(</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                <span class="n">in_channels</span><span class="o">=</span><span class="n">image_channels</span><span class="p">,</span>
+                <span class="n">out_channels</span><span class="o">=</span><span class="n">input_channels</span><span class="p">,</span>
+                <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                <span class="n">use_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">use_act</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_1</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;act&quot;</span><span class="p">,</span>
+            <span class="n">module</span><span class="o">=</span><span class="n">build_activation_layer</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">act_type</span><span class="o">=</span><span class="s2">&quot;hard_swish&quot;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_conf_dict</span><span class="p">[</span><span class="s2">&quot;conv1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="n">image_channels</span><span class="p">,</span> <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">input_channels</span><span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer_1</span><span class="p">,</span> <span class="n">out_channels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_layer</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">mv3_config</span><span class="o">=</span><span class="n">mv3_config</span><span class="p">[</span><span class="s2">&quot;layer_1&quot;</span><span class="p">],</span>
+            <span class="n">width_mult</span><span class="o">=</span><span class="n">width_mult</span><span class="p">,</span>
+            <span class="n">input_channel</span><span class="o">=</span><span class="n">input_channels</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_conf_dict</span><span class="p">[</span><span class="s2">&quot;layer1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="n">input_channels</span><span class="p">,</span> <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">out_channels</span><span class="p">}</span>
+        <span class="n">input_channels</span> <span class="o">=</span> <span class="n">out_channels</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer_2</span><span class="p">,</span> <span class="n">out_channels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_layer</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">mv3_config</span><span class="o">=</span><span class="n">mv3_config</span><span class="p">[</span><span class="s2">&quot;layer_2&quot;</span><span class="p">],</span>
+            <span class="n">width_mult</span><span class="o">=</span><span class="n">width_mult</span><span class="p">,</span>
+            <span class="n">input_channel</span><span class="o">=</span><span class="n">input_channels</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_conf_dict</span><span class="p">[</span><span class="s2">&quot;layer2&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="n">input_channels</span><span class="p">,</span> <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">out_channels</span><span class="p">}</span>
+        <span class="n">input_channels</span> <span class="o">=</span> <span class="n">out_channels</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer_3</span><span class="p">,</span> <span class="n">out_channels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_layer</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">mv3_config</span><span class="o">=</span><span class="n">mv3_config</span><span class="p">[</span><span class="s2">&quot;layer_3&quot;</span><span class="p">],</span>
+            <span class="n">width_mult</span><span class="o">=</span><span class="n">width_mult</span><span class="p">,</span>
+            <span class="n">input_channel</span><span class="o">=</span><span class="n">input_channels</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_conf_dict</span><span class="p">[</span><span class="s2">&quot;layer3&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="n">input_channels</span><span class="p">,</span> <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">out_channels</span><span class="p">}</span>
+        <span class="n">input_channels</span> <span class="o">=</span> <span class="n">out_channels</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer_4</span><span class="p">,</span> <span class="n">out_channels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_layer</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">mv3_config</span><span class="o">=</span><span class="n">mv3_config</span><span class="p">[</span><span class="s2">&quot;layer_4&quot;</span><span class="p">],</span>
+            <span class="n">width_mult</span><span class="o">=</span><span class="n">width_mult</span><span class="p">,</span>
+            <span class="n">input_channel</span><span class="o">=</span><span class="n">input_channels</span><span class="p">,</span>
+            <span class="n">dilate</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dilate_l4</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_conf_dict</span><span class="p">[</span><span class="s2">&quot;layer4&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="n">input_channels</span><span class="p">,</span> <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">out_channels</span><span class="p">}</span>
+        <span class="n">input_channels</span> <span class="o">=</span> <span class="n">out_channels</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer_5</span><span class="p">,</span> <span class="n">out_channels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_layer</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">mv3_config</span><span class="o">=</span><span class="n">mv3_config</span><span class="p">[</span><span class="s2">&quot;layer_5&quot;</span><span class="p">],</span>
+            <span class="n">width_mult</span><span class="o">=</span><span class="n">width_mult</span><span class="p">,</span>
+            <span class="n">input_channel</span><span class="o">=</span><span class="n">input_channels</span><span class="p">,</span>
+            <span class="n">dilate</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dilate_l5</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_conf_dict</span><span class="p">[</span><span class="s2">&quot;layer5&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="n">input_channels</span><span class="p">,</span> <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">out_channels</span><span class="p">}</span>
+        <span class="n">input_channels</span> <span class="o">=</span> <span class="n">out_channels</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_1x1_exp</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">()</span>
+        <span class="n">out_channels</span> <span class="o">=</span> <span class="mi">6</span> <span class="o">*</span> <span class="n">input_channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_1x1_exp</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;conv_1x1&quot;</span><span class="p">,</span>
+            <span class="n">module</span><span class="o">=</span><span class="n">ConvLayer2d</span><span class="p">(</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                <span class="n">in_channels</span><span class="o">=</span><span class="n">input_channels</span><span class="p">,</span>
+                <span class="n">out_channels</span><span class="o">=</span><span class="n">out_channels</span><span class="p">,</span>
+                <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">use_act</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">use_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_1x1_exp</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;act&quot;</span><span class="p">,</span>
+            <span class="n">module</span><span class="o">=</span><span class="n">build_activation_layer</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">act_type</span><span class="o">=</span><span class="s2">&quot;hard_swish&quot;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_conf_dict</span><span class="p">[</span><span class="s2">&quot;exp_before_cls&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="n">input_channels</span><span class="p">,</span>
+            <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">out_channels</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="n">pool_type</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.layer.global_pool&quot;</span><span class="p">,</span> <span class="s2">&quot;mean&quot;</span><span class="p">)</span>
+
+        <span class="n">last_channels</span> <span class="o">=</span> <span class="n">mv3_config</span><span class="p">[</span><span class="s2">&quot;last_channels&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;global_pool&quot;</span><span class="p">,</span> <span class="n">module</span><span class="o">=</span><span class="n">GlobalPool</span><span class="p">(</span><span class="n">pool_type</span><span class="o">=</span><span class="n">pool_type</span><span class="p">,</span> <span class="n">keep_dim</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;fc1&quot;</span><span class="p">,</span>
+            <span class="n">module</span><span class="o">=</span><span class="n">LinearLayer</span><span class="p">(</span>
+                <span class="n">in_features</span><span class="o">=</span><span class="n">out_channels</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="n">last_channels</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;act&quot;</span><span class="p">,</span>
+            <span class="n">module</span><span class="o">=</span><span class="n">build_activation_layer</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">act_type</span><span class="o">=</span><span class="s2">&quot;hard_swish&quot;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="mf">0.0</span> <span class="o">&lt;</span> <span class="n">classifier_dropout</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;classifier_dropout&quot;</span><span class="p">,</span> <span class="n">module</span><span class="o">=</span><span class="n">Dropout</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">classifier_dropout</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;classifier_fc&quot;</span><span class="p">,</span>
+            <span class="n">module</span><span class="o">=</span><span class="n">LinearLayer</span><span class="p">(</span>
+                <span class="n">in_features</span><span class="o">=</span><span class="n">last_channels</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="n">num_classes</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_conf_dict</span><span class="p">[</span><span class="s2">&quot;cls&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="mi">6</span> <span class="o">*</span> <span class="n">input_channels</span><span class="p">,</span> <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">num_classes</span><span class="p">}</span></div>
+
+    <span class="k">def</span> <span class="nf">_make_layer</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">opts</span><span class="p">,</span>
+        <span class="n">mv3_config</span><span class="p">,</span>
+        <span class="n">width_mult</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">input_channel</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">dilate</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+        <span class="n">prev_dilation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dilation</span>
+        <span class="n">mv3_block</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">()</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mv3_config</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">expansion_factor</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">,</span> <span class="n">use_se</span><span class="p">,</span> <span class="n">use_hs</span><span class="p">,</span> <span class="n">stride</span> <span class="ow">in</span> <span class="p">[</span>
+                <span class="n">mv3_config</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="p">]:</span>
+                <span class="n">block_name</span> <span class="o">=</span> <span class="s2">&quot;mv3_s_</span><span class="si">{}</span><span class="s2">_idx_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">stride</span><span class="p">,</span> <span class="n">count</span><span class="p">)</span>
+                <span class="n">output_channel</span> <span class="o">=</span> <span class="n">make_divisible</span><span class="p">(</span>
+                    <span class="n">in_channels</span> <span class="o">*</span> <span class="n">width_mult</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">round_nearest</span>
+                <span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">dilate</span> <span class="ow">and</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">dilation</span> <span class="o">*=</span> <span class="n">stride</span>
+                    <span class="n">stride</span> <span class="o">=</span> <span class="mi">1</span>
+
+                <span class="n">layer</span> <span class="o">=</span> <span class="n">InvertedResidualSE</span><span class="p">(</span>
+                    <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                    <span class="n">in_channels</span><span class="o">=</span><span class="n">input_channel</span><span class="p">,</span>
+                    <span class="n">out_channels</span><span class="o">=</span><span class="n">output_channel</span><span class="p">,</span>
+                    <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span>
+                    <span class="n">expand_ratio</span><span class="o">=</span><span class="n">expansion_factor</span><span class="p">,</span>
+                    <span class="n">dilation</span><span class="o">=</span><span class="n">prev_dilation</span> <span class="k">if</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">dilation</span><span class="p">,</span>
+                    <span class="n">act_fn_name</span><span class="o">=</span><span class="s2">&quot;hard_swish&quot;</span> <span class="k">if</span> <span class="n">use_hs</span> <span class="k">else</span> <span class="s2">&quot;relu&quot;</span><span class="p">,</span>
+                    <span class="n">use_se</span><span class="o">=</span><span class="n">use_se</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">mv3_block</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">block_name</span><span class="p">,</span> <span class="n">module</span><span class="o">=</span><span class="n">layer</span><span class="p">)</span>
+                <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">input_channel</span> <span class="o">=</span> <span class="n">output_channel</span>
+        <span class="k">return</span> <span class="n">mv3_block</span><span class="p">,</span> <span class="n">input_channel</span>
+
+<div class="viewcode-block" id="MobileNetV3.add_arguments"><a class="viewcode-back" href="../../../../autogen/cvnets.models.classification.html#cvnets.models.classification.mobilenetv3.MobileNetV3.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">):</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.classification.mobilenetv3.mode&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;large&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Configuration for mobilenetv3. Default: large&quot;</span><span class="p">,</span>
+            <span class="n">choices</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;small&quot;</span><span class="p">,</span> <span class="s2">&quot;large&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.classification.mobilenetv3.width-multiplier&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Width multiplier for mobilenetv3. Default: 1.0&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">parser</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

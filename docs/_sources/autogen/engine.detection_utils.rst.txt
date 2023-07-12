@@ -1,0 +1,21 @@
+engine.detection\_utils package
+===============================
+
+Submodules
+----------
+
+engine.detection\_utils.coco\_map module
+----------------------------------------
+
+.. automodule:: engine.detection_utils.coco_map
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: engine.detection_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:

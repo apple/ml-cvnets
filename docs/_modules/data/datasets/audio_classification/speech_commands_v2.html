@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>data.datasets.audio_classification.speech_commands_v2 &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../datasets.html">data.datasets</a></li>
+      <li class="breadcrumb-item active">data.datasets.audio_classification.speech_commands_v2</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for data.datasets.audio_classification.speech_commands_v2</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torchaudio</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">F</span>
+
+<span class="kn">from</span> <span class="nn">data.datasets</span> <span class="kn">import</span> <span class="n">DATASET_REGISTRY</span><span class="p">,</span> <span class="n">dataset_base</span>
+<span class="kn">from</span> <span class="nn">data.transforms.audio</span> <span class="kn">import</span> <span class="n">Noise</span><span class="p">,</span> <span class="n">Roll</span><span class="p">,</span> <span class="n">SetFixedLength</span>
+<span class="kn">from</span> <span class="nn">data.transforms.common</span> <span class="kn">import</span> <span class="n">Compose</span>
+<span class="kn">from</span> <span class="nn">data.transforms.image_pil</span> <span class="kn">import</span> <span class="n">BaseTransformation</span>
+
+
+<div class="viewcode-block" id="SpeechCommandsv2Dataset"><a class="viewcode-back" href="../../../../autogen/data.datasets.audio_classification.html#data.datasets.audio_classification.speech_commands_v2.SpeechCommandsv2Dataset">[docs]</a><span class="nd">@DATASET_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;speech_commands_v2&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;audio_classification&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">SpeechCommandsv2Dataset</span><span class="p">(</span><span class="n">dataset_base</span><span class="o">.</span><span class="n">BaseDataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Google&#39;s Speech Commands dataset for keyword spotting (https://arxiv.org/abs/1804.03209).</span>
+
+<span class="sd">    This contains the &quot;v2&quot; version for 12-way classification (10 commands,</span>
+<span class="sd">    plus unknown and background categories).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: Command-line arguments</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SpeechCommandsv2Dataset.__init__"><a class="viewcode-back" href="../../../../autogen/data.datasets.audio_classification.html#data.datasets.audio_classification.speech_commands_v2.SpeechCommandsv2Dataset.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">mode_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;val&quot;</span><span class="p">:</span>
+            <span class="c1"># This value is needed to calculate the correct annotation .json paths.</span>
+            <span class="n">mode_str</span> <span class="o">=</span> <span class="s2">&quot;validation&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset_config</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mode_str</span><span class="si">}</span><span class="s2">_manifest.json&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_process_dataset_config</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixup</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.speech_commands_v2.mixup&quot;</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_process_dataset_config</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Process the dataset .json files to set up the dataset.</span>
+
+<span class="sd">        The .json configs contain:</span>
+<span class="sd">        [</span>
+<span class="sd">            {</span>
+<span class="sd">                &quot;audio_filepath&quot;: relative path to audio from the dataset root directory,</span>
+<span class="sd">                &quot;duration&quot;: floating point duration in seconds,</span>
+<span class="sd">                &quot;command&quot;: the label of the spoken command.</span>
+<span class="sd">            },</span>
+<span class="sd">            ...</span>
+<span class="sd">        ]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_config</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset_entries</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataset_entries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">line</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_entries</span><span class="p">:</span>
+            <span class="n">audio_path</span> <span class="o">=</span> <span class="n">elem</span><span class="p">[</span><span class="s2">&quot;audio_filepath&quot;</span><span class="p">]</span>
+            <span class="n">new_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">audio_path</span><span class="p">)</span>
+            <span class="n">elem</span><span class="p">[</span><span class="s2">&quot;audio_filepath&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_path</span>
+
+        <span class="n">all_labels</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="n">elem</span><span class="p">[</span><span class="s2">&quot;command&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_entries</span><span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label_to_index</span> <span class="o">=</span> <span class="p">{</span><span class="n">l</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">all_labels</span><span class="p">)}</span>
+
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;audio_augmentation.noise.enable&quot;</span><span class="p">):</span>
+            <span class="c1"># Cache this, since it loads files on initialization.</span>
+            <span class="n">background_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;_background_noise_&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">noise</span> <span class="o">=</span> <span class="n">Noise</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="n">noise_files_dir</span><span class="o">=</span><span class="n">background_dir</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SpeechCommandsv2Dataset.add_arguments"><a class="viewcode-back" href="../../../../autogen/data.datasets.audio_classification.html#data.datasets.audio_classification.speech_commands_v2.SpeechCommandsv2Dataset.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--dataset.speech-commands-v2.mixup&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If set, apply mixup inside the dataset.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+    <span class="k">def</span> <span class="nf">_training_transforms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseTransformation</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns transformations applied to the input in training mode.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">aug_list</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">SetFixedLength</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">),</span>
+        <span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;audio_augmentation.noise.enable&quot;</span><span class="p">):</span>
+            <span class="n">aug_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;audio_augmentation.roll.enable&quot;</span><span class="p">):</span>
+            <span class="n">aug_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Roll</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">Compose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="n">aug_list</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validation_transforms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseTransformation</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns transformations applied to the input in validation mode.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">aug_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">SetFixedLength</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">Compose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="n">aug_list</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SpeechCommandsv2Dataset.get_sample"><a class="viewcode-back" href="../../../../autogen/data.datasets.audio_classification.html#data.datasets.audio_classification.speech_commands_v2.SpeechCommandsv2Dataset.get_sample">[docs]</a>    <span class="k">def</span> <span class="nf">get_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the dataset sample at the given index.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dataset_entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_entries</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+        <span class="n">waveform</span><span class="p">,</span> <span class="n">audio_fps</span> <span class="o">=</span> <span class="n">torchaudio</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">dataset_entry</span><span class="p">[</span><span class="s2">&quot;audio_filepath&quot;</span><span class="p">])</span>
+
+        <span class="n">label</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">label_to_index</span><span class="p">[</span><span class="n">dataset_entry</span><span class="p">[</span><span class="s2">&quot;command&quot;</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">waveform</span><span class="p">,</span> <span class="n">audio_fps</span><span class="p">,</span> <span class="n">label</span></div>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">batch_indexes_tup</span><span class="p">:</span> <span class="n">Tuple</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">],</span> <span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the sample corresponding to the input sample index and applies</span>
+<span class="sd">        transforms.</span>
+
+<span class="sd">        If the class uses mixup, and is in training mode, this will additionally</span>
+<span class="sd">        apply mixup.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            batch_indexes_tup: Tuple of the form (crop_size_h, crop_size_w, sample_index).</span>
+<span class="sd">                The first two parts are not needed, and are ignored by this function.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A sample as a dictionary. It contains:</span>
+<span class="sd">                {</span>
+<span class="sd">                    &quot;samples&quot;:</span>
+<span class="sd">                        {</span>
+<span class="sd">                            &quot;audio&quot;: A [C, N] tensor, where C is the number of</span>
+<span class="sd">                                channels, and N is the length.</span>
+<span class="sd">                        }</span>
+<span class="sd">                    &quot;targets&quot;: an integer class label.</span>
+<span class="sd">                    &quot;sample_id&quot;: an integer giving the sample index.</span>
+<span class="sd">                    &quot;metadata&quot;:</span>
+<span class="sd">                        {</span>
+<span class="sd">                            &quot;audio_fps&quot;: The sampling rate of the audio.</span>
+<span class="sd">                        }</span>
+<span class="sd">                }</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="n">batch_indexes_tup</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_transformed_sample</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixup</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_training</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">data2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_transformed_sample</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;audio_fps&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">data2</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;audio_fps&quot;</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Inconsistent audio_fps (</span><span class="si">{</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;metadata&#39;</span><span class="p">][</span><span class="s1">&#39;audio_fps&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">data2</span><span class="p">[</span><span class="s1">&#39;metadata&#39;</span><span class="p">][</span><span class="s1">&#39;audio_fps&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span>
+                <span class="p">)</span>
+
+            <span class="n">coefficient</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;samples&quot;</span><span class="p">][</span><span class="s2">&quot;audio&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;samples&quot;</span><span class="p">][</span><span class="s2">&quot;audio&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">coefficient</span> <span class="o">+</span> <span class="n">data2</span><span class="p">[</span>
+                <span class="s2">&quot;samples&quot;</span>
+            <span class="p">][</span><span class="s2">&quot;audio&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">coefficient</span><span class="p">)</span>
+
+            <span class="k">def</span> <span class="nf">to_onehot</span><span class="p">(</span><span class="n">targets</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">num_classes</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label_to_index</span><span class="p">))</span>
+
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">to_onehot</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">])</span> <span class="o">*</span> <span class="n">coefficient</span> <span class="o">+</span> <span class="n">to_onehot</span><span class="p">(</span>
+                <span class="n">data2</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">]</span>
+            <span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">coefficient</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">data</span>
+
+<div class="viewcode-block" id="SpeechCommandsv2Dataset.get_transformed_sample"><a class="viewcode-back" href="../../../../autogen/data.datasets.audio_classification.html#data.datasets.audio_classification.speech_commands_v2.SpeechCommandsv2Dataset.get_transformed_sample">[docs]</a>    <span class="k">def</span> <span class="nf">get_transformed_sample</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">],</span> <span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the sample at the index specified by @index.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            index: The index of the sample.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A sample as a dictionary. It contains:</span>
+<span class="sd">                {</span>
+<span class="sd">                    &quot;samples&quot;:</span>
+<span class="sd">                        {</span>
+<span class="sd">                            &quot;audio&quot;: A [C, N] tensor, where C is the number of</span>
+<span class="sd">                                channels, and N is the length.</span>
+<span class="sd">                        }</span>
+<span class="sd">                    &quot;targets&quot;: an integer class label.</span>
+<span class="sd">                    &quot;sample_id&quot;: an integer giving the sample index.</span>
+<span class="sd">                    &quot;metadata&quot;:</span>
+<span class="sd">                        {</span>
+<span class="sd">                            &quot;audio_fps&quot;: The sampling rate of the audio.</span>
+<span class="sd">                        }</span>
+<span class="sd">                }</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">waveform</span><span class="p">,</span> <span class="n">audio_fps</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sample</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;samples&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;audio&quot;</span><span class="p">:</span> <span class="n">waveform</span><span class="p">},</span>
+            <span class="s2">&quot;targets&quot;</span><span class="p">:</span> <span class="n">label</span><span class="p">,</span>
+            <span class="s2">&quot;sample_id&quot;</span><span class="p">:</span> <span class="n">index</span><span class="p">,</span>
+            <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;audio_fps&quot;</span><span class="p">:</span> <span class="n">audio_fps</span><span class="p">},</span>
+        <span class="p">}</span>
+
+        <span class="n">transform_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_augmentation_transforms</span><span class="p">()</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">transform_fn</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">data</span></div>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_entries</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

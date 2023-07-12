@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>data.datasets.multi_modal_img_text.base_multi_modal_img_text &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../datasets.html">data.datasets</a></li>
+          <li class="breadcrumb-item"><a href="../multi_modal_img_text.html">data.datasets.multi_modal_img_text</a></li>
+      <li class="breadcrumb-item active">data.datasets.multi_modal_img_text.base_multi_modal_img_text</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for data.datasets.multi_modal_img_text.base_multi_modal_img_text</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
+
+<span class="kn">from</span> <span class="nn">data.collate_fns</span> <span class="kn">import</span> <span class="n">COLLATE_FN_REGISTRY</span>
+<span class="kn">from</span> <span class="nn">data.datasets.dataset_base</span> <span class="kn">import</span> <span class="n">BaseImageDataset</span>
+<span class="kn">from</span> <span class="nn">data.datasets.multi_modal_img_text.zero_shot</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BaseZeroShotDataset</span><span class="p">,</span>
+    <span class="n">build_zero_shot_dataset</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">data.datasets.utils.text</span> <span class="kn">import</span> <span class="n">caption_preprocessing</span>
+<span class="kn">from</span> <span class="nn">data.text_tokenizer</span> <span class="kn">import</span> <span class="n">build_tokenizer</span>
+<span class="kn">from</span> <span class="nn">data.transforms</span> <span class="kn">import</span> <span class="n">image_pil</span> <span class="k">as</span> <span class="n">T</span>
+<span class="kn">from</span> <span class="nn">data.transforms.common</span> <span class="kn">import</span> <span class="n">Compose</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">from</span> <span class="nn">utils.ddp_utils</span> <span class="kn">import</span> <span class="n">is_master</span><span class="p">,</span> <span class="n">is_start_rank_node</span>
+
+
+<div class="viewcode-block" id="BaseMultiModalImgText"><a class="viewcode-back" href="../../../../autogen/data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.base_multi_modal_img_text.BaseMultiModalImgText">[docs]</a><span class="k">class</span> <span class="nc">BaseMultiModalImgText</span><span class="p">(</span><span class="n">BaseImageDataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for Image-Text multi-modal learning</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: command-line arguments</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">__SEPARATOR</span> <span class="o">=</span> <span class="s2">&quot;:&quot;</span>
+
+<div class="viewcode-block" id="BaseMultiModalImgText.__init__"><a class="viewcode-back" href="../../../../autogen/data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.base_multi_modal_img_text.BaseMultiModalImgText.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">opts</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_master_node</span> <span class="o">=</span> <span class="n">is_master</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_start_rank_node</span> <span class="o">=</span> <span class="n">is_start_rank_node</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">text_tokenizer</span> <span class="o">=</span> <span class="n">build_tokenizer</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">context_length</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.multi_modal_img_text.context_length&quot;</span>
+        <span class="p">)</span>
+
+        <span class="c1"># for sharing padding index across the entire cvnets framework, we will</span>
+        <span class="c1"># use a special variable &quot;dataset.padding_index&quot;.</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.padding_index&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">padding_index</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.padding_index&quot;</span><span class="p">)</span>
+
+        <span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_tokenizer</span><span class="o">.</span><span class="n">get_vocab_size</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">vocab_size</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">vocab_size</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;Vocab size can&#39;t be None or -1 in </span><span class="si">{}</span><span class="s2">. Got: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">vocab_size</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">vocab_size</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.text_vocab_size&quot;</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.text_context_length&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">context_length</span><span class="p">)</span>
+
+        <span class="nb">setattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span>
+            <span class="s2">&quot;dataset.collate_fn_name_train&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;multi_modal_img_text_collate_fn&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span>
+            <span class="s2">&quot;dataset.collate_fn_name_val&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;multi_modal_img_text_collate_fn&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span>
+            <span class="s2">&quot;dataset.collate_fn_name_test&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;multi_modal_img_text_collate_fn&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">zero_shot_dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_zero_shot_dataset</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cached_zero_shot_captions</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_loc</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;.img_text_tar_cache&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_training</span><span class="p">:</span>
+            <span class="c1"># Folder where we will download data</span>
+            <span class="c1"># TODO: Training data can&#39;t fit on a single node, so we save/cache subset of data on each node.</span>
+            <span class="c1"># In future, we may enable caching for validation data.</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_loc</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not create cache location directory: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_dataset</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseMultiModalImgText.get_zero_shot_dataset"><a class="viewcode-back" href="../../../../autogen/data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.base_multi_modal_img_text.BaseMultiModalImgText.get_zero_shot_dataset">[docs]</a>    <span class="k">def</span> <span class="nf">get_zero_shot_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BaseZeroShotDataset</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;If zero-shot evaluation is enabled, zero-shot dataset is returned.</span>
+<span class="sd">        Otherwise, None is returned</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">zero_shot_eval</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="kc">False</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_training</span>
+            <span class="k">else</span> <span class="nb">getattr</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.multi_modal_img_text.zero_shot_eval&quot;</span><span class="p">,</span> <span class="kc">False</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">zero_shot_eval</span><span class="p">:</span>
+            <span class="n">zero_shot_dataset</span> <span class="o">=</span> <span class="n">build_zero_shot_dataset</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">zero_shot_dataset</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">zero_shot_dataset</span></div>
+
+<div class="viewcode-block" id="BaseMultiModalImgText.get_dataset"><a class="viewcode-back" href="../../../../autogen/data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.base_multi_modal_img_text.BaseMultiModalImgText.get_dataset">[docs]</a>    <span class="k">def</span> <span class="nf">get_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper function to get the dataset. Child classes must override this function&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="BaseMultiModalImgText.share_dataset_arguments"><a class="viewcode-back" href="../../../../autogen/data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.base_multi_modal_img_text.BaseMultiModalImgText.share_dataset_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">share_dataset_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the number of classes in detection dataset along with super-class arguments.&quot;&quot;&quot;</span>
+        <span class="n">share_dataset_specific_opts</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">share_dataset_arguments</span><span class="p">()</span>
+        <span class="n">share_dataset_specific_opts</span><span class="p">[</span><span class="s2">&quot;dataset.text_vocab_size&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span>
+        <span class="n">share_dataset_specific_opts</span><span class="p">[</span><span class="s2">&quot;dataset.text_context_length&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">context_length</span>
+        <span class="k">return</span> <span class="n">share_dataset_specific_opts</span></div>
+
+<div class="viewcode-block" id="BaseMultiModalImgText.add_arguments"><a class="viewcode-back" href="../../../../autogen/data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.base_multi_modal_img_text.BaseMultiModalImgText.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add dataset-specific arguments to the parser.&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">cls</span> <span class="o">!=</span> <span class="n">BaseMultiModalImgText</span><span class="p">:</span>
+            <span class="c1"># Don&#39;t re-register arguments in subclasses that don&#39;t override `add_arguments()`.</span>
+            <span class="k">return</span> <span class="n">parser</span>
+
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--dataset.multi-modal-img-text.context-length&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">77</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Context length for the text model. Defaults to 77, the same as in CLIP paper.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--dataset.multi-modal-img-text.trunc-seq-len&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Many sequences in a batch do not have lengths equal to specified context length. Enabling this flag &quot;</span>
+            <span class="s2">&quot;allows us to truncate the sequences such that the sequence length of a batch is equal to sequence &quot;</span>
+            <span class="s2">&quot;with max. non-padded tokens. Defaults to False.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+    <span class="k">def</span> <span class="nf">_transform_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text_tensor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper function to transform the text tensor. If the text tensor is smaller</span>
+<span class="sd">        than the context length, it pads it and replaces the last token with EOT token.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            text_tensor: Text tensor with N tokens. Shape is (N,).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A Tuple of text tensor (whole length is equal to context length) and length of the tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">captions_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">context_length</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+
+        <span class="n">text_len</span> <span class="o">=</span> <span class="n">text_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">text_len</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">context_length</span><span class="p">:</span>
+            <span class="n">text_tensor</span> <span class="o">=</span> <span class="n">text_tensor</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">context_length</span><span class="p">]</span>
+            <span class="n">text_tensor</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_tokenizer</span><span class="o">.</span><span class="n">get_eot_token</span><span class="p">()</span>
+            <span class="n">text_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">context_length</span>
+        <span class="n">captions_tensor</span><span class="p">[:</span><span class="n">text_len</span><span class="p">]</span> <span class="o">=</span> <span class="n">text_tensor</span><span class="p">[:</span><span class="n">text_len</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">captions_tensor</span><span class="p">,</span> <span class="n">text_len</span>
+
+    <span class="k">def</span> <span class="nf">_training_transforms</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="o">.</span><span class="n">BaseTransformation</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Data augmentation during training.</span>
+
+<span class="sd">        The default order is RandomResizedCrop, Optional[RandAugment or AutoAugment], ToTensor, Optional[RandomErase]</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            size: Size for resizing the input image. Expected to be a tuple (height, width)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            An instance of `data.transforms.image_pil.BaseTransformation.`</span>
+
+<span class="sd">        .. note::</span>
+<span class="sd">            1. AutoAugment and RandAugment are mutually exclusive.</span>
+<span class="sd">            2. Mixup and CutMix are applied on batches are implemented in trainer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">aug_list</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">T</span><span class="o">.</span><span class="n">RandomResizedCrop</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="n">auto_augment</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;image_augmentation.auto_augment.enable&quot;</span><span class="p">,</span> <span class="kc">False</span>
+        <span class="p">)</span>
+        <span class="n">rand_augment</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;image_augmentation.rand_augment.enable&quot;</span><span class="p">,</span> <span class="kc">False</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">auto_augment</span> <span class="ow">and</span> <span class="n">rand_augment</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;AutoAugment and RandAugment are mutually exclusive. Use either of them, but not both&quot;</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">auto_augment</span><span class="p">:</span>
+            <span class="n">aug_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">AutoAugment</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">rand_augment</span><span class="p">:</span>
+            <span class="n">aug_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">RandAugment</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">))</span>
+
+        <span class="n">aug_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;image_augmentation.random_erase.enable&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="n">aug_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">RandomErasing</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">Compose</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="n">img_transforms</span><span class="o">=</span><span class="n">aug_list</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validation_transforms</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="o">.</span><span class="n">BaseTransformation</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Data transforms during validation or evaluation</span>
+<span class="sd">         The order is Resize, CenterCrop, ToTensor</span>
+
+<span class="sd">         Args:</span>
+<span class="sd">            size: Size for resizing the input image. Expected to be an integer (width=height) or a tuple (height, width)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            An instance of `data.transforms.image_pil.BaseTransformation.`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">aug_list</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">T</span><span class="o">.</span><span class="n">Resize</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">),</span>
+            <span class="n">T</span><span class="o">.</span><span class="n">CenterCrop</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">),</span>
+            <span class="n">T</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">),</span>
+        <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">Compose</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="n">img_transforms</span><span class="o">=</span><span class="n">aug_list</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_process_img_caption</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">input_img</span><span class="p">:</span> <span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="p">,</span>
+        <span class="n">captions_str</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]],</span>
+        <span class="n">img_transform_fn</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">BaseTransformation</span><span class="p">,</span>
+        <span class="n">zero_shot</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply data augmentation to images and pre-processing to text captions</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            input_img: Input PIL Image</span>
+<span class="sd">            captions_str: Text captions</span>
+<span class="sd">            img_transform_fn: Image transform functions</span>
+<span class="sd">            zero_shot: zero shot evaluation or not</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A tuple of image tensor, caption tensor, and max. sequence length of a sequence in caption tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">input_img</span><span class="p">}</span>
+        <span class="n">img_tensor</span> <span class="o">=</span> <span class="n">img_transform_fn</span><span class="p">(</span><span class="n">data</span><span class="p">)[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">zero_shot</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">cached_zero_shot_captions</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">img_tensor</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cached_zero_shot_captions</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cached_zero_shot_captions</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="p">)</span>
+
+        <span class="n">max_seq_len</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1"># process caption</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">captions_str</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">captions_tensor</span><span class="p">,</span> <span class="n">max_seq_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform_text</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">text_tokenizer</span><span class="p">(</span><span class="n">caption_preprocessing</span><span class="p">(</span><span class="n">captions_str</span><span class="p">))</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">captions_str</span><span class="p">,</span> <span class="n">List</span><span class="p">):</span>
+            <span class="n">captions_tensor</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">captions_str_i</span> <span class="ow">in</span> <span class="n">captions_str</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">captions_str_i</span><span class="p">,</span> <span class="n">List</span><span class="p">):</span>
+                    <span class="c1"># captions_str is [ [Num_templates_per_class] * Num_classes]</span>
+                    <span class="n">captions_tensor_i</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">for</span> <span class="p">(</span>
+                        <span class="n">captions_str_i_j</span>
+                    <span class="p">)</span> <span class="ow">in</span> <span class="n">captions_str_i</span><span class="p">:</span>  <span class="c1"># number of templates per class</span>
+                        <span class="n">seq</span><span class="p">,</span> <span class="n">seq_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform_text</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">text_tokenizer</span><span class="p">(</span><span class="n">caption_preprocessing</span><span class="p">(</span><span class="n">captions_str_i_j</span><span class="p">))</span>
+                        <span class="p">)</span>
+                        <span class="n">captions_tensor_i</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span>
+                        <span class="n">max_seq_len</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">)</span>
+                    <span class="n">captions_tensor_i</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">captions_tensor_i</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">captions_tensor</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">captions_tensor_i</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">captions_str_i</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="c1"># captions_str is [Num_templates_per_image]</span>
+                    <span class="n">seq</span><span class="p">,</span> <span class="n">seq_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform_text</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">text_tokenizer</span><span class="p">(</span><span class="n">caption_preprocessing</span><span class="p">(</span><span class="n">captions_str_i</span><span class="p">))</span>
+                    <span class="p">)</span>
+                    <span class="n">captions_tensor</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span>
+                    <span class="n">max_seq_len</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                        <span class="s2">&quot;Got captions_str of type </span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2"> from </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="nb">type</span><span class="p">(</span><span class="n">captions_str_i</span><span class="p">),</span> <span class="n">captions_str_i</span><span class="p">,</span> <span class="n">captions_str</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+            <span class="c1"># the shape of tensor is [Num_classes, captions_per_class, caption_length]</span>
+            <span class="c1"># or [Captions_per_image, caption_length]</span>
+            <span class="n">captions_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">captions_tensor</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">captions_tensor</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;Captions should be either string, List[String] or List[List[str]]&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">zero_shot</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">cached_zero_shot_captions</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cached_zero_shot_captions</span> <span class="o">=</span> <span class="p">(</span><span class="n">captions_tensor</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">img_tensor</span><span class="p">,</span> <span class="n">captions_tensor</span><span class="p">,</span> <span class="n">max_seq_len</span>
+
+<div class="viewcode-block" id="BaseMultiModalImgText.get_zero_shot_pair"><a class="viewcode-back" href="../../../../autogen/data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.base_multi_modal_img_text.BaseMultiModalImgText.get_zero_shot_pair">[docs]</a>    <span class="k">def</span> <span class="nf">get_zero_shot_pair</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">img_index</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]],</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get image-text pair for zero-shot dataset along with classification label.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            img_index: Image index</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A tuple of PIL image, captions, and class label</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">img_path</span><span class="p">,</span> <span class="n">captions_str</span><span class="p">,</span> <span class="n">class_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">zero_shot_dataset</span><span class="p">[</span><span class="n">img_index</span><span class="p">]</span>
+        <span class="n">input_img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_image_pil</span><span class="p">(</span><span class="n">img_path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">input_img</span><span class="p">,</span> <span class="n">captions_str</span><span class="p">,</span> <span class="n">class_label</span></div>
+
+<div class="viewcode-block" id="BaseMultiModalImgText.get_dataset_pair"><a class="viewcode-back" href="../../../../autogen/data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.base_multi_modal_img_text.BaseMultiModalImgText.get_dataset_pair">[docs]</a>    <span class="k">def</span> <span class="nf">get_dataset_pair</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get image-text pair from the dataset. Sub-classes must implement this method.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">sample_size_and_index</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the sample corresponding to the input sample index.</span>
+
+<span class="sd">        Returned sample is transformed into the size specified by the input.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            sample_size_and_index: Tuple of the form (crop_size_h, crop_size_w, sample_index)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A dictionary with `samples` and `targets` as keys corresponding to input and label of</span>
+<span class="sd">            a sample, respectively.</span>
+
+<span class="sd">        Shapes:</span>
+<span class="sd">            The shape of values in output dictionary, output_data, are as follows:</span>
+
+<span class="sd">            output_data[&quot;samples&quot;][&quot;image&quot;]: Shape is [Channels, Height, Width]</span>
+<span class="sd">            output_data[&quot;samples&quot;][&quot;text&quot;]: Shape is</span>
+<span class="sd">                * [Context_Length] (single caption, as in CLIP datasets)</span>
+<span class="sd">                * [Num_classes, Num_Captions, Context_length] (multiple captions per class, as in 0-shot Imagenet dataset)</span>
+<span class="sd">            output_data[&quot;samples&quot;][&quot;padding_mask&quot;]: Same as output_data[&quot;samples&quot;][&quot;text&quot;]</span>
+<span class="sd">            output_data[&quot;samples&quot;][&quot;max_seq_len&quot;]: Shape is [1]</span>
+<span class="sd">            output_data[&quot;targets&quot;]: Shape is [1]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">crop_size_h</span><span class="p">,</span> <span class="n">crop_size_w</span><span class="p">,</span> <span class="n">img_index</span> <span class="o">=</span> <span class="n">sample_size_and_index</span>
+        <span class="n">transform_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_augmentation_transforms</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">crop_size_h</span><span class="p">,</span> <span class="n">crop_size_w</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">zero_shot_dataset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># read captions and image path from conceptual captions dataset</span>
+            <span class="c1"># read captions and image path from zero-shot dataset</span>
+            <span class="n">input_img</span><span class="p">,</span> <span class="n">captions_str</span><span class="p">,</span> <span class="n">class_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_zero_shot_pair</span><span class="p">(</span>
+                <span class="n">img_index</span><span class="o">=</span><span class="n">img_index</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">input_img</span><span class="p">,</span> <span class="n">captions_str</span><span class="p">,</span> <span class="n">class_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_dataset_pair</span><span class="p">(</span>
+                <span class="n">img_index</span><span class="o">=</span><span class="n">img_index</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">input_img</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">captions_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">context_length</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;samples&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">crop_size_h</span><span class="p">,</span> <span class="n">crop_size_w</span><span class="p">)),</span>
+                    <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="n">captions_tensor</span><span class="p">,</span>
+                    <span class="s2">&quot;padding_mask&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">captions_tensor</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding_index</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                    <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="s2">&quot;max_seq_len&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">context_length</span><span class="p">,</span>
+                <span class="p">},</span>
+                <span class="s2">&quot;targets&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="p">(</span><span class="n">img_tensor</span><span class="p">,</span> <span class="n">captions_tensor</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">,)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_img_caption</span><span class="p">(</span>
+                <span class="n">input_img</span><span class="o">=</span><span class="n">input_img</span><span class="p">,</span>
+                <span class="n">captions_str</span><span class="o">=</span><span class="n">captions_str</span><span class="p">,</span>
+                <span class="n">img_transform_fn</span><span class="o">=</span><span class="n">transform_fn</span><span class="p">,</span>
+                <span class="n">zero_shot</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">zero_shot_dataset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;samples&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">img_tensor</span><span class="p">,</span>
+                    <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="n">captions_tensor</span><span class="p">,</span>
+                    <span class="s2">&quot;padding_mask&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">captions_tensor</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding_index</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                    <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="s2">&quot;max_seq_len&quot;</span><span class="p">:</span> <span class="n">max_seq_len</span><span class="p">,</span>
+                <span class="p">},</span>
+                <span class="s2">&quot;targets&quot;</span><span class="p">:</span> <span class="n">class_label</span><span class="p">,</span>
+            <span class="p">}</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">zero_shot_dataset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;zero_shot&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">data</span>
+
+<div class="viewcode-block" id="BaseMultiModalImgText.extra_repr"><a class="viewcode-back" href="../../../../autogen/data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.base_multi_modal_img_text.BaseMultiModalImgText.extra_repr">[docs]</a>    <span class="k">def</span> <span class="nf">extra_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">extra_repr_str</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">extra_repr</span><span class="p">()</span>
+        <span class="n">extra_repr_str</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> zero_shot=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">zero_shot_dataset</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="n">extra_repr_str</span></div></div>
+
+
+<div class="viewcode-block" id="multi_modal_img_text_collate_fn"><a class="viewcode-back" href="../../../../autogen/data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.base_multi_modal_img_text.multi_modal_img_text_collate_fn">[docs]</a><span class="nd">@COLLATE_FN_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;multi_modal_img_text_collate_fn&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">multi_modal_img_text_collate_fn</span><span class="p">(</span>
+    <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]]]],</span>
+    <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Combines a list of dictionaries into a single dictionary by concatenating matching fields.&quot;&quot;&quot;</span>
+    <span class="n">images</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">text_tokens</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">padding_mask</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">truncate_seq_len</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.multi_modal_img_text.trunc_seq_len&quot;</span><span class="p">)</span>
+
+    <span class="n">zero_shot</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;zero_shot&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">max_seq_len_in_batch</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># at least one token is required in the sequence</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">batch_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">batch</span><span class="p">):</span>
+        <span class="n">inputs_i</span> <span class="o">=</span> <span class="n">batch_i</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;samples&quot;</span><span class="p">)</span>
+        <span class="n">img_tensor</span> <span class="o">=</span> <span class="n">inputs_i</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">img_tensor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">images</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">img_tensor</span><span class="p">)</span>
+        <span class="n">labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_i</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;targets&quot;</span><span class="p">))</span>
+
+        <span class="n">text_data</span> <span class="o">=</span> <span class="n">inputs_i</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">)</span>
+        <span class="n">pad_mask</span> <span class="o">=</span> <span class="n">inputs_i</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;padding_mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">max_seq_len_in_batch</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">max_seq_len_in_batch</span><span class="p">,</span> <span class="n">inputs_i</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;max_seq_len&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">zero_shot</span> <span class="ow">or</span> <span class="p">(</span><span class="n">zero_shot</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="c1"># For zero-shot, all text captions are the same</span>
+            <span class="c1"># so, we only aggregate for one batch element</span>
+            <span class="n">text_tokens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">text_data</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">pad_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">padding_mask</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pad_mask</span><span class="p">)</span>
+
+    <span class="n">images</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">images</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">text_tokens</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">text_tokens</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># truncate tokens based on the max. seq length</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">truncate_seq_len</span><span class="p">:</span>
+        <span class="n">max_seq_len_in_batch</span> <span class="o">=</span> <span class="n">text_tokens</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">text_tokens</span> <span class="o">=</span> <span class="n">text_tokens</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="n">max_seq_len_in_batch</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">padding_mask</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">padding_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">padding_mask</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">padding_mask</span> <span class="o">=</span> <span class="n">padding_mask</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="n">max_seq_len_in_batch</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">padding_mask</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+
+    <span class="n">channels_last</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.channels_last&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">channels_last</span><span class="p">:</span>
+        <span class="n">images</span> <span class="o">=</span> <span class="n">images</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">memory_format</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">channels_last</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;samples&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">images</span><span class="p">,</span>
+            <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="n">text_tokens</span><span class="p">,</span>
+            <span class="s2">&quot;padding_mask&quot;</span><span class="p">:</span> <span class="n">padding_mask</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;targets&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="p">,</span>
+    <span class="p">}</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

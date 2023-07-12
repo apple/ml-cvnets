@@ -1,0 +1,117 @@
+cvnets.models.classification.config package
+===========================================
+
+Submodules
+----------
+
+cvnets.models.classification.config.byteformer module
+-----------------------------------------------------
+
+.. automodule:: cvnets.models.classification.config.byteformer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.config.efficientnet module
+-------------------------------------------------------
+
+.. automodule:: cvnets.models.classification.config.efficientnet
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.config.fastvit module
+--------------------------------------------------
+
+.. automodule:: cvnets.models.classification.config.fastvit
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.config.mobilenetv1 module
+------------------------------------------------------
+
+.. automodule:: cvnets.models.classification.config.mobilenetv1
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.config.mobilenetv2 module
+------------------------------------------------------
+
+.. automodule:: cvnets.models.classification.config.mobilenetv2
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.config.mobilenetv3 module
+------------------------------------------------------
+
+.. automodule:: cvnets.models.classification.config.mobilenetv3
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.config.mobileone module
+----------------------------------------------------
+
+.. automodule:: cvnets.models.classification.config.mobileone
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.config.mobilevit module
+----------------------------------------------------
+
+.. automodule:: cvnets.models.classification.config.mobilevit
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.config.mobilevit\_v2 module
+--------------------------------------------------------
+
+.. automodule:: cvnets.models.classification.config.mobilevit_v2
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.config.regnet module
+-------------------------------------------------
+
+.. automodule:: cvnets.models.classification.config.regnet
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.config.resnet module
+-------------------------------------------------
+
+.. automodule:: cvnets.models.classification.config.resnet
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.config.swin\_transformer module
+------------------------------------------------------------
+
+.. automodule:: cvnets.models.classification.config.swin_transformer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.config.vit module
+----------------------------------------------
+
+.. automodule:: cvnets.models.classification.config.vit
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cvnets.models.classification.config
+   :members:
+   :undoc-members:
+   :show-inheritance:

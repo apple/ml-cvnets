@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>data.video_reader.base_av_reader &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../video_reader.html">data.video_reader</a></li>
+      <li class="breadcrumb-item active">data.video_reader.base_av_reader</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for data.video_reader.base_av_reader</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">av</span>
+<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
+
+<span class="kn">from</span> <span class="nn">data.transforms</span> <span class="kn">import</span> <span class="n">BaseTransformation</span>
+<span class="kn">from</span> <span class="nn">data.transforms</span> <span class="kn">import</span> <span class="n">image_pil</span> <span class="k">as</span> <span class="n">T</span>
+<span class="kn">from</span> <span class="nn">data.transforms.common</span> <span class="kn">import</span> <span class="n">Compose</span>
+<span class="kn">from</span> <span class="nn">options.utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">extend_selected_args_with_prefix</span><span class="p">,</span>
+    <span class="n">extract_opts_with_prefix_replacement</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+
+
+<div class="viewcode-block" id="VideoDurationDoesNotMatchAudioDurationError"><a class="viewcode-back" href="../../../autogen/data.video_reader.html#data.video_reader.base_av_reader.VideoDurationDoesNotMatchAudioDurationError">[docs]</a><span class="k">class</span> <span class="nc">VideoDurationDoesNotMatchAudioDurationError</span><span class="p">(</span><span class="ne">AssertionError</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="BaseAVReader"><a class="viewcode-back" href="../../../autogen/data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader">[docs]</a><span class="k">class</span> <span class="nc">BaseAVReader</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base AudioVideo Reader</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: command line arguments</span>
+<span class="sd">        is_training: Training or validation mode. Default: `False`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BaseAVReader.add_arguments"><a class="viewcode-back" href="../../../autogen/data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">cls</span> <span class="o">!=</span> <span class="n">BaseAVReader</span>
+        <span class="p">):</span>  <span class="c1"># Shouldn&#39;t run for subclasses that don&#39;t override add_arguments</span>
+            <span class="k">return</span> <span class="n">parser</span>
+
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--video-reader.name&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;pyav&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of video reader.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--video-reader.fast-video-decoding&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Multi-threaded fast video decoding using pyav.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--video-reader.frame-stack-format&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;sequence_first&quot;</span><span class="p">,</span>
+            <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;sequence_first&quot;</span><span class="p">,</span> <span class="s2">&quot;channel_first&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Sequence first (NTCHW) or channel first (NCTHW) format for stacking&quot;</span>
+            <span class="s2">&quot; video frames.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># We want to be able to re-use the &quot;image&quot; augmentations on the video frames.</span>
+        <span class="c1"># As the use of &quot;--image-augmentation.*&quot; argparse prefix for video datasets can</span>
+        <span class="c1"># be confusing, we use &quot;--frame-augmentation.*&quot; prefix.</span>
+        <span class="n">parser</span> <span class="o">=</span> <span class="n">extend_selected_args_with_prefix</span><span class="p">(</span>
+            <span class="n">parser</span><span class="p">,</span>
+            <span class="n">match_prefix</span><span class="o">=</span><span class="s2">&quot;--image-augmentation.&quot;</span><span class="p">,</span>
+            <span class="n">additional_prefix</span><span class="o">=</span><span class="s2">&quot;--frame-augmentation.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="BaseAVReader.__init__"><a class="viewcode-back" href="../../../autogen/data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
+        <span class="n">is_training</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fast_decoding</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;video_reader.fast_video_decoding&quot;</span><span class="p">)</span>
+        <span class="n">frame_stack_format</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;video_reader.frame_stack_format&quot;</span><span class="p">,</span> <span class="s2">&quot;sequence_first&quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">frame_stack_format</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;sequence_first&quot;</span><span class="p">,</span> <span class="s2">&quot;channel_first&quot;</span><span class="p">]:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;Frame stacking format should be either sequence_first or channel_first.&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">channel_first_format</span> <span class="o">=</span> <span class="n">frame_stack_format</span> <span class="o">==</span> <span class="s2">&quot;channel_first&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">frame_transforms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_frame_transform</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">is_training</span><span class="o">=</span><span class="n">is_training</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_frames_cache</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="BaseAVReader.get_frame_transform"><a class="viewcode-back" href="../../../autogen/data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader.get_frame_transform">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_frame_transform</span><span class="p">(</span>
+        <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">is_training</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseTransformation</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">is_training</span><span class="p">:</span>
+            <span class="n">auto_augment</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+                <span class="n">opts</span><span class="p">,</span>
+                <span class="s2">&quot;frame_augmentation.auto_augment.enable&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">rand_augment</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+                <span class="n">opts</span><span class="p">,</span>
+                <span class="s2">&quot;frame_augmentation.rand_augment.enable&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">random_erase</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+                <span class="n">opts</span><span class="p">,</span>
+                <span class="s2">&quot;frame_augmentation.random_erase.enable&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="c1"># We want to be able to re-use the &quot;image&quot; augmentations on the video frames.</span>
+        <span class="c1"># As the use of &quot;--image-augmentation.*&quot; argparse prefix for video datasets can</span>
+        <span class="c1"># be confusing, we use &quot;--frame-augmentation.*&quot; prefix.</span>
+        <span class="n">frame_opts</span> <span class="o">=</span> <span class="n">extract_opts_with_prefix_replacement</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span>
+            <span class="n">match_prefix</span><span class="o">=</span><span class="s2">&quot;frame_augmentation.&quot;</span><span class="p">,</span>
+            <span class="n">replacement_prefix</span><span class="o">=</span><span class="s2">&quot;image_augmentation.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">is_training</span><span class="p">:</span>
+            <span class="n">aug_list</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="n">auto_augment</span> <span class="ow">and</span> <span class="n">rand_augment</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s2">&quot;AutoAugment and RandAugment are mutually exclusive. Use either of&quot;</span>
+                    <span class="s2">&quot; them, but not both.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">auto_augment</span><span class="p">:</span>
+                <span class="n">aug_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">AutoAugment</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">frame_opts</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">rand_augment</span><span class="p">:</span>
+                <span class="n">aug_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">RandAugment</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">frame_opts</span><span class="p">))</span>
+
+            <span class="n">aug_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">frame_opts</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">random_erase</span><span class="p">:</span>
+                <span class="n">aug_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">RandomErasing</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">frame_opts</span><span class="p">))</span>
+
+            <span class="k">return</span> <span class="n">Compose</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">frame_opts</span><span class="p">,</span> <span class="n">img_transforms</span><span class="o">=</span><span class="n">aug_list</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">T</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">frame_opts</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">(</span><span class="se">\n\t</span><span class="s2">fast_decoding=</span><span class="si">{}</span><span class="se">\n\t</span><span class="s2">channel_first_format=</span><span class="si">{}</span><span class="se">\n</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fast_decoding</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">channel_first_format</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="BaseAVReader.check_video"><a class="viewcode-back" href="../../../autogen/data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader.check_video">[docs]</a>    <span class="k">def</span> <span class="nf">check_video</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Adapted from basic demo: https://pyav.org/docs/stable/#basic-demo</span>
+            <span class="k">with</span> <span class="n">av</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="k">as</span> <span class="n">container</span><span class="p">:</span>
+                <span class="c1"># Decode the first video channel.</span>
+                <span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">container</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">video</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+                    <span class="n">frame_idx</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">index</span>
+                    <span class="k">break</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="BaseAVReader.read_video"><a class="viewcode-back" href="../../../autogen/data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader.read_video">[docs]</a>    <span class="k">def</span> <span class="nf">read_video</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">stream_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">audio_sample_rate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">custom_frame_transforms</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BaseTransformation</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">video_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="BaseAVReader.num_frames"><a class="viewcode-back" href="../../../autogen/data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader.num_frames">[docs]</a>    <span class="k">def</span> <span class="nf">num_frames</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_frames_cache</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_frames_cache</span><span class="p">[</span><span class="n">filename</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">av</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="k">as</span> <span class="n">container</span><span class="p">:</span>
+                <span class="n">total_frames</span> <span class="o">=</span> <span class="n">container</span><span class="o">.</span><span class="n">streams</span><span class="o">.</span><span class="n">video</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">frames</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_frames_cache</span><span class="p">[</span><span class="n">filename</span><span class="p">]</span> <span class="o">=</span> <span class="n">total_frames</span>
+            <span class="k">return</span> <span class="n">total_frames</span></div>
+
+<div class="viewcode-block" id="BaseAVReader.random_sampling"><a class="viewcode-back" href="../../../autogen/data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader.random_sampling">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">random_sampling</span><span class="p">(</span>
+        <span class="n">total_video_frames</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">video_frames_per_clip</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">clips_per_video</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">total_audio_frames</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        For a given video, sample `clips_per_video` indices randomly along with aligned</span>
+<span class="sd">        audio indices (optionally).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            total_video_frames : number of video frames in the given video.</span>
+<span class="sd">            video_frames_per_clip : number of frames required per clip.</span>
+<span class="sd">            clips_per_video : number of clips needed from a given video.</span>
+<span class="sd">            total_audio_frames : number of audio frames in the given video.</span>
+
+<span class="sd">        Return:</span>
+<span class="sd">            vclip_ids : indices corresponding to video frames [Tensor (clips_per_video x</span>
+<span class="sd">                video_frames_per_clip)].</span>
+<span class="sd">            aclip_ids : indices corresponding to audio frames [Tensor (clips_per_video x</span>
+<span class="sd">                audio_frames_per_clip)].</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">clip_start_frame_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
+            <span class="n">total_video_frames</span> <span class="o">-</span> <span class="n">video_frames_per_clip</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="n">clips_per_video</span><span class="p">,)</span>
+        <span class="p">)</span>
+        <span class="n">vclip_ids</span> <span class="o">=</span> <span class="n">clip_start_frame_ids</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">video_frames_per_clip</span><span class="p">)</span>
+
+        <span class="n">aclip_ids</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">total_audio_frames</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">a_start_frame</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">clip_start_frame_ids</span> <span class="o">*</span> <span class="n">total_audio_frames</span> <span class="o">/</span> <span class="n">total_video_frames</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+            <span class="n">a_step_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+                <span class="n">video_frames_per_clip</span> <span class="o">*</span> <span class="n">total_audio_frames</span> <span class="o">/</span> <span class="n">total_video_frames</span>
+            <span class="p">)</span>
+            <span class="n">aclip_ids</span> <span class="o">=</span> <span class="n">a_start_frame</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">a_step_size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">vclip_ids</span><span class="p">,</span> <span class="n">aclip_ids</span></div>
+
+<div class="viewcode-block" id="BaseAVReader.uniform_sampling"><a class="viewcode-back" href="../../../autogen/data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader.uniform_sampling">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">uniform_sampling</span><span class="p">(</span>
+        <span class="n">total_video_frames</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">video_frames_per_clip</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">clips_per_video</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">total_audio_frames</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        For a given video, sample `clips_per_video` indices uniformly along with aligned</span>
+<span class="sd">        audio indices (optionally).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            total_video_frames : number of video frames in the given video.</span>
+<span class="sd">            video_frames_per_clip : number of frames required per clip.</span>
+<span class="sd">            clips_per_video : number of clips needed from a given video.</span>
+<span class="sd">            total_audio_frames : number of audio frames in the given video.</span>
+
+<span class="sd">        Return:</span>
+<span class="sd">            vclip_ids : indices corresponding to video frames [Tensor (clips_per_video x</span>
+<span class="sd">                video_frames_per_clip)].</span>
+<span class="sd">            aclip_ids : indices corresponding to audio frames [Tensor (clips_per_video x</span>
+<span class="sd">                audio_frames_per_clip)].</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">clip_start_frame_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span>
+            <span class="mi">0</span><span class="p">,</span> <span class="n">total_video_frames</span> <span class="o">-</span> <span class="n">video_frames_per_clip</span><span class="p">,</span> <span class="n">clips_per_video</span>
+        <span class="p">)</span>
+        <span class="n">vclip_ids</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">clip_start_frame_ids</span><span class="p">[:</span><span class="n">clips_per_video</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">video_frames_per_clip</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+
+        <span class="n">aclip_ids</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">total_audio_frames</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">a_start_frame</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">clip_start_frame_ids</span> <span class="o">*</span> <span class="n">total_audio_frames</span> <span class="o">/</span> <span class="n">total_video_frames</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+            <span class="n">a_step_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+                <span class="n">video_frames_per_clip</span> <span class="o">*</span> <span class="n">total_audio_frames</span> <span class="o">/</span> <span class="n">total_video_frames</span>
+            <span class="p">)</span>
+            <span class="n">aclip_ids</span> <span class="o">=</span> <span class="n">a_start_frame</span><span class="p">[:</span><span class="n">clips_per_video</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+                <span class="n">a_step_size</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">vclip_ids</span><span class="p">,</span> <span class="n">aclip_ids</span></div>
+
+<div class="viewcode-block" id="BaseAVReader.read_video_file_into_clips"><a class="viewcode-back" href="../../../autogen/data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader.read_video_file_into_clips">[docs]</a>    <span class="k">def</span> <span class="nf">read_video_file_into_clips</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">vid_filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">num_frames_per_clip</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">clips_per_video</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">is_training</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="n">video_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">output_video_fps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">output_audio_fps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">num_samples_per_clip</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">custom_frame_transforms</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BaseTransformation</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Read a video file into clips and sample the clips at the specified</span>
+<span class="sd">        video/audio frame rate. First, we read all the video and audio frames into the</span>
+<span class="sd">        memory, where audio is at `output_audio_fps` if specified; then we sample</span>
+<span class="sd">        `clips_per_video` clips from the entire video/audio tensor. If the desired video</span>
+<span class="sd">        frame rate is specified, we subsample the video at frame rate</span>
+<span class="sd">        `output_video_fps`. Despite whether the video is subsampled or not, there are</span>
+<span class="sd">        `num_frames_per_clip` video frames in each clip.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            vid_filename: The path of the video to be read.</span>
+<span class="sd">            num_frames_per_clip: Number of frames per clip to read.</span>
+<span class="sd">            clips_per_video: Number of clips to read for each video.</span>
+<span class="sd">            is training: A boolean of whether the model is in training.</span>
+<span class="sd">            output_video_fps: The frame rate of the output video. Default is -1, which</span>
+<span class="sd">                means no resampling is required.</span>
+<span class="sd">            output_audio_fps: The frame rate of the output audio. Default is -1, which</span>
+<span class="sd">                means no resampling is required.</span>
+<span class="sd">            num_samples_per_clip: Number of random samples to generate per clip.</span>
+<span class="sd">            custom_frame_transforms: If provided, the transformation will be used</span>
+<span class="sd">                instead of the default @BaseAVReader.get_frame_transforms.</span>
+<span class="sd">                Note: Be careful when customizing frame transforms, because there might</span>
+<span class="sd">                    exist slight differences between the data type of frames read by</span>
+<span class="sd">                    different AVReaders before ToTensor() gets applied.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A dictionary with video/audio as tensor and metadata. The format of</span>
+<span class="sd">            the metadata is the following:</span>
+<span class="sd">            {</span>
+<span class="sd">                &quot;video_fps&quot;: float,</span>
+<span class="sd">                &quot;audio_fps&quot;: int,</span>
+<span class="sd">                &quot;video_frame_timestamps&quot;: [num_clips x video_frames_per_clip] tensor.</span>
+<span class="sd">            }</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">av_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_video</span><span class="p">(</span>
+            <span class="n">vid_filename</span><span class="p">,</span>
+            <span class="n">audio_sample_rate</span><span class="o">=</span><span class="n">output_audio_fps</span><span class="p">,</span>
+            <span class="n">video_only</span><span class="o">=</span><span class="n">video_only</span><span class="p">,</span>
+            <span class="n">custom_frame_processor</span><span class="o">=</span><span class="n">custom_frame_transforms</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">torch_video</span> <span class="o">=</span> <span class="n">av_data</span><span class="p">[</span><span class="s2">&quot;video&quot;</span><span class="p">]</span>
+        <span class="n">torch_audio</span> <span class="o">=</span> <span class="n">av_data</span><span class="p">[</span><span class="s2">&quot;audio&quot;</span><span class="p">]</span>
+        <span class="n">metadata</span> <span class="o">=</span> <span class="n">av_data</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">]</span>
+        <span class="n">original_video_fps</span> <span class="o">=</span> <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;video_fps&quot;</span><span class="p">]</span>
+        <span class="n">audio_fps</span> <span class="o">=</span> <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;audio_fps&quot;</span><span class="p">]</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">torch_video</span><span class="p">,</span> <span class="n">Tensor</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Video read from </span><span class="si">{</span><span class="n">vid_filename</span><span class="si">}</span><span class="s2"> expected to be a tensor.&quot;</span>
+
+        <span class="n">num_video_frames</span> <span class="o">=</span> <span class="n">torch_video</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># If we need to downsample the frames, read the video frames the same length in</span>
+        <span class="c1"># second, then downsample output frames.</span>
+        <span class="k">if</span> <span class="n">output_video_fps</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">clip_duration</span> <span class="o">=</span> <span class="n">num_frames_per_clip</span> <span class="o">/</span> <span class="n">output_video_fps</span>
+            <span class="n">num_video_frames_to_sample</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+                <span class="n">num_video_frames</span><span class="p">,</span>
+                <span class="nb">round</span><span class="p">(</span><span class="n">clip_duration</span> <span class="o">*</span> <span class="n">original_video_fps</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;video_fps&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">output_video_fps</span>
+        <span class="c1"># If no frame resampling is required, read @num_frames_per_clip</span>
+        <span class="c1"># consecutive frames.</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">num_video_frames_to_sample</span> <span class="o">=</span> <span class="n">num_frames_per_clip</span>
+            <span class="n">clip_duration</span> <span class="o">=</span> <span class="n">num_frames_per_clip</span> <span class="o">/</span> <span class="n">original_video_fps</span>
+
+        <span class="k">if</span> <span class="n">torch_audio</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">num_audio_frames</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">num_audio_frames</span> <span class="o">=</span> <span class="n">torch_audio</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">audio_sec</span> <span class="o">=</span> <span class="n">num_audio_frames</span> <span class="o">/</span> <span class="n">audio_fps</span>
+            <span class="n">video_sec</span> <span class="o">=</span> <span class="n">num_video_frames</span> <span class="o">/</span> <span class="n">original_video_fps</span>
+            <span class="c1"># Making sure audio and video are of same length.</span>
+            <span class="k">if</span> <span class="n">numpy</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">audio_sec</span> <span class="o">-</span> <span class="n">video_sec</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mf">0.1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">VideoDurationDoesNotMatchAudioDurationError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Audio duration </span><span class="si">{</span><span class="n">audio_sec</span><span class="si">}</span><span class="s2"> video duration </span><span class="si">{</span><span class="n">video_sec</span><span class="si">}</span><span class="s2"> might be different.&quot;</span>
+                <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">num_video_frames</span> <span class="o">&gt;=</span> <span class="n">num_frames_per_clip</span><span class="p">:</span>
+            <span class="n">sampling_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_sampling</span> <span class="k">if</span> <span class="n">is_training</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">uniform_sampling</span>
+            <span class="n">vclip_ids</span><span class="p">,</span> <span class="n">aclip_ids</span> <span class="o">=</span> <span class="n">sampling_fn</span><span class="p">(</span>
+                <span class="n">total_video_frames</span><span class="o">=</span><span class="n">num_video_frames</span><span class="p">,</span>
+                <span class="n">video_frames_per_clip</span><span class="o">=</span><span class="n">num_video_frames_to_sample</span><span class="p">,</span>
+                <span class="n">clips_per_video</span><span class="o">=</span><span class="n">clips_per_video</span><span class="p">,</span>
+                <span class="n">total_audio_frames</span><span class="o">=</span><span class="n">num_audio_frames</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">vclip_ids</span> <span class="o">=</span> <span class="n">aclip_ids</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">num_samples_per_clip</span> <span class="o">=</span> <span class="n">num_samples_per_clip</span> <span class="k">if</span> <span class="n">is_training</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="n">video_clips</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_video_clips</span><span class="p">(</span>
+            <span class="n">full_video_tensor</span><span class="o">=</span><span class="n">torch_video</span><span class="p">,</span>
+            <span class="n">vclip_ids</span><span class="o">=</span><span class="n">vclip_ids</span><span class="p">,</span>
+            <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
+            <span class="n">clips_per_video</span><span class="o">=</span><span class="n">clips_per_video</span><span class="p">,</span>
+            <span class="n">num_frames_per_clip</span><span class="o">=</span><span class="n">num_frames_per_clip</span><span class="p">,</span>
+            <span class="n">original_video_fps</span><span class="o">=</span><span class="n">original_video_fps</span><span class="p">,</span>
+            <span class="n">output_video_fps</span><span class="o">=</span><span class="n">output_video_fps</span><span class="p">,</span>
+            <span class="n">is_training</span><span class="o">=</span><span class="n">is_training</span><span class="p">,</span>
+            <span class="n">num_samples_per_clip</span><span class="o">=</span><span class="n">num_samples_per_clip</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">torch_audio</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">audio_clips</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">audio_clips</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_audio_clips</span><span class="p">(</span>
+                <span class="n">full_audio_tensor</span><span class="o">=</span><span class="n">torch_audio</span><span class="p">,</span>
+                <span class="n">aclip_ids</span><span class="o">=</span><span class="n">aclip_ids</span><span class="p">,</span>
+                <span class="n">clip_duration</span><span class="o">=</span><span class="n">clip_duration</span><span class="p">,</span>
+                <span class="n">clips_per_video</span><span class="o">=</span><span class="n">clips_per_video</span><span class="p">,</span>
+                <span class="n">audio_fps</span><span class="o">=</span><span class="n">audio_fps</span><span class="p">,</span>
+                <span class="n">num_samples_per_clip</span><span class="o">=</span><span class="n">num_samples_per_clip</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;video&quot;</span><span class="p">:</span> <span class="n">video_clips</span><span class="p">,</span>
+            <span class="s2">&quot;audio&quot;</span><span class="p">:</span> <span class="n">audio_clips</span><span class="p">,</span>
+            <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="n">metadata</span><span class="p">,</span>
+        <span class="p">}</span></div>
+
+    <span class="k">def</span> <span class="nf">_generate_video_clips</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">full_video_tensor</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">vclip_ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">metadata</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span>
+        <span class="n">num_frames_per_clip</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">clips_per_video</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">original_video_fps</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">output_video_fps</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">is_training</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="n">num_samples_per_clip</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Given entire video tensor of a video file and the indices of the sampled</span>
+<span class="sd">        video frames, return the video clips. If there&#39;s not enough frames, the last</span>
+<span class="sd">        frame will be padded. If `output_video_fps` is smaller than</span>
+<span class="sd">        `original_video_fps`, video frames will be downsampled accordingly.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            full_video_tensor: A [T x 3 x H x W] tensor of all frames of a video, where</span>
+<span class="sd">                T is the total number of frames, H and W is the height and width of each</span>
+<span class="sd">                frame image.</span>
+<span class="sd">            vclip_ids: A [clips_per_video x N] tensor of the index of the sampled frames</span>
+<span class="sd">                in `full_video_tensor`, where N is the number of sampled frames.</span>
+<span class="sd">            metadata: A dictionary of the video&#39;s metadata information.</span>
+<span class="sd">            num_frames_per_clip: Number of frames of the output clips.</span>
+<span class="sd">            clips_per_video: Number of clips per video.</span>
+<span class="sd">            original_video_fps: The frame rate of the video.</span>
+<span class="sd">            output_video_fps: The frame rate of the output video clips.</span>
+<span class="sd">            is_training: Whether it&#39;s in training mode. No randomness is applied if set</span>
+<span class="sd">                False.</span>
+<span class="sd">            num_samples_per_clip: Number of samples per clip to generate when the frames</span>
+<span class="sd">                are downsampled.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            video_clips: A [clips_per_video x num_frames_per_clip x 3 x H x W] tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="p">(</span>
+            <span class="n">num_video_frames</span><span class="p">,</span>
+            <span class="n">frame_channels</span><span class="p">,</span>
+            <span class="n">frame_height</span><span class="p">,</span>
+            <span class="n">frame_width</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="n">full_video_tensor</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="k">if</span> <span class="n">num_video_frames</span> <span class="o">&lt;</span> <span class="n">num_frames_per_clip</span><span class="p">:</span>
+            <span class="c1"># Repeat the last frame.</span>
+            <span class="n">num_video_frames_to_pad</span> <span class="o">=</span> <span class="n">num_frames_per_clip</span> <span class="o">-</span> <span class="n">num_video_frames</span>
+            <span class="n">padded_video</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="n">size</span><span class="o">=</span><span class="p">(</span>
+                    <span class="n">num_frames_per_clip</span><span class="p">,</span>
+                    <span class="n">frame_channels</span><span class="p">,</span>
+                    <span class="n">frame_height</span><span class="p">,</span>
+                    <span class="n">frame_width</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">full_video_tensor</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">full_video_tensor</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">padded_video</span><span class="p">[:</span><span class="n">num_video_frames</span><span class="p">]</span> <span class="o">=</span> <span class="n">full_video_tensor</span>
+            <span class="n">padded_video</span><span class="p">[</span><span class="n">num_video_frames</span><span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">full_video_tensor</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span>
+                <span class="mi">0</span>
+            <span class="p">)</span>
+            <span class="n">num_repeats</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">clips_per_video</span> <span class="o">*</span> <span class="n">num_samples_per_clip</span>
+                <span class="k">if</span> <span class="n">is_training</span>
+                <span class="k">else</span> <span class="n">clips_per_video</span>
+            <span class="p">)</span>
+            <span class="n">video_clips</span> <span class="o">=</span> <span class="n">padded_video</span><span class="o">.</span><span class="n">repeat</span><span class="p">((</span><span class="n">num_repeats</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="n">vclip_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_repeats</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">num_video_frames</span><span class="p">)</span>
+            <span class="n">vclip_ids</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">vclip_ids</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_video_frames_to_pad</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;replicate&quot;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">output_video_fps</span> <span class="o">&lt;</span> <span class="n">original_video_fps</span><span class="p">:</span>
+                <span class="n">vclip_ids</span> <span class="o">=</span> <span class="n">_downsample_frame_indices</span><span class="p">(</span>
+                    <span class="n">frame_indices</span><span class="o">=</span><span class="n">vclip_ids</span><span class="p">,</span>
+                    <span class="n">input_fps</span><span class="o">=</span><span class="n">original_video_fps</span><span class="p">,</span>
+                    <span class="n">output_num_frames</span><span class="o">=</span><span class="n">num_frames_per_clip</span><span class="p">,</span>
+                    <span class="n">output_fps</span><span class="o">=</span><span class="n">output_video_fps</span><span class="p">,</span>
+                    <span class="n">num_samples</span><span class="o">=</span><span class="n">num_samples_per_clip</span><span class="p">,</span>
+                    <span class="n">random_frames</span><span class="o">=</span><span class="n">is_training</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">num_samples_per_clip</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="c1"># Duplicate video if multiple samples are generated for each clip at</span>
+                    <span class="c1"># training time.</span>
+                    <span class="n">vclip_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span>
+                        <span class="n">vclip_ids</span><span class="p">,</span> <span class="n">num_samples_per_clip</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span>
+                    <span class="p">)</span>
+
+            <span class="n">video_clips</span> <span class="o">=</span> <span class="n">full_video_tensor</span><span class="p">[</span><span class="n">vclip_ids</span><span class="p">]</span>
+
+        <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;video_frame_timestamps&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vclip_ids</span> <span class="o">/</span> <span class="n">original_video_fps</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">channel_first_format</span><span class="p">:</span>
+            <span class="n">video_clips</span> <span class="o">=</span> <span class="n">video_clips</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">video_clips</span><span class="p">,</span> <span class="n">metadata</span>
+
+    <span class="k">def</span> <span class="nf">_generate_audio_clips</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">full_audio_tensor</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">aclip_ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">clip_duration</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">clips_per_video</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">audio_fps</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">num_samples_per_clip</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Given entire audio tensor of a video file and the indices of the sampled</span>
+<span class="sd">        audio frames, pad to the desire shape if needed and return the audio clips.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            full_audio_tensor: A [T x C] tensor of all frames of a audio, where T is the</span>
+<span class="sd">                total number of frames, C is the number of channels. The audio is mono</span>
+<span class="sd">                when C == 1 and stero when C == 2.</span>
+<span class="sd">            aclip_ids: A [clips_per_video x N] tensor of the index of the sampled frames</span>
+<span class="sd">                in `full_audio_tensor`, where N is the number of sampled frames.</span>
+<span class="sd">            clip_duration: The duration in second of each clip.</span>
+<span class="sd">            clips_per_video: Number of clips per video to generate.</span>
+<span class="sd">            audio_fps: The frame rate of the audio. The audio is not changed in this</span>
+<span class="sd">                function.</span>
+<span class="sd">            num_samples_per_clip: Number of samples to generate for each clip. This is</span>
+<span class="sd">                to match the shape of the video if multiple samples are generated during</span>
+<span class="sd">                training.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A [clips_per_video x N x C] tensor as the audio clips, where N is the number</span>
+<span class="sd">            of frames within `clip_duration` time at `audio_fps` frame rate.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">num_audio_frames</span> <span class="o">=</span> <span class="n">full_audio_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># Compute the output clip length in second with the output fps and number of</span>
+        <span class="c1"># frames.</span>
+        <span class="n">expected_num_audio_frames</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">clip_duration</span> <span class="o">*</span> <span class="n">audio_fps</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">full_audio_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">expected_num_audio_frames</span><span class="p">:</span>
+            <span class="n">num_audio_frames_to_pad</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">expected_num_audio_frames</span> <span class="o">-</span> <span class="n">full_audio_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">full_audio_tensor</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                <span class="n">full_audio_tensor</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_audio_frames_to_pad</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">audio_clips</span> <span class="o">=</span> <span class="n">full_audio_tensor</span><span class="o">.</span><span class="n">repeat</span><span class="p">((</span><span class="n">clips_per_video</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># [num_frames, channels] --&gt; [num_clips, per_clip_audio, channels]</span>
+            <span class="n">audio_clips</span> <span class="o">=</span> <span class="n">full_audio_tensor</span><span class="p">[</span><span class="n">aclip_ids</span><span class="p">]</span>
+            <span class="n">num_audio_frames_to_pad</span> <span class="o">=</span> <span class="n">expected_num_audio_frames</span> <span class="o">-</span> <span class="n">audio_clips</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">audio_clips</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">audio_clips</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_audio_frames_to_pad</span><span class="p">))</span>
+
+        <span class="c1"># Duplicate audio if multiple samples are generated for each clip at training</span>
+        <span class="c1"># time.</span>
+        <span class="n">audio_clips</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">audio_clips</span><span class="p">,</span> <span class="n">num_samples_per_clip</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">audio_clips</span>
+
+<div class="viewcode-block" id="BaseAVReader.dummy_audio_video_clips"><a class="viewcode-back" href="../../../autogen/data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader.dummy_audio_video_clips">[docs]</a>    <span class="k">def</span> <span class="nf">dummy_audio_video_clips</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">clips_per_video</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">num_frames_to_sample</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">height</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+        <span class="c1"># [K, C, T, H, W] or # [K, N, T, H, W]</span>
+        <span class="c1"># K --&gt; number of clips, C --&gt; Image channels, N --&gt; Number of frames per clip,</span>
+        <span class="c1"># H --&gt; Height, W --&gt; Width.</span>
+        <span class="n">video_tensor_size</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">clips_per_video</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">num_frames_to_sample</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">channel_first_format</span>
+            <span class="k">else</span> <span class="p">(</span><span class="n">clips_per_video</span><span class="p">,</span> <span class="n">num_frames_to_sample</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">video_clips</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="n">size</span><span class="o">=</span><span class="n">video_tensor_size</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">audio_fps</span> <span class="o">=</span> <span class="mi">16000</span>
+        <span class="n">video_fps</span> <span class="o">=</span> <span class="mi">30</span>
+        <span class="c1"># Dummy clips for audio</span>
+        <span class="n">audio_tensor_size</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">clips_per_video</span><span class="p">,</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">num_frames_to_sample</span> <span class="o">*</span> <span class="n">audio_fps</span> <span class="o">/</span> <span class="n">video_fps</span><span class="p">),</span>
+            <span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">audio_clips</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="n">size</span><span class="o">=</span><span class="n">audio_tensor_size</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;video_fps&quot;</span><span class="p">:</span> <span class="n">video_fps</span><span class="p">,</span>
+            <span class="s2">&quot;audio_fps&quot;</span><span class="p">:</span> <span class="n">audio_fps</span><span class="p">,</span>
+            <span class="s2">&quot;filename&quot;</span><span class="p">:</span> <span class="s2">&quot;dummy.mp4&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;video&quot;</span><span class="p">:</span> <span class="n">video_clips</span><span class="p">,</span>
+            <span class="s2">&quot;audio&quot;</span><span class="p">:</span> <span class="n">audio_clips</span><span class="p">,</span>
+            <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="n">metadata</span><span class="p">,</span>
+        <span class="p">}</span></div></div>
+
+
+<span class="k">def</span> <span class="nf">_downsample_frame_indices</span><span class="p">(</span>
+    <span class="n">frame_indices</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">input_fps</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">output_num_frames</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">output_fps</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">num_samples</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">random_frames</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Downsample frames from a frame indices at a given @output_fps and with a given</span>
+<span class="sd">    @output_num_frames.</span>
+
+<span class="sd">    This is used as a helper function for batch samplers that construct shorter video</span>
+<span class="sd">    clips from a longer video clip. For example, we might load a 70-frame clip at 30fps</span>
+<span class="sd">    and use it to construct 4 different batch samples corresponding to 8-frame clips at</span>
+<span class="sd">    8fps.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        frame_indices: A [K, N] tensor as the index of each frame, where K is the batch</span>
+<span class="sd">            dimension, N is the number of frames.</span>
+<span class="sd">        input_fps: The frame rate to be downsampled from.</span>
+<span class="sd">        output_num_frames: The number of frames to output in each sample.</span>
+<span class="sd">        output_fps: The desired fps of the output frames.</span>
+<span class="sd">        num_samples: The number of batch samples to construct from the data.</span>
+<span class="sd">        random_frames: If False, the input indices will be used to construct a single</span>
+<span class="sd">            example. If True, random offsets will be applied to the frame indices as an</span>
+<span class="sd">            augmentation.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        output_frame_indices: A [K_out, N_out] tensor as the frame indices to sample,</span>
+<span class="sd">        where:</span>
+<span class="sd">            - N_out = @output_num_frames</span>
+<span class="sd">            - K_out = K * @num_samples.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">random_frames</span> <span class="ow">and</span> <span class="n">num_samples</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Frames are deterministic, so set num_samples to 1. Got num_samples=</span><span class="si">{num_samples}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">assert</span> <span class="n">num_samples</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;num_samples has to be positive, got </span><span class="si">{</span><span class="n">num_samples</span><span class="si">}</span><span class="s2">.&quot;</span>
+
+    <span class="k">assert</span> <span class="p">(</span>
+        <span class="n">input_fps</span> <span class="o">&gt;</span> <span class="n">output_fps</span>
+    <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Output fps </span><span class="si">{</span><span class="n">output_fps</span><span class="si">}</span><span class="s2"> has to be smaller than the input fps </span><span class="si">{</span><span class="n">input_fps</span><span class="si">}</span><span class="s2">.&quot;</span>
+
+    <span class="n">frames_per_clip</span> <span class="o">=</span> <span class="n">frame_indices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="p">(</span>
+        <span class="n">frames_per_clip</span> <span class="o">&gt;=</span> <span class="n">output_num_frames</span>
+    <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Need to load more frames sample, can&#39;t sample </span><span class="si">{</span><span class="n">output_num_frames</span><span class="si">}</span><span class="s2"> from </span><span class="si">{</span><span class="n">frames_per_clip</span><span class="si">}</span><span class="s2"> frames.&quot;</span>
+
+    <span class="n">output_frame_indices</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">desired_length_seconds</span> <span class="o">=</span> <span class="n">output_num_frames</span> <span class="o">/</span> <span class="n">output_fps</span>
+    <span class="n">num_frames_to_sample</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">frames_per_clip</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">desired_length_seconds</span> <span class="o">*</span> <span class="n">input_fps</span><span class="p">))</span>
+    <span class="n">positions</span> <span class="o">=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_frames_to_sample</span><span class="p">,</span> <span class="n">output_num_frames</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_samples</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">random_frames</span><span class="p">:</span>
+            <span class="c1"># Choose a starting timestamp for the frames.</span>
+            <span class="n">last_valid_idx</span> <span class="o">=</span> <span class="n">frames_per_clip</span> <span class="o">-</span> <span class="n">num_frames_to_sample</span>
+            <span class="n">frame_start_idx</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">last_valid_idx</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># We don&#39;t apply any offsets or randomness to the video frames, so we start</span>
+            <span class="c1"># the video frames at index 0.</span>
+            <span class="n">frame_start_idx</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">selected_frame_indices</span> <span class="o">=</span> <span class="n">frame_indices</span><span class="p">[</span>
+            <span class="p">:,</span>
+            <span class="n">frame_start_idx</span> <span class="p">:</span> <span class="n">frame_start_idx</span> <span class="o">+</span> <span class="n">num_frames_to_sample</span><span class="p">,</span>
+        <span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">random_frames</span><span class="p">:</span>
+            <span class="c1"># Choose the middle of the chunk as the label. Then, choose the frame at</span>
+            <span class="c1"># random from the time slices.</span>
+            <span class="n">selected_frame_locations</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">output_num_frames</span><span class="p">):</span>
+                <span class="c1"># Select a random frame in the chunk.</span>
+                <span class="c1"># NOTE: random.randint() is inclusive on both ends, while</span>
+                <span class="c1"># torch.randint() is exclusive for the higher range.</span>
+                <span class="n">selection</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">positions</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">positions</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">selected_frame_locations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">selection</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># We choose frames deterministically. Since we don&#39;t apply any offsets to</span>
+            <span class="c1"># the video, the correct frames are at the beginning of each range.</span>
+            <span class="n">selected_frame_locations</span> <span class="o">=</span> <span class="n">positions</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">output_frame_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">selected_frame_indices</span><span class="p">[:,</span> <span class="n">selected_frame_locations</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">output_frame_indices</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

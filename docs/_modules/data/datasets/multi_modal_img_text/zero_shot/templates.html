@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>data.datasets.multi_modal_img_text.zero_shot.templates &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../../_static/jquery.js"></script>
+        <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
+        <script src="../../../../../_static/doctools.js"></script>
+        <script src="../../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../../datasets.html">data.datasets</a></li>
+          <li class="breadcrumb-item"><a href="../../multi_modal_img_text.html">data.datasets.multi_modal_img_text</a></li>
+          <li class="breadcrumb-item"><a href="../zero_shot.html">data.datasets.multi_modal_img_text.zero_shot</a></li>
+      <li class="breadcrumb-item active">data.datasets.multi_modal_img_text.zero_shot.templates</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for data.datasets.multi_modal_img_text.zero_shot.templates</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+
+<span class="n">CLIP_IMAGENET_TEMPLATES</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;a bad photo of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a photo of many </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a sculpture of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a photo of the hard to see </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a low resolution photo of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a rendering of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;graffiti of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a bad photo of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a cropped photo of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a tattoo of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;the embroidered </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a photo of a hard to see </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a bright photo of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a photo of a clean </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a photo of a dirty </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a dark photo of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a drawing of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a photo of my </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;the plastic </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a photo of the cool </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a close-up photo of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a black and white photo of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a painting of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a painting of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a pixelated photo of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a sculpture of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a bright photo of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a cropped photo of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a plastic </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a photo of the dirty </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a jpeg corrupted photo of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a blurry photo of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a photo of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a good photo of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a rendering of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a </span><span class="si">{class_name}</span><span class="s2"> in a video game.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a photo of one </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a doodle of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a close-up photo of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a photo of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;the origami </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;the </span><span class="si">{class_name}</span><span class="s2"> in a video game.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a sketch of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a doodle of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a origami </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a low resolution photo of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;the toy </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a rendition of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a photo of the clean </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a photo of a large </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a rendition of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a photo of a nice </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a photo of a weird </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a blurry photo of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a cartoon </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;art of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a sketch of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a embroidered </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a pixelated photo of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;itap of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a jpeg corrupted photo of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a good photo of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a plushie </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a photo of the nice </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a photo of the small </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a photo of the weird </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;the cartoon </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;art of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a drawing of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a photo of the large </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a black and white photo of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;the plushie </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a dark photo of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;itap of a </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;graffiti of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a toy </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;itap of my </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a photo of a cool </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a photo of a small </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;a tattoo of the </span><span class="si">{class_name}</span><span class="s2">.&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="generate_text_prompts_clip"><a class="viewcode-back" href="../../../../../autogen/data.datasets.multi_modal_img_text.zero_shot.html#data.datasets.multi_modal_img_text.zero_shot.templates.generate_text_prompts_clip">[docs]</a><span class="k">def</span> <span class="nf">generate_text_prompts_clip</span><span class="p">(</span><span class="n">class_name</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a list of prompts for the given class name.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">template</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">class_name</span><span class="o">=</span><span class="n">class_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">template</span> <span class="ow">in</span> <span class="n">CLIP_IMAGENET_TEMPLATES</span>
+    <span class="p">]</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

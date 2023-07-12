@@ -1,0 +1,21 @@
+data.datasets.audio\_classification package
+===========================================
+
+Submodules
+----------
+
+data.datasets.audio\_classification.speech\_commands\_v2 module
+---------------------------------------------------------------
+
+.. automodule:: data.datasets.audio_classification.speech_commands_v2
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: data.datasets.audio_classification
+   :members:
+   :undoc-members:
+   :show-inheritance:

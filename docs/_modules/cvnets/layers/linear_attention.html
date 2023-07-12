@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cvnets.layers.linear_attention &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../cvnets.html">cvnets</a></li>
+      <li class="breadcrumb-item active">cvnets.layers.linear_attention</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cvnets.layers.linear_attention</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">F</span>
+
+<span class="kn">from</span> <span class="nn">cvnets.layers.base_layer</span> <span class="kn">import</span> <span class="n">BaseLayer</span>
+<span class="kn">from</span> <span class="nn">cvnets.layers.conv_layer</span> <span class="kn">import</span> <span class="n">ConvLayer2d</span>
+<span class="kn">from</span> <span class="nn">cvnets.layers.dropout</span> <span class="kn">import</span> <span class="n">Dropout</span>
+
+
+<div class="viewcode-block" id="LinearSelfAttention"><a class="viewcode-back" href="../../../autogen/cvnets.layers.html#cvnets.layers.linear_attention.LinearSelfAttention">[docs]</a><span class="k">class</span> <span class="nc">LinearSelfAttention</span><span class="p">(</span><span class="n">BaseLayer</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This layer applies a self-attention with linear complexity, as described in `MobileViTv2 &lt;https://arxiv.org/abs/2206.02680&gt;`_ paper.</span>
+<span class="sd">    This layer can be used for self- as well as cross-attention.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: command line arguments</span>
+<span class="sd">        embed_dim (int): :math:`C` from an expected input of size :math:`(N, C, H, W)`</span>
+<span class="sd">        attn_dropout (Optional[float]): Dropout value for context scores. Default: 0.0</span>
+<span class="sd">        bias (Optional[bool]): Use bias in learnable layers. Default: True</span>
+
+<span class="sd">    Shape:</span>
+<span class="sd">        - Input: :math:`(N, C, P, N)` where :math:`N` is the batch size, :math:`C` is the input channels,</span>
+<span class="sd">        :math:`P` is the number of pixels in the patch, and :math:`N` is the number of patches</span>
+<span class="sd">        - Output: same as the input</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        For MobileViTv2, we unfold the feature map [B, C, H, W] into [B, C, P, N] where P is the number of pixels</span>
+<span class="sd">        in a patch and N is the number of patches. Because channel is the first dimension in this unfolded tensor,</span>
+<span class="sd">        we use point-wise convolution (instead of a linear layer). This avoids a transpose operation (which may be</span>
+<span class="sd">        expensive on resource-constrained devices) that may be required to convert the unfolded tensor from</span>
+<span class="sd">        channel-first to channel-last format in case of a linear layer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="LinearSelfAttention.__init__"><a class="viewcode-back" href="../../../autogen/cvnets.layers.html#cvnets.layers.linear_attention.LinearSelfAttention.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">opts</span><span class="p">,</span>
+        <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">attn_dropout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">bias</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">qkv_proj</span> <span class="o">=</span> <span class="n">ConvLayer2d</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">in_channels</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+            <span class="n">out_channels</span><span class="o">=</span><span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">embed_dim</span><span class="p">),</span>
+            <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">use_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">use_act</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">attn_dropout</span> <span class="o">=</span> <span class="n">Dropout</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out_proj</span> <span class="o">=</span> <span class="n">ConvLayer2d</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">in_channels</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+            <span class="n">out_channels</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+            <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">use_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">use_act</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">embed_dim</span> <span class="o">=</span> <span class="n">embed_dim</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">(embed_dim=</span><span class="si">{}</span><span class="s2">, attn_dropout=</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn_dropout</span><span class="o">.</span><span class="n">p</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="LinearSelfAttention.visualize_context_scores"><a class="viewcode-back" href="../../../autogen/cvnets.layers.html#cvnets.layers.linear_attention.LinearSelfAttention.visualize_context_scores">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">visualize_context_scores</span><span class="p">(</span><span class="n">context_scores</span><span class="p">):</span>
+        <span class="c1"># [B, 1, P, N]</span>
+        <span class="n">batch_size</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="n">num_pixels</span><span class="p">,</span> <span class="n">num_patches</span> <span class="o">=</span> <span class="n">context_scores</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="k">assert</span> <span class="n">batch_size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;For visualization purposes, use batch size of 1&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">channels</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="p">),</span> <span class="s2">&quot;The inner-product between input and latent node (query) is a scalar&quot;</span>
+
+        <span class="n">up_scale_factor</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">num_pixels</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="n">patch_h</span> <span class="o">=</span> <span class="n">patch_w</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">context_scores</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">)</span>
+        <span class="c1"># [1, 1, P, N] --&gt; [1, P, h, w]</span>
+        <span class="n">context_scores</span> <span class="o">=</span> <span class="n">context_scores</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_pixels</span><span class="p">,</span> <span class="n">patch_h</span><span class="p">,</span> <span class="n">patch_w</span><span class="p">)</span>
+        <span class="c1"># Fold context scores [1, P, h, w] using pixel shuffle to obtain [1, 1, H, W]</span>
+        <span class="n">context_map</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pixel_shuffle</span><span class="p">(</span><span class="n">context_scores</span><span class="p">,</span> <span class="n">upscale_factor</span><span class="o">=</span><span class="n">up_scale_factor</span><span class="p">)</span>
+        <span class="c1"># [1, 1, H, W] --&gt; [H, W]</span>
+        <span class="n">context_map</span> <span class="o">=</span> <span class="n">context_map</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
+
+        <span class="c1"># For ease of visualization, we do min-max normalization</span>
+        <span class="n">min_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">context_map</span><span class="p">)</span>
+        <span class="n">max_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">context_map</span><span class="p">)</span>
+        <span class="n">context_map</span> <span class="o">=</span> <span class="p">(</span><span class="n">context_map</span> <span class="o">-</span> <span class="n">min_val</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">max_val</span> <span class="o">-</span> <span class="n">min_val</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">os</span>
+            <span class="kn">from</span> <span class="nn">glob</span> <span class="kn">import</span> <span class="n">glob</span>
+
+            <span class="kn">import</span> <span class="nn">cv2</span>
+
+            <span class="c1"># convert from float to byte</span>
+            <span class="n">context_map</span> <span class="o">=</span> <span class="p">(</span><span class="n">context_map</span> <span class="o">*</span> <span class="mi">255</span><span class="p">)</span><span class="o">.</span><span class="n">byte</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">context_map</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span>
+                <span class="n">context_map</span><span class="p">,</span> <span class="p">(</span><span class="mi">80</span><span class="p">,</span> <span class="mi">80</span><span class="p">),</span> <span class="n">interpolation</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">INTER_NEAREST</span>
+            <span class="p">)</span>
+
+            <span class="n">colored_context_map</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">applyColorMap</span><span class="p">(</span><span class="n">context_map</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLORMAP_JET</span><span class="p">)</span>
+            <span class="c1"># Lazy way to dump feature maps in attn_res folder. Make sure that directory is empty and copy</span>
+            <span class="c1"># context maps before running on different image. Otherwise, attention maps will be overridden.</span>
+            <span class="n">res_dir_name</span> <span class="o">=</span> <span class="s2">&quot;attn_res&quot;</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">res_dir_name</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">res_dir_name</span><span class="p">)</span>
+            <span class="n">f_name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/h_</span><span class="si">{}</span><span class="s2">_w_</span><span class="si">{}</span><span class="s2">_index_&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">res_dir_name</span><span class="p">,</span> <span class="n">patch_h</span><span class="p">,</span> <span class="n">patch_w</span><span class="p">)</span>
+
+            <span class="n">files_cmap</span> <span class="o">=</span> <span class="n">glob</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/h_</span><span class="si">{}</span><span class="s2">_w_</span><span class="si">{}</span><span class="s2">_index_*.png&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">res_dir_name</span><span class="p">,</span> <span class="n">patch_h</span><span class="p">,</span> <span class="n">patch_w</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">files_cmap</span><span class="p">)</span>
+            <span class="n">f_name</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+
+            <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.png&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">f_name</span><span class="p">),</span> <span class="n">colored_context_map</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">colored_context_map</span>
+        <span class="k">except</span> <span class="ne">ModuleNotFoundError</span> <span class="k">as</span> <span class="n">mnfe</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please install OpenCV to visualize context maps&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">context_map</span></div>
+
+    <span class="k">def</span> <span class="nf">_forward_self_attn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+        <span class="c1"># [B, C, P, N] --&gt; [B, h + 2d, P, N]</span>
+        <span class="n">qkv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qkv_proj</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># Project x into query, key and value</span>
+        <span class="c1"># Query --&gt; [B, 1, P, N]</span>
+        <span class="c1"># value, key --&gt; [B, d, P, N]</span>
+        <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
+            <span class="n">qkv</span><span class="p">,</span> <span class="n">split_size_or_sections</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed_dim</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span>
+        <span class="p">)</span>
+
+        <span class="c1"># apply softmax along N dimension</span>
+        <span class="n">context_scores</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># Uncomment below line to visualize context scores</span>
+        <span class="c1"># self.visualize_context_scores(context_scores=context_scores)</span>
+        <span class="n">context_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn_dropout</span><span class="p">(</span><span class="n">context_scores</span><span class="p">)</span>
+
+        <span class="c1"># Compute context vector</span>
+        <span class="c1"># [B, d, P, N] x [B, 1, P, N] -&gt; [B, d, P, N]</span>
+        <span class="n">context_vector</span> <span class="o">=</span> <span class="n">key</span> <span class="o">*</span> <span class="n">context_scores</span>
+        <span class="c1"># [B, d, P, N] --&gt; [B, d, P, 1]</span>
+        <span class="n">context_vector</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">context_vector</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># combine context vector with values</span>
+        <span class="c1"># [B, d, P, N] * [B, d, P, 1] --&gt; [B, d, P, N]</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">*</span> <span class="n">context_vector</span><span class="o">.</span><span class="n">expand_as</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_proj</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="k">def</span> <span class="nf">_forward_cross_attn</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">x_prev</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+        <span class="c1"># x --&gt; [B, C, P, N]</span>
+        <span class="c1"># x_prev = [B, C, P, M]</span>
+
+        <span class="n">batch_size</span><span class="p">,</span> <span class="n">in_dim</span><span class="p">,</span> <span class="n">kv_patch_area</span><span class="p">,</span> <span class="n">kv_num_patches</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="n">q_patch_area</span><span class="p">,</span> <span class="n">q_num_patches</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
+
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">kv_patch_area</span> <span class="o">==</span> <span class="n">q_patch_area</span>
+        <span class="p">),</span> <span class="s2">&quot;The number of pixels in a patch for query and key_value should be the same&quot;</span>
+
+        <span class="c1"># compute query, key, and value</span>
+        <span class="c1"># [B, C, P, M] --&gt; [B, 1 + d, P, M]</span>
+        <span class="n">qk</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span>
+            <span class="n">x_prev</span><span class="p">,</span>
+            <span class="n">weight</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">qkv_proj</span><span class="o">.</span><span class="n">block</span><span class="o">.</span><span class="n">conv</span><span class="o">.</span><span class="n">weight</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed_dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+            <span class="n">bias</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">qkv_proj</span><span class="o">.</span><span class="n">block</span><span class="o">.</span><span class="n">conv</span><span class="o">.</span><span class="n">bias</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed_dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="c1"># [B, 1 + d, P, M] --&gt; [B, 1, P, M], [B, d, P, M]</span>
+        <span class="n">query</span><span class="p">,</span> <span class="n">key</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">qk</span><span class="p">,</span> <span class="n">split_size_or_sections</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed_dim</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># [B, C, P, N] --&gt; [B, d, P, N]</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span>
+            <span class="n">weight</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">qkv_proj</span><span class="o">.</span><span class="n">block</span><span class="o">.</span><span class="n">conv</span><span class="o">.</span><span class="n">weight</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">embed_dim</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:,</span> <span class="o">...</span><span class="p">],</span>
+            <span class="n">bias</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">qkv_proj</span><span class="o">.</span><span class="n">block</span><span class="o">.</span><span class="n">conv</span><span class="o">.</span><span class="n">bias</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">embed_dim</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:,</span> <span class="o">...</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="c1"># apply softmax along M dimension</span>
+        <span class="n">context_scores</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">context_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn_dropout</span><span class="p">(</span><span class="n">context_scores</span><span class="p">)</span>
+
+        <span class="c1"># compute context vector</span>
+        <span class="c1"># [B, d, P, M] * [B, 1, P, M] -&gt; [B, d, P, M]</span>
+        <span class="n">context_vector</span> <span class="o">=</span> <span class="n">key</span> <span class="o">*</span> <span class="n">context_scores</span>
+        <span class="c1"># [B, d, P, M] --&gt; [B, d, P, 1]</span>
+        <span class="n">context_vector</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">context_vector</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># combine context vector with values</span>
+        <span class="c1"># [B, d, P, N] * [B, d, P, 1] --&gt; [B, d, P, N]</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">*</span> <span class="n">context_vector</span><span class="o">.</span><span class="n">expand_as</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_proj</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+<div class="viewcode-block" id="LinearSelfAttention.forward"><a class="viewcode-back" href="../../../autogen/cvnets.layers.html#cvnets.layers.linear_attention.LinearSelfAttention.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">x_prev</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">x_prev</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward_self_attn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward_cross_attn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x_prev</span><span class="o">=</span><span class="n">x_prev</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

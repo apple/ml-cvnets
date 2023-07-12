@@ -1,0 +1,35 @@
+data package
+============
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   data.collate_fns
+   data.datasets
+   data.loader
+   data.sampler
+   data.text_tokenizer
+   data.transforms
+   data.video_reader
+
+Submodules
+----------
+
+data.data\_loaders module
+-------------------------
+
+.. automodule:: data.data_loaders
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: data
+   :members:
+   :undoc-members:
+   :show-inheritance:

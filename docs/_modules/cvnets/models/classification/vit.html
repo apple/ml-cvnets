@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cvnets.models.classification.vit &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../../cvnets.html">cvnets</a></li>
+          <li class="breadcrumb-item"><a href="../../models.html">cvnets.models</a></li>
+      <li class="breadcrumb-item active">cvnets.models.classification.vit</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cvnets.models.classification.vit</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">nn</span>
+<span class="kn">from</span> <span class="nn">torch.utils.checkpoint</span> <span class="kn">import</span> <span class="n">checkpoint_sequential</span> <span class="k">as</span> <span class="n">gradient_checkpoint_fn</span>
+
+<span class="kn">from</span> <span class="nn">cvnets.layers</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ConvLayer2d</span><span class="p">,</span>
+    <span class="n">Dropout</span><span class="p">,</span>
+    <span class="n">Identity</span><span class="p">,</span>
+    <span class="n">LinearLayer</span><span class="p">,</span>
+    <span class="n">MaxPool2d</span><span class="p">,</span>
+    <span class="n">PositionalEmbedding</span><span class="p">,</span>
+    <span class="n">TransposeConvLayer2d</span><span class="p">,</span>
+    <span class="n">get_normalization_layer</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">cvnets.misc.common</span> <span class="kn">import</span> <span class="n">parameter_list</span>
+<span class="kn">from</span> <span class="nn">cvnets.misc.init_utils</span> <span class="kn">import</span> <span class="n">initialize_conv_layer</span>
+<span class="kn">from</span> <span class="nn">cvnets.models</span> <span class="kn">import</span> <span class="n">MODEL_REGISTRY</span>
+<span class="kn">from</span> <span class="nn">cvnets.models.classification.base_image_encoder</span> <span class="kn">import</span> <span class="n">BaseImageEncoder</span>
+<span class="kn">from</span> <span class="nn">cvnets.models.classification.config.vit</span> <span class="kn">import</span> <span class="n">get_configuration</span>
+<span class="kn">from</span> <span class="nn">cvnets.modules</span> <span class="kn">import</span> <span class="n">TransformerEncoder</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+
+
+<div class="viewcode-block" id="VisionTransformer"><a class="viewcode-back" href="../../../../autogen/cvnets.models.classification.html#cvnets.models.classification.vit.VisionTransformer">[docs]</a><span class="nd">@MODEL_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;vit&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;classification&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">VisionTransformer</span><span class="p">(</span><span class="n">BaseImageEncoder</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class defines the `Vision Transformer architecture &lt;https://arxiv.org/abs/2010.11929&gt;`_. Our model implementation</span>
+<span class="sd">    is inspired from `Early Convolutions Help Transformers See Better &lt;https://arxiv.org/abs/2106.14881&gt;`_</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        Our implementation is different from the original implementation in two ways:</span>
+<span class="sd">        1. Kernel size is odd.</span>
+<span class="sd">        2. Our positional encoding implementation allows us to use ViT with any multiple input scales</span>
+<span class="sd">        3. We do not use StochasticDepth</span>
+<span class="sd">        4. We do not add positional encoding to class token (if enabled), as suggested in `DeiT-3 paper &lt;https://arxiv.org/abs/2204.07118&gt;`_</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="VisionTransformer.__init__"><a class="viewcode-back" href="../../../../autogen/cvnets.models.classification.html#cvnets.models.classification.vit.VisionTransformer.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">image_channels</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="n">num_classes</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.classification.n_classes&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">num_classes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;Please specify number of classes using --model.classification.n-classes argument&quot;</span>
+            <span class="p">)</span>
+        <span class="n">pytorch_mha</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.classification.vit.use_pytorch_mha&quot;</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pytorch_mha</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">gradient_checkpointing</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;Current version of ViT supports PyTorch MHA without gradient checkpointing. &quot;</span>
+                <span class="s2">&quot;Please use either of them, but not both&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># If output stride is not None, then it is likely a segmentation task.</span>
+        <span class="c1"># in that case, ensure that output stride is either 8 or 16</span>
+        <span class="n">kernel_sizes_conv_stem</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="n">strides_conv_stem</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_stride</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_stride</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">]:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Output stride should be 8 or 16&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_stride</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_stride</span> <span class="o">==</span> <span class="mi">8</span><span class="p">:</span>
+            <span class="n">strides_conv_stem</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+
+        <span class="n">vit_config</span> <span class="o">=</span> <span class="n">get_configuration</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+
+        <span class="c1"># Typically, in the ImageNet dataset, we use 224x224 as a resolution.</span>
+        <span class="c1"># For out ViT implementation, patch size is 16 (16 = 4 * 2 * 2)</span>
+        <span class="c1"># Therefore, total number of embeddings along width and height are (224 / 16)^2</span>
+        <span class="n">num_embeddings</span> <span class="o">=</span> <span class="p">(</span><span class="mi">224</span> <span class="o">//</span> <span class="mi">16</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+
+        <span class="n">embed_dim</span> <span class="o">=</span> <span class="n">vit_config</span><span class="p">[</span><span class="s2">&quot;embed_dim&quot;</span><span class="p">]</span>
+        <span class="n">ffn_dim</span> <span class="o">=</span> <span class="n">vit_config</span><span class="p">[</span><span class="s2">&quot;ffn_dim&quot;</span><span class="p">]</span>
+        <span class="n">pos_emb_drop_p</span> <span class="o">=</span> <span class="n">vit_config</span><span class="p">[</span><span class="s2">&quot;pos_emb_drop_p&quot;</span><span class="p">]</span>
+        <span class="n">n_transformer_layers</span> <span class="o">=</span> <span class="n">vit_config</span><span class="p">[</span><span class="s2">&quot;n_transformer_layers&quot;</span><span class="p">]</span>
+        <span class="n">num_heads</span> <span class="o">=</span> <span class="n">vit_config</span><span class="p">[</span><span class="s2">&quot;n_attn_heads&quot;</span><span class="p">]</span>
+        <span class="n">attn_dropout</span> <span class="o">=</span> <span class="n">vit_config</span><span class="p">[</span><span class="s2">&quot;attn_dropout&quot;</span><span class="p">]</span>
+        <span class="n">dropout</span> <span class="o">=</span> <span class="n">vit_config</span><span class="p">[</span><span class="s2">&quot;dropout&quot;</span><span class="p">]</span>
+        <span class="n">ffn_dropout</span> <span class="o">=</span> <span class="n">vit_config</span><span class="p">[</span><span class="s2">&quot;ffn_dropout&quot;</span><span class="p">]</span>
+        <span class="n">norm_layer</span> <span class="o">=</span> <span class="n">vit_config</span><span class="p">[</span><span class="s2">&quot;norm_layer&quot;</span><span class="p">]</span>
+
+        <span class="n">conv_stem_proj_dim</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="n">embed_dim</span> <span class="o">//</span> <span class="mi">4</span><span class="p">)</span>
+        <span class="n">patch_emb</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">ConvLayer2d</span><span class="p">(</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                <span class="n">in_channels</span><span class="o">=</span><span class="n">image_channels</span><span class="p">,</span>
+                <span class="n">out_channels</span><span class="o">=</span><span class="n">conv_stem_proj_dim</span><span class="p">,</span>
+                <span class="n">kernel_size</span><span class="o">=</span><span class="n">kernel_sizes_conv_stem</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">stride</span><span class="o">=</span><span class="n">strides_conv_stem</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">use_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">use_act</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">ConvLayer2d</span><span class="p">(</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                <span class="n">in_channels</span><span class="o">=</span><span class="n">conv_stem_proj_dim</span><span class="p">,</span>
+                <span class="n">out_channels</span><span class="o">=</span><span class="n">conv_stem_proj_dim</span><span class="p">,</span>
+                <span class="n">kernel_size</span><span class="o">=</span><span class="n">kernel_sizes_conv_stem</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">stride</span><span class="o">=</span><span class="n">strides_conv_stem</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">use_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">use_act</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">ConvLayer2d</span><span class="p">(</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                <span class="n">in_channels</span><span class="o">=</span><span class="n">conv_stem_proj_dim</span><span class="p">,</span>
+                <span class="n">out_channels</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+                <span class="n">kernel_size</span><span class="o">=</span><span class="n">kernel_sizes_conv_stem</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                <span class="n">stride</span><span class="o">=</span><span class="n">strides_conv_stem</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">use_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">use_act</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">patch_emb</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">patch_emb</span><span class="p">)</span>
+
+        <span class="n">use_cls_token</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.classification.vit.no_cls_token&quot;</span><span class="p">)</span>
+        <span class="n">stochastic_dropout</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.classification.vit.stochastic_dropout&quot;</span>
+        <span class="p">)</span>
+        <span class="n">per_layer_stochastic_drop_rate</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="nb">round</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">stochastic_dropout</span><span class="p">,</span> <span class="n">n_transformer_layers</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">transformer_blocks</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">TransformerEncoder</span><span class="p">(</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+                <span class="n">ffn_latent_dim</span><span class="o">=</span><span class="n">ffn_dim</span><span class="p">,</span>
+                <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+                <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
+                <span class="n">dropout</span><span class="o">=</span><span class="n">dropout</span><span class="p">,</span>
+                <span class="n">ffn_dropout</span><span class="o">=</span><span class="n">ffn_dropout</span><span class="p">,</span>
+                <span class="n">transformer_norm_layer</span><span class="o">=</span><span class="n">norm_layer</span><span class="p">,</span>
+                <span class="n">stochastic_dropout</span><span class="o">=</span><span class="n">per_layer_stochastic_drop_rate</span><span class="p">[</span><span class="n">layer_idx</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">layer_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_transformer_layers</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">post_transformer_norm</span> <span class="o">=</span> <span class="n">get_normalization_layer</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="n">num_features</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">norm_type</span><span class="o">=</span><span class="n">norm_layer</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">transformer_blocks</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span> <span class="o">=</span> <span class="n">LinearLayer</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_parameters</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">use_cls_token</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cls_token</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)))</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">trunc_normal_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cls_token</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">0.02</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cls_token</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pos_embed</span> <span class="o">=</span> <span class="n">PositionalEmbedding</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">num_embeddings</span><span class="o">=</span><span class="n">num_embeddings</span><span class="p">,</span>
+            <span class="n">embedding_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+            <span class="n">sequence_first</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">padding_idx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">is_learnable</span><span class="o">=</span><span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span>
+                <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.classification.vit.sinusoidal_pos_emb&quot;</span>
+            <span class="p">),</span>
+            <span class="n">interpolation_mode</span><span class="o">=</span><span class="s2">&quot;bilinear&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">emb_dropout</span> <span class="o">=</span> <span class="n">Dropout</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">pos_emb_drop_p</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_pytorch_mha</span> <span class="o">=</span> <span class="n">pytorch_mha</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">embed_dim</span> <span class="o">=</span> <span class="n">embed_dim</span>
+        <span class="c1"># We need to enable gradient checkpointing (--model.classification.gradient-checkpointing)</span>
+        <span class="c1"># to use checkpoint segments in ViT</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_segments</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.classification.vit.checkpoint_segments&quot;</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_conf_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;conv1&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="n">image_channels</span><span class="p">,</span> <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">embed_dim</span><span class="p">},</span>
+            <span class="s2">&quot;layer1&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">embed_dim</span><span class="p">},</span>
+            <span class="s2">&quot;layer2&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">embed_dim</span><span class="p">},</span>
+            <span class="s2">&quot;layer3&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">embed_dim</span><span class="p">},</span>
+            <span class="s2">&quot;layer4&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">embed_dim</span><span class="p">},</span>
+            <span class="s2">&quot;layer5&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">embed_dim</span><span class="p">},</span>
+            <span class="s2">&quot;exp_before_cls&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">embed_dim</span><span class="p">},</span>
+            <span class="s2">&quot;cls&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">num_classes</span><span class="p">},</span>
+        <span class="p">}</span>
+
+        <span class="n">use_simple_fpn</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.classification.vit.use_simple_fpn&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">simple_fpn</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">use_simple_fpn</span><span class="p">:</span>
+            <span class="c1"># for object detection, we add Simple FPN on top of ViT backbone, so that it can</span>
+            <span class="c1"># generate multi-scale representations. See https://arxiv.org/abs/2203.16527 for details</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">simple_fpn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_simple_fpn_layers</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">norm_layer</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reset_simple_fpn_params</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_layer_norm_eps</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="VisionTransformer.update_layer_norm_eps"><a class="viewcode-back" href="../../../../autogen/cvnets.models.classification.html#cvnets.models.classification.vit.VisionTransformer.update_layer_norm_eps">[docs]</a>    <span class="k">def</span> <span class="nf">update_layer_norm_eps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Most ViT models use LayerNorm with 10^-6 eps. So, we update it here</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">):</span>
+                <span class="n">m</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="mf">1e-6</span></div>
+
+<div class="viewcode-block" id="VisionTransformer.reset_simple_fpn_params"><a class="viewcode-back" href="../../../../autogen/cvnets.models.classification.html#cvnets.models.classification.vit.VisionTransformer.reset_simple_fpn_params">[docs]</a>    <span class="k">def</span> <span class="nf">reset_simple_fpn_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># reset simple FPN parameters</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">simple_fpn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">simple_fpn</span><span class="o">.</span><span class="n">modules</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">ConvTranspose2d</span><span class="p">)):</span>
+                    <span class="n">initialize_conv_layer</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">init_method</span><span class="o">=</span><span class="s2">&quot;kaiming_uniform&quot;</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_apply_layer_wise_lr</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">weight_decay</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">no_decay_bn_filter_bias</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">,</span> <span class="n">List</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function adjusts the learning rate of each layer in transformer module.</span>
+<span class="sd">        Layer-wise learning is a bit involved and requires a knowledge of how each layer is consumed</span>
+<span class="sd">        during the forward pass. We adjust the learning rate of patch embedding and transformer layers</span>
+<span class="sd">        while keeping the classifier and SimpleFPN at 1.0. This is because layer_wise_lr is typically</span>
+<span class="sd">        applied during fine-tuning for down-stream tasks.</span>
+
+<span class="sd">        For ViT (classification tasks), the path is like this:</span>
+<span class="sd">        Patch Embedding --&gt; Transformer --&gt; PostNorm --&gt; Classifier</span>
+
+<span class="sd">        For ViT (detection tasks), the path is like this:</span>
+<span class="sd">        Patch Embedding --&gt; Transformer --&gt; PostNorm --&gt; SimpleFPN</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">n_layers</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="p">)</span>
+        <span class="n">layer_wise_lr</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layer_wise_lr_decay_rate</span> <span class="o">**</span> <span class="p">(</span><span class="n">n_layers</span> <span class="o">-</span> <span class="n">i</span><span class="p">),</span> <span class="mi">5</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_layers</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">module_name</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;module_name&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="n">param_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">param_lr_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">neural_augmentor</span><span class="p">:</span>
+            <span class="n">neural_aug_params</span> <span class="o">=</span> <span class="n">parameter_list</span><span class="p">(</span>
+                <span class="n">named_parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">neural_augmentor</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">,</span>
+                <span class="n">weight_decay</span><span class="o">=</span><span class="n">weight_decay</span><span class="p">,</span>
+                <span class="n">no_decay_bn_filter_bias</span><span class="o">=</span><span class="n">no_decay_bn_filter_bias</span><span class="p">,</span>
+                <span class="n">module_name</span><span class="o">=</span><span class="n">module_name</span> <span class="o">+</span> <span class="s2">&quot;neural_augmentor.&quot;</span><span class="p">,</span>
+                <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">param_list</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">neural_aug_params</span><span class="p">)</span>
+            <span class="n">param_lr_list</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">layer_wise_lr</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">neural_aug_params</span><span class="p">))</span>
+
+        <span class="c1"># Patch embedding related parameters</span>
+        <span class="n">embedding_params</span> <span class="o">=</span> <span class="n">parameter_list</span><span class="p">(</span>
+            <span class="n">named_parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">patch_emb</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">,</span>
+            <span class="n">weight_decay</span><span class="o">=</span><span class="n">weight_decay</span><span class="p">,</span>
+            <span class="n">no_decay_bn_filter_bias</span><span class="o">=</span><span class="n">no_decay_bn_filter_bias</span><span class="p">,</span>
+            <span class="n">module_name</span><span class="o">=</span><span class="n">module_name</span> <span class="o">+</span> <span class="s2">&quot;patch_emb.&quot;</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">param_list</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">embedding_params</span><span class="p">)</span>
+        <span class="n">param_lr_list</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">layer_wise_lr</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">embedding_params</span><span class="p">))</span>
+
+        <span class="c1"># positional embedding parameters</span>
+        <span class="n">pos_emb_params</span> <span class="o">=</span> <span class="n">parameter_list</span><span class="p">(</span>
+            <span class="n">named_parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pos_embed</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">,</span>
+            <span class="n">weight_decay</span><span class="o">=</span><span class="n">weight_decay</span><span class="p">,</span>
+            <span class="n">no_decay_bn_filter_bias</span><span class="o">=</span><span class="n">no_decay_bn_filter_bias</span><span class="p">,</span>
+            <span class="n">module_name</span><span class="o">=</span><span class="n">module_name</span> <span class="o">+</span> <span class="s2">&quot;pos_embed.&quot;</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">param_list</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">pos_emb_params</span><span class="p">)</span>
+        <span class="n">param_lr_list</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">layer_wise_lr</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">pos_emb_params</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cls_token</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># CLS token params</span>
+            <span class="n">cls_token_params</span> <span class="o">=</span> <span class="n">parameter_list</span><span class="p">(</span>
+                <span class="n">named_parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cls_token</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">,</span>
+                <span class="n">weight_decay</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                <span class="n">no_decay_bn_filter_bias</span><span class="o">=</span><span class="n">no_decay_bn_filter_bias</span><span class="p">,</span>
+                <span class="n">module_name</span><span class="o">=</span><span class="n">module_name</span> <span class="o">+</span> <span class="s2">&quot;cls_token.&quot;</span><span class="p">,</span>
+                <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">param_list</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">cls_token_params</span><span class="p">)</span>
+            <span class="n">param_lr_list</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">layer_wise_lr</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">cls_token_params</span><span class="p">))</span>
+
+        <span class="c1"># transformer related parameters</span>
+        <span class="k">for</span> <span class="n">layer_id</span><span class="p">,</span> <span class="n">transformer_layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="p">):</span>
+            <span class="n">layer_lr</span> <span class="o">=</span> <span class="n">layer_wise_lr</span><span class="p">[</span><span class="n">layer_id</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">transformer_layer_params</span> <span class="o">=</span> <span class="n">parameter_list</span><span class="p">(</span>
+                <span class="n">named_parameters</span><span class="o">=</span><span class="n">transformer_layer</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">,</span>
+                <span class="n">weight_decay</span><span class="o">=</span><span class="n">weight_decay</span><span class="p">,</span>
+                <span class="n">no_decay_bn_filter_bias</span><span class="o">=</span><span class="n">no_decay_bn_filter_bias</span><span class="p">,</span>
+                <span class="n">module_name</span><span class="o">=</span><span class="n">module_name</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;transformer.</span><span class="si">{</span><span class="n">layer_id</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">,</span>
+                <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">param_list</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">transformer_layer_params</span><span class="p">)</span>
+            <span class="n">param_lr_list</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">layer_lr</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">transformer_layer_params</span><span class="p">))</span>
+
+        <span class="c1"># transformer post-norm params</span>
+        <span class="n">post_transformer_norm_params</span> <span class="o">=</span> <span class="n">parameter_list</span><span class="p">(</span>
+            <span class="n">named_parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">post_transformer_norm</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">,</span>
+            <span class="n">weight_decay</span><span class="o">=</span><span class="n">weight_decay</span><span class="p">,</span>
+            <span class="n">no_decay_bn_filter_bias</span><span class="o">=</span><span class="n">no_decay_bn_filter_bias</span><span class="p">,</span>
+            <span class="n">module_name</span><span class="o">=</span><span class="n">module_name</span> <span class="o">+</span> <span class="s2">&quot;post_transformer_norm.&quot;</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">param_list</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">post_transformer_norm_params</span><span class="p">)</span>
+        <span class="n">param_lr_list</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">layer_wise_lr</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">post_transformer_norm_params</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># classifier parameters</span>
+            <span class="n">classifier_params</span> <span class="o">=</span> <span class="n">parameter_list</span><span class="p">(</span>
+                <span class="n">named_parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">,</span>
+                <span class="n">weight_decay</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                <span class="n">no_decay_bn_filter_bias</span><span class="o">=</span><span class="n">no_decay_bn_filter_bias</span><span class="p">,</span>
+                <span class="n">module_name</span><span class="o">=</span><span class="n">module_name</span> <span class="o">+</span> <span class="s2">&quot;classifier.&quot;</span><span class="p">,</span>
+                <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">param_list</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">classifier_params</span><span class="p">)</span>
+            <span class="n">param_lr_list</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="mf">1.0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">classifier_params</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">simple_fpn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># simple FPN parameters</span>
+            <span class="n">simple_fpn_params</span> <span class="o">=</span> <span class="n">parameter_list</span><span class="p">(</span>
+                <span class="n">named_parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">simple_fpn</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">,</span>
+                <span class="n">weight_decay</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                <span class="n">no_decay_bn_filter_bias</span><span class="o">=</span><span class="n">no_decay_bn_filter_bias</span><span class="p">,</span>
+                <span class="n">module_name</span><span class="o">=</span><span class="n">module_name</span> <span class="o">+</span> <span class="s2">&quot;simple_fpn.&quot;</span><span class="p">,</span>
+                <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">param_list</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">simple_fpn_params</span><span class="p">)</span>
+            <span class="n">param_lr_list</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="mf">1.0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">simple_fpn_params</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">param_list</span><span class="p">,</span> <span class="n">param_lr_list</span>
+
+    <span class="k">def</span> <span class="nf">_build_simple_fpn_layers</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">opts</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">norm_layer</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleDict</span><span class="p">:</span>
+        <span class="c1"># Helper function to build simple FPN</span>
+        <span class="n">layer_l2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="n">TransposeConvLayer2d</span><span class="p">(</span>
+                <span class="n">opts</span><span class="p">,</span>
+                <span class="n">in_channels</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+                <span class="n">out_channels</span><span class="o">=</span><span class="n">embed_dim</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
+                <span class="n">kernel_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                <span class="n">padding</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="n">output_padding</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="n">groups</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">use_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">use_act</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">norm_layer_name</span><span class="o">=</span><span class="n">norm_layer</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">TransposeConvLayer2d</span><span class="p">(</span>
+                <span class="n">opts</span><span class="p">,</span>
+                <span class="n">in_channels</span><span class="o">=</span><span class="n">embed_dim</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
+                <span class="n">out_channels</span><span class="o">=</span><span class="n">embed_dim</span> <span class="o">//</span> <span class="mi">4</span><span class="p">,</span>
+                <span class="n">kernel_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                <span class="n">padding</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="n">output_padding</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="n">groups</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">use_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">use_act</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_conf_dict</span><span class="p">[</span><span class="s2">&quot;layer2&quot;</span><span class="p">][</span><span class="s2">&quot;out&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">embed_dim</span> <span class="o">//</span> <span class="mi">4</span>
+
+        <span class="n">layer_l3</span> <span class="o">=</span> <span class="n">TransposeConvLayer2d</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span>
+            <span class="n">in_channels</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
+            <span class="n">out_channels</span><span class="o">=</span><span class="n">embed_dim</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="n">padding</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">output_padding</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">groups</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">use_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">use_act</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_conf_dict</span><span class="p">[</span><span class="s2">&quot;layer3&quot;</span><span class="p">][</span><span class="s2">&quot;out&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">embed_dim</span> <span class="o">//</span> <span class="mi">2</span>
+
+        <span class="n">layer_l4</span> <span class="o">=</span> <span class="n">Identity</span><span class="p">()</span>
+        <span class="n">layer_l5</span> <span class="o">=</span> <span class="n">MaxPool2d</span><span class="p">(</span><span class="n">kernel_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">simple_fpn_layers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleDict</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;out_l2&quot;</span><span class="p">:</span> <span class="n">layer_l2</span><span class="p">,</span>
+                <span class="s2">&quot;out_l3&quot;</span><span class="p">:</span> <span class="n">layer_l3</span><span class="p">,</span>
+                <span class="s2">&quot;out_l4&quot;</span><span class="p">:</span> <span class="n">layer_l4</span><span class="p">,</span>
+                <span class="s2">&quot;out_l5&quot;</span><span class="p">:</span> <span class="n">layer_l5</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">simple_fpn_layers</span>
+
+<div class="viewcode-block" id="VisionTransformer.add_arguments"><a class="viewcode-back" href="../../../../autogen/cvnets.models.classification.html#cvnets.models.classification.vit.VisionTransformer.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.classification.vit.mode&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;base&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;ViT mode. Default is base.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.classification.vit.dropout&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Dropout in ViT layers. Defaults to 0.0.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.classification.vit.stochastic-dropout&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Stochastic Dropout in Transformer layers. Defaults to 0.0.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.classification.vit.norm-layer&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;layer_norm&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Normalization layer in ViT. Defaults to LayerNorm.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.classification.vit.sinusoidal-pos-emb&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Use sinusoidal instead of learnable positional encoding. Defaults to False.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.classification.vit.no-cls-token&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Do not use classification token. Defaults to False.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.classification.vit.use-pytorch-mha&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Use PyTorch&#39;s native multi-head attention. Defaults to False.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.classification.vit.use-simple-fpn&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Add simple FPN for down-stream tasks. Defaults to False.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.classification.vit.checkpoint-segments&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of checkpoint segments. Only used when --model.classification.gradient-checkpointing &quot;</span>
+            <span class="s2">&quot;is enabled. Defaults to 4.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="VisionTransformer.extract_patch_embeddings"><a class="viewcode-back" href="../../../../autogen/cvnets.models.classification.html#cvnets.models.classification.vit.VisionTransformer.extract_patch_embeddings">[docs]</a>    <span class="k">def</span> <span class="nf">extract_patch_embeddings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+        <span class="c1"># input is of shape [Batch, in_channels, height, width]. in_channels is mostly 3 (for RGB images)</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># [Batch, in_channels, height, width] --&gt; [Batch, emb_dim, num_patches_height, num_patches_width]</span>
+        <span class="n">patch_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_emb</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">n_h</span><span class="p">,</span> <span class="n">n_w</span> <span class="o">=</span> <span class="n">patch_emb</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
+
+        <span class="c1"># [Batch, emb_dim, num_patches_height, num_patches_width] --&gt; [Batch, emb_dim, num_patches]</span>
+        <span class="n">patch_emb</span> <span class="o">=</span> <span class="n">patch_emb</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="c1"># [Batch, emb_dim, num_patches] --&gt; [Batch, num_patches, emb_dim]</span>
+        <span class="n">patch_emb</span> <span class="o">=</span> <span class="n">patch_emb</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+
+        <span class="n">n_patches</span> <span class="o">=</span> <span class="n">patch_emb</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="c1"># we resize the positional encodings dynamically.</span>
+        <span class="n">pos_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_embed</span><span class="p">(</span><span class="n">n_patches</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">patch_emb</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="c1"># add positional encodings</span>
+        <span class="n">patch_emb</span> <span class="o">=</span> <span class="n">pos_emb</span> <span class="o">+</span> <span class="n">patch_emb</span>
+
+        <span class="c1"># add classification token</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cls_token</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># [1, 1, emb_dim] --&gt; [Batch, 1, emb_dim]</span>
+            <span class="n">cls_tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cls_token</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="c1"># Concat([Batch, 1, emb_dim], [Batch, num_patches, emb_dim]) --&gt; [Batch, num_patches + 1, emb_dim]</span>
+            <span class="n">patch_emb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">cls_tokens</span><span class="p">,</span> <span class="n">patch_emb</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># dropout</span>
+        <span class="n">patch_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb_dropout</span><span class="p">(</span><span class="n">patch_emb</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">patch_emb</span><span class="p">,</span> <span class="p">(</span><span class="n">n_h</span><span class="p">,</span> <span class="n">n_w</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_features_from_transformer</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+        <span class="c1"># this function extract patch embeddings and then apply transformer module to learn</span>
+        <span class="c1"># inter-patch representations</span>
+
+        <span class="c1"># [B, N, C] --&gt; [N, B, embed_dim], where B is batch size, N is number of tokens,</span>
+        <span class="c1"># and embed_dim is feature dim</span>
+        <span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">n_h</span><span class="p">,</span> <span class="n">n_w</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_patch_embeddings</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_pytorch_mha</span><span class="p">:</span>
+            <span class="c1"># For PyTorch MHA, we need sequence first.</span>
+            <span class="c1"># For our custom MHA implementation, batch is the first</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">gradient_checkpointing</span><span class="p">:</span>
+            <span class="c1"># we use sequential checkpoint function, which divides the model into chunks and checkpoints each segment</span>
+            <span class="c1"># This maybe useful when dealing with large models</span>
+
+            <span class="c1"># Right now, gradient checkpoint function does not like kwargs. Therefore, we use default MHA implementation</span>
+            <span class="c1"># over the PyTorch&#39;s fused implementation.</span>
+            <span class="c1"># Note that default MHA implementation is batch-first, while pytorch implementation is sequence-first.</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">gradient_checkpoint_fn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkpoint_segments</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">use_pytorch_mha</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_pytorch_mha</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_transformer_norm</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_pytorch_mha</span><span class="p">:</span>
+            <span class="c1"># [N, B, C] --&gt; [B, N, C]</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">n_h</span><span class="p">,</span> <span class="n">n_w</span><span class="p">)</span>
+
+<div class="viewcode-block" id="VisionTransformer.extract_features"><a class="viewcode-back" href="../../../../autogen/cvnets.models.classification.html#cvnets.models.classification.vit.VisionTransformer.extract_features">[docs]</a>    <span class="k">def</span> <span class="nf">extract_features</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]]:</span>
+        <span class="c1"># The extract_features function for ViT returns two outputs: (1) embedding corresponding to CLS token</span>
+        <span class="c1"># and (2) image embeddings of the shape [B, C, h//o, w//o], where the value of o is typically 16.</span>
+        <span class="n">return_image_embeddings</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;return_image_embeddings&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># [B, C, H, W] --&gt; [B, N + 1, embed_dim] or [B, N, embed_dim]</span>
+        <span class="c1"># here, B is batch size, C is input channels</span>
+        <span class="c1"># H and W are input height and width</span>
+        <span class="c1"># N is the number of pixels (or tokens) after processing input with conv stem and reshaping</span>
+        <span class="c1"># We add +1 for cls token (if applicable)</span>
+        <span class="c1"># embed_dim --&gt; embedding dimension</span>
+        <span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">n_h</span><span class="p">,</span> <span class="n">n_w</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_features_from_transformer</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cls_token</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># [B, N + 1, embed_dim] --&gt; [B, embed_dim], [B, N, embed_dim]</span>
+            <span class="n">cls_embedding</span><span class="p">,</span> <span class="n">image_embedding</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">split_size_or_sections</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span>
+            <span class="p">)</span>
+            <span class="n">cls_embedding</span> <span class="o">=</span> <span class="n">cls_embedding</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># [B, N, embed_dim] -&gt; [B, embed_dim]</span>
+            <span class="n">cls_embedding</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="c1"># [B, N, embed_dim]</span>
+            <span class="n">image_embedding</span> <span class="o">=</span> <span class="n">x</span>
+
+        <span class="k">if</span> <span class="n">return_image_embeddings</span><span class="p">:</span>
+            <span class="c1"># reshape image embedding to 4-D tensor</span>
+            <span class="c1"># [B, N, C] --&gt; [B, C, N]</span>
+            <span class="n">image_embedding</span> <span class="o">=</span> <span class="n">image_embedding</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+            <span class="n">image_embedding</span> <span class="o">=</span> <span class="n">image_embedding</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                <span class="n">image_embedding</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_h</span><span class="p">,</span> <span class="n">n_w</span>
+            <span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">cls_embedding</span><span class="p">,</span> <span class="n">image_embedding</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cls_embedding</span><span class="p">,</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="VisionTransformer.forward_classifier"><a class="viewcode-back" href="../../../../autogen/cvnets.models.classification.html#cvnets.models.classification.vit.VisionTransformer.forward_classifier">[docs]</a>    <span class="k">def</span> <span class="nf">forward_classifier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+        <span class="n">cls_embedding</span><span class="p">,</span> <span class="n">image_embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_features</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># classify based on CLS token</span>
+        <span class="n">cls_embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="p">(</span><span class="n">cls_embedding</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cls_embedding</span><span class="p">,</span> <span class="n">image_embedding</span></div>
+
+<div class="viewcode-block" id="VisionTransformer.forward"><a class="viewcode-back" href="../../../../autogen/cvnets.models.classification.html#cvnets.models.classification.vit.VisionTransformer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]]:</span>
+        <span class="c1"># In ViT model, we can return either classifier embeddings (logits) or image embeddings or both.</span>
+        <span class="c1"># To return the image embeddings, we need to set keyword argument (return_image_embeddings) as True.</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;return_image_embeddings&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">neural_augmentor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="n">out_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;augmented_tensor&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">neural_augmentor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># neural augmentor is applied during training  only</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">neural_augmentor</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                <span class="n">out_dict</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;augmented_tensor&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">})</span>
+            <span class="n">prediction</span><span class="p">,</span> <span class="n">image_embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_classifier</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">out_dict</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;logits&quot;</span><span class="p">:</span> <span class="n">prediction</span><span class="p">})</span>
+            <span class="k">if</span> <span class="n">image_embedding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">out_dict</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;image_embeddings&quot;</span><span class="p">:</span> <span class="n">image_embedding</span><span class="p">})</span>
+            <span class="k">return</span> <span class="n">out_dict</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">prediction</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_classifier</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">prediction</span></div>
+
+<div class="viewcode-block" id="VisionTransformer.extract_end_points_all"><a class="viewcode-back" href="../../../../autogen/cvnets.models.classification.html#cvnets.models.classification.vit.VisionTransformer.extract_end_points_all">[docs]</a>    <span class="k">def</span> <span class="nf">extract_end_points_all</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">use_l5</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">use_l5_exp</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+        <span class="c1"># this function is often used in down-stream applications (especially in segmentation and detection)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cls_token</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Please disable cls token for down-stream tasks&quot;</span><span class="p">)</span>
+
+        <span class="n">out_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">neural_augmentor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">neural_augmentor</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">out_dict</span><span class="p">[</span><span class="s2">&quot;augmented_tensor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span>
+
+        <span class="n">cls_emb</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_features</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">return_image_embeddings</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">out_dict</span><span class="p">[</span><span class="s2">&quot;cls_embedding&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cls_emb</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">simple_fpn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># build simple FPN, as suggested in https://arxiv.org/abs/2203.16527</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">extra_layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">simple_fpn</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">out_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">extra_layer</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># ViT does not have hierarchical structure by default.</span>
+            <span class="c1"># Therefore, we set first four levels to None</span>
+            <span class="n">out_dict</span><span class="p">[</span><span class="s2">&quot;out_l1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">out_dict</span><span class="p">[</span><span class="s2">&quot;out_l2&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">out_dict</span><span class="p">[</span><span class="s2">&quot;out_l3&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">out_dict</span><span class="p">[</span><span class="s2">&quot;out_l4&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">use_l5_exp</span><span class="p">:</span>
+                <span class="n">out_dict</span><span class="p">[</span><span class="s2">&quot;out_l5&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">out_dict</span><span class="p">[</span><span class="s2">&quot;out_l5_exp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">out_dict</span><span class="p">[</span><span class="s2">&quot;out_l5&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span>
+                <span class="n">out_dict</span><span class="p">[</span><span class="s2">&quot;out_l5_exp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">out_dict</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

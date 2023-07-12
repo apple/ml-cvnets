@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>optim package &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">optim package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/autogen/optim.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="optim-package">
+<h1>optim package<a class="headerlink" href="#optim-package" title="Permalink to this heading"></a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="optim.scheduler.html">optim.scheduler package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="optim.scheduler.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="optim.scheduler.html#module-optim.scheduler.base_scheduler">optim.scheduler.base_scheduler module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.base_scheduler.BaseLRScheduler"><code class="docutils literal notranslate"><span class="pre">BaseLRScheduler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.base_scheduler.BaseLRScheduler.__init__"><code class="docutils literal notranslate"><span class="pre">BaseLRScheduler.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.base_scheduler.BaseLRScheduler.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseLRScheduler.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.base_scheduler.BaseLRScheduler.get_lr"><code class="docutils literal notranslate"><span class="pre">BaseLRScheduler.get_lr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.base_scheduler.BaseLRScheduler.update_lr"><code class="docutils literal notranslate"><span class="pre">BaseLRScheduler.update_lr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.base_scheduler.BaseLRScheduler.retrieve_lr"><code class="docutils literal notranslate"><span class="pre">BaseLRScheduler.retrieve_lr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.base_scheduler.BaseLRScheduler.extra_repr"><code class="docutils literal notranslate"><span class="pre">BaseLRScheduler.extra_repr()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="optim.scheduler.html#module-optim.scheduler.cosine">optim.scheduler.cosine module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.cosine.CosineScheduler"><code class="docutils literal notranslate"><span class="pre">CosineScheduler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.cosine.CosineScheduler.__init__"><code class="docutils literal notranslate"><span class="pre">CosineScheduler.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.cosine.CosineScheduler.add_arguments"><code class="docutils literal notranslate"><span class="pre">CosineScheduler.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.cosine.CosineScheduler.get_lr"><code class="docutils literal notranslate"><span class="pre">CosineScheduler.get_lr()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="optim.scheduler.html#module-optim.scheduler.cyclic">optim.scheduler.cyclic module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.cyclic.CyclicLRScheduler"><code class="docutils literal notranslate"><span class="pre">CyclicLRScheduler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.cyclic.CyclicLRScheduler.__init__"><code class="docutils literal notranslate"><span class="pre">CyclicLRScheduler.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.cyclic.CyclicLRScheduler.add_arguments"><code class="docutils literal notranslate"><span class="pre">CyclicLRScheduler.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.cyclic.CyclicLRScheduler.get_lr"><code class="docutils literal notranslate"><span class="pre">CyclicLRScheduler.get_lr()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="optim.scheduler.html#module-optim.scheduler.fixed">optim.scheduler.fixed module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.fixed.FixedLRScheduler"><code class="docutils literal notranslate"><span class="pre">FixedLRScheduler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.fixed.FixedLRScheduler.__init__"><code class="docutils literal notranslate"><span class="pre">FixedLRScheduler.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.fixed.FixedLRScheduler.add_arguments"><code class="docutils literal notranslate"><span class="pre">FixedLRScheduler.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.fixed.FixedLRScheduler.get_lr"><code class="docutils literal notranslate"><span class="pre">FixedLRScheduler.get_lr()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="optim.scheduler.html#module-optim.scheduler.multi_step">optim.scheduler.multi_step module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.multi_step.MultiStepLRScheduler"><code class="docutils literal notranslate"><span class="pre">MultiStepLRScheduler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.multi_step.MultiStepLRScheduler.__init__"><code class="docutils literal notranslate"><span class="pre">MultiStepLRScheduler.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.multi_step.MultiStepLRScheduler.add_arguments"><code class="docutils literal notranslate"><span class="pre">MultiStepLRScheduler.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.multi_step.MultiStepLRScheduler.get_lr"><code class="docutils literal notranslate"><span class="pre">MultiStepLRScheduler.get_lr()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="optim.scheduler.html#module-optim.scheduler.polynomial">optim.scheduler.polynomial module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.polynomial.PolynomialScheduler"><code class="docutils literal notranslate"><span class="pre">PolynomialScheduler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.polynomial.PolynomialScheduler.__init__"><code class="docutils literal notranslate"><span class="pre">PolynomialScheduler.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.polynomial.PolynomialScheduler.add_arguments"><code class="docutils literal notranslate"><span class="pre">PolynomialScheduler.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.polynomial.PolynomialScheduler.get_lr"><code class="docutils literal notranslate"><span class="pre">PolynomialScheduler.get_lr()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="optim.scheduler.html#module-optim.scheduler">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.build_scheduler"><code class="docutils literal notranslate"><span class="pre">build_scheduler()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.general_lr_sch_args"><code class="docutils literal notranslate"><span class="pre">general_lr_sch_args()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="optim.scheduler.html#optim.scheduler.arguments_scheduler"><code class="docutils literal notranslate"><span class="pre">arguments_scheduler()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</section>
+<section id="module-optim.adam">
+<span id="optim-adam-module"></span><h2>optim.adam module<a class="headerlink" href="#module-optim.adam" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="optim.adam.AdamOptimizer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">optim.adam.</span></span><span class="sig-name descname"><span class="pre">AdamOptimizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/optim/adam.html#AdamOptimizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#optim.adam.AdamOptimizer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#optim.base_optim.BaseOptim" title="optim.base_optim.BaseOptim"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseOptim</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Adam</span></code></p>
+<p><a class="reference external" href="https://arxiv.org/abs/1412.6980">Adam</a> optimizer</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>opts</strong> – Command-line arguments</p></li>
+<li><p><strong>model_params</strong> – Model parameters</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="optim.adam.AdamOptimizer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/optim/adam.html#AdamOptimizer.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#optim.adam.AdamOptimizer.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="optim.adam.AdamOptimizer.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/optim/adam.html#AdamOptimizer.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#optim.adam.AdamOptimizer.add_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Add arguments for ADAM optimizer</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-optim.adamw">
+<span id="optim-adamw-module"></span><h2>optim.adamw module<a class="headerlink" href="#module-optim.adamw" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="optim.adamw.AdamWOptimizer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">optim.adamw.</span></span><span class="sig-name descname"><span class="pre">AdamWOptimizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/optim/adamw.html#AdamWOptimizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#optim.adamw.AdamWOptimizer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#optim.base_optim.BaseOptim" title="optim.base_optim.BaseOptim"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseOptim</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">AdamW</span></code></p>
+<p><a class="reference external" href="https://arxiv.org/abs/1711.05101">AdamW</a> optimizer</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>opts</strong> – Command-line arguments</p></li>
+<li><p><strong>model_params</strong> – Model parameters</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="optim.adamw.AdamWOptimizer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/optim/adamw.html#AdamWOptimizer.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#optim.adamw.AdamWOptimizer.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="optim.adamw.AdamWOptimizer.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/optim/adamw.html#AdamWOptimizer.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#optim.adamw.AdamWOptimizer.add_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Add arguments for AdamW optimizer</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-optim.base_optim">
+<span id="optim-base-optim-module"></span><h2>optim.base_optim module<a class="headerlink" href="#module-optim.base_optim" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="optim.base_optim.BaseOptim">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">optim.base_optim.</span></span><span class="sig-name descname"><span class="pre">BaseOptim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/optim/base_optim.html#BaseOptim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#optim.base_optim.BaseOptim" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Base class for optimizer</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>opts</strong> – Command-line arguments</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="optim.base_optim.BaseOptim.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/optim/base_optim.html#BaseOptim.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#optim.base_optim.BaseOptim.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="optim.base_optim.BaseOptim.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/optim/base_optim.html#BaseOptim.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#optim.base_optim.BaseOptim.add_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Add optimizer arguments</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-optim.sgd">
+<span id="optim-sgd-module"></span><h2>optim.sgd module<a class="headerlink" href="#module-optim.sgd" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="optim.sgd.SGDOptimizer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">optim.sgd.</span></span><span class="sig-name descname"><span class="pre">SGDOptimizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/optim/sgd.html#SGDOptimizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#optim.sgd.SGDOptimizer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#optim.base_optim.BaseOptim" title="optim.base_optim.BaseOptim"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseOptim</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">SGD</span></code></p>
+<p><a class="reference external" href="http://www.cs.toronto.edu/%7Ehinton/absps/momentum.pdf">SGD</a> optimizer</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>opts</strong> – Command-line arguments</p></li>
+<li><p><strong>model_params</strong> – Model parameters</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="optim.sgd.SGDOptimizer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/optim/sgd.html#SGDOptimizer.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#optim.sgd.SGDOptimizer.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="optim.sgd.SGDOptimizer.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/optim/sgd.html#SGDOptimizer.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#optim.sgd.SGDOptimizer.add_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Add optimizer arguments</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-optim">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-optim" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="optim.check_trainable_parameters">
+<span class="sig-prename descclassname"><span class="pre">optim.</span></span><span class="sig-name descname"><span class="pre">check_trainable_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/optim.html#check_trainable_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#optim.check_trainable_parameters" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to check if any model parameters w/ gradients are not part of model_params</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="optim.remove_param_name_key">
+<span class="sig-prename descclassname"><span class="pre">optim.</span></span><span class="sig-name descname"><span class="pre">remove_param_name_key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/optim.html#remove_param_name_key"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#optim.remove_param_name_key" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to remove param_names key from model_params</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="optim.build_optimizer">
+<span class="sig-prename descclassname"><span class="pre">optim.</span></span><span class="sig-name descname"><span class="pre">build_optimizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#optim.base_optim.BaseOptim" title="optim.base_optim.BaseOptim"><span class="pre">BaseOptim</span></a></span></span><a class="reference internal" href="../_modules/optim.html#build_optimizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#optim.build_optimizer" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to build an optimizer</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> – A model</p></li>
+<li><p><strong>opts</strong> – command-line arguments</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An instance of BaseOptim</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="optim.arguments_optimizer">
+<span class="sig-prename descclassname"><span class="pre">optim.</span></span><span class="sig-name descname"><span class="pre">arguments_optimizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/optim.html#arguments_optimizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#optim.arguments_optimizer" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

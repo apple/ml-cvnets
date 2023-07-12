@@ -1,0 +1,29 @@
+cvnets.anchor\_generator package
+================================
+
+Submodules
+----------
+
+cvnets.anchor\_generator.base\_anchor\_generator module
+-------------------------------------------------------
+
+.. automodule:: cvnets.anchor_generator.base_anchor_generator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.anchor\_generator.ssd\_anchor\_generator module
+------------------------------------------------------
+
+.. automodule:: cvnets.anchor_generator.ssd_anchor_generator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cvnets.anchor_generator
+   :members:
+   :undoc-members:
+   :show-inheritance:

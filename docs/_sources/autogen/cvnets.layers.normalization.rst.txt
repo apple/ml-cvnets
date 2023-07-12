@@ -1,0 +1,53 @@
+cvnets.layers.normalization package
+===================================
+
+Submodules
+----------
+
+cvnets.layers.normalization.batch\_norm module
+----------------------------------------------
+
+.. automodule:: cvnets.layers.normalization.batch_norm
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.normalization.group\_norm module
+----------------------------------------------
+
+.. automodule:: cvnets.layers.normalization.group_norm
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.normalization.instance\_norm module
+-------------------------------------------------
+
+.. automodule:: cvnets.layers.normalization.instance_norm
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.normalization.layer\_norm module
+----------------------------------------------
+
+.. automodule:: cvnets.layers.normalization.layer_norm
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.normalization.sync\_batch\_norm module
+----------------------------------------------------
+
+.. automodule:: cvnets.layers.normalization.sync_batch_norm
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cvnets.layers.normalization
+   :members:
+   :undoc-members:
+   :show-inheritance:

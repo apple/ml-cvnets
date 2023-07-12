@@ -1,0 +1,45 @@
+options package
+===============
+
+Submodules
+----------
+
+options.errors module
+---------------------
+
+.. automodule:: options.errors
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+options.opts module
+-------------------
+
+.. automodule:: options.opts
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+options.parse\_args module
+--------------------------
+
+.. automodule:: options.parse_args
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+options.utils module
+--------------------
+
+.. automodule:: options.utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: options
+   :members:
+   :undoc-members:
+   :show-inheritance:

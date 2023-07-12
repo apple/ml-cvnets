@@ -1,0 +1,33 @@
+cvnets.models package
+=====================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   cvnets.models.audio_classification
+   cvnets.models.classification
+   cvnets.models.detection
+   cvnets.models.multi_modal_img_text
+   cvnets.models.segmentation
+
+Submodules
+----------
+
+cvnets.models.base\_model module
+--------------------------------
+
+.. automodule:: cvnets.models.base_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cvnets.models
+   :members:
+   :undoc-members:
+   :show-inheritance:

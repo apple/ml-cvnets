@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cvnets.misc.third_party.ssd_utils &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../../cvnets.html">cvnets</a></li>
+      <li class="breadcrumb-item active">cvnets.misc.third_party.ssd_utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cvnets.misc.third_party.ssd_utils</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This source code in this file is adapted from following repos, both of which are released under MIT license.</span>
+<span class="sd">    Repository Link:</span>
+<span class="sd">        https://github.com/sacmehta/EdgeNets</span>
+<span class="sd">        https://github.com/qfgaohao/pytorch-ssd</span>
+<span class="sd">    File Link:</span>
+<span class="sd">        https://github.com/sacmehta/EdgeNets/blob/master/model/detection/match_priors.py</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="assign_priors"><a class="viewcode-back" href="../../../../autogen/cvnets.misc.third_party.html#cvnets.misc.third_party.ssd_utils.assign_priors">[docs]</a><span class="k">def</span> <span class="nf">assign_priors</span><span class="p">(</span>
+    <span class="n">gt_boxes</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">gt_labels</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">corner_form_priors</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">iou_threshold</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">background_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Assign ground truth boxes and targets to priors (or anchors)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        gt_boxes (Tensor): Ground-truth boxes tensor of shape (num_targets, 4)</span>
+<span class="sd">        gt_labels (Tensor): Ground-truth labels of shape (num_targets)</span>
+<span class="sd">        corner_form_priors (Tensor): Priors in corner form and has shape (num_priors, 4)</span>
+<span class="sd">        iou_threshold (float): Overlap between priors and gt_boxes.</span>
+<span class="sd">        background_id (int): Background class index. Default: 0</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        boxes (Tensor): Boxes mapped to priors and has shape (num_priors, 4)</span>
+<span class="sd">        labels (Tensor): Labels for mapped boxes and has shape (num_priors)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">gt_labels</span><span class="o">.</span><span class="n">nelement</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># Images may not have any labels</span>
+        <span class="n">dev</span> <span class="o">=</span> <span class="n">corner_form_priors</span><span class="o">.</span><span class="n">device</span>
+        <span class="n">gt_boxes</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">dev</span><span class="p">)</span>
+        <span class="n">gt_labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">dev</span><span class="p">)</span>
+
+    <span class="n">ious</span> <span class="o">=</span> <span class="n">box_iou</span><span class="p">(</span><span class="n">gt_boxes</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">corner_form_priors</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="c1"># size: num_priors</span>
+    <span class="n">best_target_per_prior</span><span class="p">,</span> <span class="n">best_target_per_prior_index</span> <span class="o">=</span> <span class="n">ious</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># size: num_targets</span>
+    <span class="n">best_prior_per_target</span><span class="p">,</span> <span class="n">best_prior_per_target_index</span> <span class="o">=</span> <span class="n">ious</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">target_index</span><span class="p">,</span> <span class="n">prior_index</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">best_prior_per_target_index</span><span class="p">):</span>
+        <span class="n">best_target_per_prior_index</span><span class="p">[</span><span class="n">prior_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">target_index</span>
+    <span class="c1"># 2.0 is used to make sure every target has a prior assigned</span>
+    <span class="n">best_target_per_prior</span><span class="o">.</span><span class="n">index_fill_</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">best_prior_per_target_index</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="c1"># size: num_priors</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">gt_labels</span><span class="p">[</span><span class="n">best_target_per_prior_index</span><span class="p">]</span>
+    <span class="n">labels</span><span class="p">[</span><span class="n">best_target_per_prior</span> <span class="o">&lt;</span> <span class="n">iou_threshold</span><span class="p">]</span> <span class="o">=</span> <span class="n">background_id</span>
+    <span class="n">boxes</span> <span class="o">=</span> <span class="n">gt_boxes</span><span class="p">[</span><span class="n">best_target_per_prior_index</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">boxes</span><span class="p">,</span> <span class="n">labels</span></div>
+
+
+<div class="viewcode-block" id="box_iou"><a class="viewcode-back" href="../../../../autogen/cvnets.misc.third_party.html#cvnets.misc.third_party.ssd_utils.box_iou">[docs]</a><span class="k">def</span> <span class="nf">box_iou</span><span class="p">(</span>
+    <span class="n">boxes0</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">boxes1</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">eps</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes intersection-over-union between two boxes</span>
+<span class="sd">    Args:</span>
+<span class="sd">        boxes0 (Tensor): Boxes 0 of shape (N, 4)</span>
+<span class="sd">        boxes1 (Tensor): Boxes 1 of shape (N or 1, 4)</span>
+<span class="sd">        eps (Optional[float]): A small value is added to denominator for numerical stability</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        iou (Tensor): IoU values between boxes0 and boxes1 and has shape (N)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">area_of</span><span class="p">(</span><span class="n">left_top</span><span class="p">,</span> <span class="n">right_bottom</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Given two corners of the rectangle, compute the area</span>
+<span class="sd">        Args:</span>
+<span class="sd">            left_top (N, 2): left top corner.</span>
+<span class="sd">            right_bottom (N, 2): right bottom corner.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            area (N): return the area.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hw</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">right_bottom</span> <span class="o">-</span> <span class="n">left_top</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">hw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">hw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">overlap_left_top</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">boxes0</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="n">boxes1</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">overlap_right_bottom</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">boxes0</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">:],</span> <span class="n">boxes1</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">:])</span>
+
+    <span class="n">overlap_area</span> <span class="o">=</span> <span class="n">area_of</span><span class="p">(</span><span class="n">overlap_left_top</span><span class="p">,</span> <span class="n">overlap_right_bottom</span><span class="p">)</span>
+    <span class="n">area0</span> <span class="o">=</span> <span class="n">area_of</span><span class="p">(</span><span class="n">boxes0</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="n">boxes0</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">:])</span>
+    <span class="n">area1</span> <span class="o">=</span> <span class="n">area_of</span><span class="p">(</span><span class="n">boxes1</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="n">boxes1</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">:])</span>
+    <span class="k">return</span> <span class="n">overlap_area</span> <span class="o">/</span> <span class="p">(</span><span class="n">area0</span> <span class="o">+</span> <span class="n">area1</span> <span class="o">-</span> <span class="n">overlap_area</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="hard_negative_mining"><a class="viewcode-back" href="../../../../autogen/cvnets.misc.third_party.html#cvnets.misc.third_party.ssd_utils.hard_negative_mining">[docs]</a><span class="k">def</span> <span class="nf">hard_negative_mining</span><span class="p">(</span>
+    <span class="n">loss</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">labels</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">neg_pos_ratio</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function is used to suppress the presence of a large number of negative predictions. For any example/image,</span>
+<span class="sd">    it keeps all the positive predictions and cut the number of negative predictions to make sure the ratio</span>
+<span class="sd">    between the negative examples and positive examples is no more than the given ratio for an image.</span>
+<span class="sd">    Args:</span>
+<span class="sd">        loss (Tensor): the loss for each example and has shape (N, num_priors).</span>
+<span class="sd">        labels (Tensor): the labels and has shape (N, num_priors).</span>
+<span class="sd">        neg_pos_ratio (int):  the ratio between the negative examples and positive examples. Usually, it is set as 3.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pos_mask</span> <span class="o">=</span> <span class="n">labels</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="n">num_pos</span> <span class="o">=</span> <span class="n">pos_mask</span><span class="o">.</span><span class="n">long</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">num_neg</span> <span class="o">=</span> <span class="n">num_pos</span> <span class="o">*</span> <span class="n">neg_pos_ratio</span>
+
+    <span class="n">loss</span><span class="p">[</span><span class="n">pos_mask</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">math</span><span class="o">.</span><span class="n">inf</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">indexes</span> <span class="o">=</span> <span class="n">loss</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">descending</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">orders</span> <span class="o">=</span> <span class="n">indexes</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">neg_mask</span> <span class="o">=</span> <span class="n">orders</span> <span class="o">&lt;</span> <span class="n">num_neg</span>
+    <span class="k">return</span> <span class="n">pos_mask</span> <span class="o">|</span> <span class="n">neg_mask</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

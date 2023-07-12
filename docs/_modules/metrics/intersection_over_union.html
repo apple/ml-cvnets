@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>metrics.intersection_over_union &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../metrics.html">metrics</a></li>
+      <li class="breadcrumb-item active">metrics.intersection_over_union</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for metrics.intersection_over_union</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">from</span> <span class="nn">numbers</span> <span class="kn">import</span> <span class="n">Number</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
+
+<span class="kn">from</span> <span class="nn">metrics</span> <span class="kn">import</span> <span class="n">METRICS_REGISTRY</span>
+<span class="kn">from</span> <span class="nn">metrics.metric_base</span> <span class="kn">import</span> <span class="n">AverageMetric</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+
+
+<div class="viewcode-block" id="compute_miou_batch"><a class="viewcode-back" href="../../autogen/metrics.html#metrics.intersection_over_union.compute_miou_batch">[docs]</a><span class="k">def</span> <span class="nf">compute_miou_batch</span><span class="p">(</span>
+    <span class="n">prediction</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">],</span> <span class="n">Tensor</span><span class="p">],</span>
+    <span class="n">target</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">epsilon</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">prediction</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">prediction</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">):</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">prediction</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;For computing loss for segmentation task, we need prediction to be an instance of Tuple or Tensor&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">num_classes</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">pred_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="p">(</span>
+        <span class="n">pred_mask</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span>
+    <span class="p">),</span> <span class="s2">&quot;Predicted mask tensor should be 3-dimensional (B x H x W)&quot;</span>
+
+    <span class="n">pred_mask</span> <span class="o">=</span> <span class="n">pred_mask</span><span class="o">.</span><span class="n">byte</span><span class="p">()</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">byte</span><span class="p">()</span>
+
+    <span class="c1"># shift by 1 so that 255 is 0</span>
+    <span class="n">pred_mask</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">target</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">pred_mask</span> <span class="o">=</span> <span class="n">pred_mask</span> <span class="o">*</span> <span class="p">(</span><span class="n">target</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">inter</span> <span class="o">=</span> <span class="n">pred_mask</span> <span class="o">*</span> <span class="p">(</span><span class="n">pred_mask</span> <span class="o">==</span> <span class="n">target</span><span class="p">)</span>
+    <span class="n">area_inter</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">histc</span><span class="p">(</span><span class="n">inter</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span> <span class="n">bins</span><span class="o">=</span><span class="n">num_classes</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="n">num_classes</span><span class="p">)</span>
+    <span class="n">area_pred</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">histc</span><span class="p">(</span><span class="n">pred_mask</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span> <span class="n">bins</span><span class="o">=</span><span class="n">num_classes</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="n">num_classes</span><span class="p">)</span>
+    <span class="n">area_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">histc</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span> <span class="n">bins</span><span class="o">=</span><span class="n">num_classes</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="n">num_classes</span><span class="p">)</span>
+    <span class="n">area_union</span> <span class="o">=</span> <span class="n">area_pred</span> <span class="o">+</span> <span class="n">area_mask</span> <span class="o">-</span> <span class="n">area_inter</span> <span class="o">+</span> <span class="n">epsilon</span>
+    <span class="k">return</span> <span class="n">area_inter</span><span class="p">,</span> <span class="n">area_union</span></div>
+
+
+<div class="viewcode-block" id="IOUMetric"><a class="viewcode-back" href="../../autogen/metrics.html#metrics.intersection_over_union.IOUMetric">[docs]</a><span class="nd">@METRICS_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;iou&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">IOUMetric</span><span class="p">(</span><span class="n">AverageMetric</span><span class="p">):</span>
+<div class="viewcode-block" id="IOUMetric.gather_metrics"><a class="viewcode-back" href="../../autogen/metrics.html#metrics.intersection_over_union.IOUMetric.gather_metrics">[docs]</a>    <span class="k">def</span> <span class="nf">gather_metrics</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">prediction</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">],</span>
+        <span class="n">target</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">],</span>
+        <span class="n">extras</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function gathers intersection and union metrics from different processes and converts to float.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">):</span>
+            <span class="n">inter</span><span class="p">,</span> <span class="n">union</span> <span class="o">=</span> <span class="n">compute_miou_batch</span><span class="p">(</span><span class="n">prediction</span><span class="o">=</span><span class="n">prediction</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;inter&quot;</span><span class="p">:</span> <span class="n">inter</span><span class="p">,</span> <span class="s2">&quot;union&quot;</span><span class="p">:</span> <span class="n">union</span><span class="p">}</span>
+        <span class="c1"># elif isinstance(prediction, Dict):</span>
+        <span class="c1">#    logger.error(&quot;IOU metrics are not supported for a dictionary of predictions&quot;)</span>
+        <span class="c1"># We will revisit it later, as per the use case.</span>
+
+        <span class="c1"># inter_dict = {}</span>
+        <span class="c1"># union_dict = {}</span>
+        <span class="c1"># for k, v in prediction.items():</span>
+        <span class="c1">#     inter, union = compute_miou_batch(prediction=v, target=target)</span>
+        <span class="c1">#     inter = tensor_to_python_float(inter, is_distributed=is_distributed)</span>
+        <span class="c1">#     union = tensor_to_python_float(union, is_distributed=is_distributed)</span>
+        <span class="c1">#     inter_dict[k] = inter</span>
+        <span class="c1">#     union_dict[k] = union</span>
+        <span class="c1"># return inter_dict, union_dict</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Metric monitor supports Tensor only for IoU&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="IOUMetric.compute"><a class="viewcode-back" href="../../autogen/metrics.html#metrics.intersection_over_union.IOUMetric.compute">[docs]</a>    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Number</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Number</span><span class="p">]]:</span>
+        <span class="n">averaged</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
+        <span class="n">iou</span> <span class="o">=</span> <span class="n">averaged</span><span class="p">[</span><span class="s2">&quot;inter&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">averaged</span><span class="p">[</span><span class="s2">&quot;union&quot;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">iou</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">):</span>
+            <span class="n">iou</span> <span class="o">=</span> <span class="n">iou</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+        <span class="c1"># Converting iou from [0, 1] to [0, 100]</span>
+        <span class="c1"># other metrics are by default in [0, 100 range]</span>
+        <span class="n">avg_iou</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">iou</span><span class="p">)</span> <span class="o">*</span> <span class="mf">100.0</span>
+
+        <span class="k">return</span> <span class="n">avg_iou</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

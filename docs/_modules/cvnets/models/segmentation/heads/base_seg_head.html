@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cvnets.models.segmentation.heads.base_seg_head &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../../_static/jquery.js"></script>
+        <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
+        <script src="../../../../../_static/doctools.js"></script>
+        <script src="../../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../../../cvnets.html">cvnets</a></li>
+          <li class="breadcrumb-item"><a href="../../../models.html">cvnets.models</a></li>
+      <li class="breadcrumb-item active">cvnets.models.segmentation.heads.base_seg_head</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cvnets.models.segmentation.heads.base_seg_head</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">nn</span>
+
+<span class="kn">from</span> <span class="nn">cvnets.layers</span> <span class="kn">import</span> <span class="n">ConvLayer2d</span><span class="p">,</span> <span class="n">Dropout2d</span><span class="p">,</span> <span class="n">UpSample</span>
+<span class="kn">from</span> <span class="nn">cvnets.misc.common</span> <span class="kn">import</span> <span class="n">parameter_list</span>
+<span class="kn">from</span> <span class="nn">cvnets.misc.init_utils</span> <span class="kn">import</span> <span class="n">initialize_weights</span>
+<span class="kn">from</span> <span class="nn">cvnets.models</span> <span class="kn">import</span> <span class="n">MODEL_REGISTRY</span><span class="p">,</span> <span class="n">BaseAnyNNModel</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+
+
+<div class="viewcode-block" id="BaseSegHead"><a class="viewcode-back" href="../../../../../autogen/cvnets.models.segmentation.heads.html#cvnets.models.segmentation.heads.base_seg_head.BaseSegHead">[docs]</a><span class="nd">@MODEL_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;__base__&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;segmentation_head&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">BaseSegHead</span><span class="p">(</span><span class="n">BaseAnyNNModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for segmentation heads</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BaseSegHead.__init__"><a class="viewcode-back" href="../../../../../autogen/cvnets.models.segmentation.heads.html#cvnets.models.segmentation.heads.base_seg_head.BaseSegHead.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">opts</span><span class="p">,</span> <span class="n">enc_conf</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">use_l5_exp</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+        <span class="n">enc_ch_l5_exp_out</span> <span class="o">=</span> <span class="n">_check_out_channels</span><span class="p">(</span><span class="n">enc_conf</span><span class="p">,</span> <span class="s2">&quot;exp_before_cls&quot;</span><span class="p">)</span>
+        <span class="n">enc_ch_l5_out</span> <span class="o">=</span> <span class="n">_check_out_channels</span><span class="p">(</span><span class="n">enc_conf</span><span class="p">,</span> <span class="s2">&quot;layer5&quot;</span><span class="p">)</span>
+        <span class="n">enc_ch_l4_out</span> <span class="o">=</span> <span class="n">_check_out_channels</span><span class="p">(</span><span class="n">enc_conf</span><span class="p">,</span> <span class="s2">&quot;layer4&quot;</span><span class="p">)</span>
+        <span class="n">enc_ch_l3_out</span> <span class="o">=</span> <span class="n">_check_out_channels</span><span class="p">(</span><span class="n">enc_conf</span><span class="p">,</span> <span class="s2">&quot;layer3&quot;</span><span class="p">)</span>
+        <span class="n">enc_ch_l2_out</span> <span class="o">=</span> <span class="n">_check_out_channels</span><span class="p">(</span><span class="n">enc_conf</span><span class="p">,</span> <span class="s2">&quot;layer2&quot;</span><span class="p">)</span>
+        <span class="n">enc_ch_l1_out</span> <span class="o">=</span> <span class="n">_check_out_channels</span><span class="p">(</span><span class="n">enc_conf</span><span class="p">,</span> <span class="s2">&quot;layer1&quot;</span><span class="p">)</span>
+
+        <span class="n">n_seg_classes</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.segmentation.n_classes&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n_seg_classes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;Please specify number of segmentation classes using --model.segmentation.n-classes. Got None.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_l5_exp</span> <span class="o">=</span> <span class="n">use_l5_exp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enc_l5_exp_channels</span> <span class="o">=</span> <span class="n">enc_ch_l5_exp_out</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enc_l5_channels</span> <span class="o">=</span> <span class="n">enc_ch_l5_out</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enc_l4_channels</span> <span class="o">=</span> <span class="n">enc_ch_l4_out</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enc_l3_channels</span> <span class="o">=</span> <span class="n">enc_ch_l3_out</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enc_l2_channels</span> <span class="o">=</span> <span class="n">enc_ch_l2_out</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enc_l1_channels</span> <span class="o">=</span> <span class="n">enc_ch_l1_out</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_seg_classes</span> <span class="o">=</span> <span class="n">n_seg_classes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lr_multiplier</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.segmentation.lr_multiplier&quot;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classifier_dropout</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.segmentation.classifier_dropout&quot;</span><span class="p">,</span> <span class="mf">0.1</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_stride</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.segmentation.output_stride&quot;</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">aux_head</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.segmentation.use_aux_head&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="n">drop_aux</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.segmentation.aux_dropout&quot;</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
+            <span class="n">inner_channels</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enc_l4_channels</span> <span class="o">//</span> <span class="mi">4</span><span class="p">),</span> <span class="mi">128</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">aux_head</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+                <span class="n">ConvLayer2d</span><span class="p">(</span>
+                    <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                    <span class="n">in_channels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">enc_l4_channels</span><span class="p">,</span>
+                    <span class="n">out_channels</span><span class="o">=</span><span class="n">inner_channels</span><span class="p">,</span>
+                    <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                    <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="n">use_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">use_act</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">groups</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">Dropout2d</span><span class="p">(</span><span class="n">drop_aux</span><span class="p">),</span>
+                <span class="n">ConvLayer2d</span><span class="p">(</span>
+                    <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                    <span class="n">in_channels</span><span class="o">=</span><span class="n">inner_channels</span><span class="p">,</span>
+                    <span class="n">out_channels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_seg_classes</span><span class="p">,</span>
+                    <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="n">use_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">use_act</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">groups</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">upsample_seg_out</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_stride</span> <span class="o">!=</span> <span class="mf">1.0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">upsample_seg_out</span> <span class="o">=</span> <span class="n">UpSample</span><span class="p">(</span>
+                <span class="n">scale_factor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_stride</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;bilinear&quot;</span><span class="p">,</span> <span class="n">align_corners</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseSegHead.forward_aux_head"><a class="viewcode-back" href="../../../../../autogen/cvnets.models.segmentation.heads.html#cvnets.models.segmentation.heads.base_seg_head.BaseSegHead.forward_aux_head">[docs]</a>    <span class="k">def</span> <span class="nf">forward_aux_head</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_out</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">aux_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aux_head</span><span class="p">(</span><span class="n">enc_out</span><span class="p">[</span><span class="s2">&quot;out_l4&quot;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">aux_out</span></div>
+
+<div class="viewcode-block" id="BaseSegHead.forward_seg_head"><a class="viewcode-back" href="../../../../../autogen/cvnets.models.segmentation.heads.html#cvnets.models.segmentation.heads.base_seg_head.BaseSegHead.forward_seg_head">[docs]</a>    <span class="k">def</span> <span class="nf">forward_seg_head</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_out</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="BaseSegHead.forward"><a class="viewcode-back" href="../../../../../autogen/cvnets.models.segmentation.heads.html#cvnets.models.segmentation.heads.base_seg_head.BaseSegHead.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_out</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span> <span class="ow">or</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_seg_head</span><span class="p">(</span><span class="n">enc_out</span><span class="o">=</span><span class="n">enc_out</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">upsample_seg_out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># resize the mask based on given size</span>
+            <span class="n">mask_size</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;orig_size&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">mask_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">upsample_seg_out</span><span class="o">.</span><span class="n">scale_factor</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">upsample_seg_out</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">mask_size</span>
+
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">upsample_seg_out</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">aux_head</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="n">aux_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_aux_head</span><span class="p">(</span><span class="n">enc_out</span><span class="o">=</span><span class="n">enc_out</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">aux_out</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+
+<div class="viewcode-block" id="BaseSegHead.reset_head_parameters"><a class="viewcode-back" href="../../../../../autogen/cvnets.models.segmentation.heads.html#cvnets.models.segmentation.heads.base_seg_head.BaseSegHead.reset_head_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">reset_head_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">opts</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># weight initialization</span>
+        <span class="n">initialize_weights</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="n">modules</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="BaseSegHead.add_arguments"><a class="viewcode-back" href="../../../../../autogen/cvnets.models.segmentation.heads.html#cvnets.models.segmentation.heads.base_seg_head.BaseSegHead.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add segmentation head specific arguments&quot;&quot;&quot;</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
+            <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Segmentation head arguments&quot;</span><span class="p">,</span>
+            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Segmentation head arguments&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.segmentation.seg-head&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Segmentation head&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="BaseSegHead.get_trainable_parameters"><a class="viewcode-back" href="../../../../../autogen/cvnets.models.segmentation.heads.html#cvnets.models.segmentation.heads.base_seg_head.BaseSegHead.get_trainable_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">get_trainable_parameters</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">weight_decay</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">no_decay_bn_filter_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+        <span class="n">param_list</span> <span class="o">=</span> <span class="n">parameter_list</span><span class="p">(</span>
+            <span class="n">named_parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">,</span>
+            <span class="n">weight_decay</span><span class="o">=</span><span class="n">weight_decay</span><span class="p">,</span>
+            <span class="n">no_decay_bn_filter_bias</span><span class="o">=</span><span class="n">no_decay_bn_filter_bias</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">param_list</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">lr_multiplier</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">param_list</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseSegHead.update_classifier"><a class="viewcode-back" href="../../../../../autogen/cvnets.models.segmentation.heads.html#cvnets.models.segmentation.heads.base_seg_head.BaseSegHead.update_classifier">[docs]</a>    <span class="k">def</span> <span class="nf">update_classifier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">opts</span><span class="p">,</span> <span class="n">n_classes</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function updates the classification layer in a model. Useful for finetuning purposes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="BaseSegHead.build_model"><a class="viewcode-back" href="../../../../../autogen/cvnets.models.segmentation.heads.html#cvnets.models.segmentation.heads.base_seg_head.BaseSegHead.build_model">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">build_model</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseAnyNNModel</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
+
+
+<span class="k">def</span> <span class="nf">_check_out_channels</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">layer_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="n">enc_ch_l</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">layer_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">enc_ch_l</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">enc_ch_l</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">&quot;Encoder does not define input-output mapping for </span><span class="si">{}</span><span class="s2">: Got: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">layer_name</span><span class="p">,</span> <span class="n">config</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">enc_ch_l_out</span> <span class="o">=</span> <span class="n">enc_ch_l</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;out&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">enc_ch_l_out</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">enc_ch_l_out</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">&quot;Output channels are not defined in </span><span class="si">{}</span><span class="s2"> of the encoder. Got: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">layer_name</span><span class="p">,</span> <span class="n">enc_ch_l</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">enc_ch_l_out</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

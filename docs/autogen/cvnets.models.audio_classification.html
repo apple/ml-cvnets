@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cvnets.models.audio_classification package &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">cvnets.models.audio_classification package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/autogen/cvnets.models.audio_classification.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="cvnets-models-audio-classification-package">
+<h1>cvnets.models.audio_classification package<a class="headerlink" href="#cvnets-models-audio-classification-package" title="Permalink to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</section>
+<section id="module-cvnets.models.audio_classification.audio_byteformer">
+<span id="cvnets-models-audio-classification-audio-byteformer-module"></span><h2>cvnets.models.audio_classification.audio_byteformer module<a class="headerlink" href="#module-cvnets.models.audio_classification.audio_byteformer" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="cvnets.models.audio_classification.audio_byteformer.AudioByteFormer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cvnets.models.audio_classification.audio_byteformer.</span></span><span class="sig-name descname"><span class="pre">AudioByteFormer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cvnets/models/audio_classification/audio_byteformer.html#AudioByteFormer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.audio_classification.audio_byteformer.AudioByteFormer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.byteformer.ByteFormer" title="cvnets.models.classification.byteformer.ByteFormer"><code class="xref py py-class docutils literal notranslate"><span class="pre">ByteFormer</span></code></a>, <a class="reference internal" href="#cvnets.models.audio_classification.base_audio_classification.BaseAudioClassification" title="cvnets.models.audio_classification.base_audio_classification.BaseAudioClassification"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseAudioClassification</span></code></a></p>
+<p>Identical to byteformer.ByteFormer, but registered as an audio classification
+model.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.audio_classification.audio_byteformer.AudioByteFormer.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="../_modules/cvnets/models/audio_classification/audio_byteformer.html#AudioByteFormer.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.audio_classification.audio_byteformer.AudioByteFormer.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Perform a forward pass on input bytes. The input is a dictionary
+containing the input tensor. The tensor is stored as an integer tensor
+of shape [batch_size, sequence_length]. Integer tensors are used because
+the tensor usually contains mask tokens.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> – A dictionary containing {“audio”: audio_bytes}.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The output logits.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.audio_classification.audio_byteformer.AudioByteFormer.dummy_input_and_label">
+<span class="sig-name descname"><span class="pre">dummy_input_and_label</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="reference internal" href="../_modules/cvnets/models/audio_classification/audio_byteformer.html#AudioByteFormer.dummy_input_and_label"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.audio_classification.audio_byteformer.AudioByteFormer.dummy_input_and_label" title="Permalink to this definition"></a></dt>
+<dd><p>Get a dummy input and label that could be passed to the model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>batch_size</strong> – The batch size to use for the generated inputs.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl>
+<dt>A dict with</dt><dd><dl class="simple">
+<dt>{</dt><dd><p>“samples”: {“audio”: tensor of shape [batch_size, sequence_length]},
+“targets”: tensor of shape [batch_size],</p>
+</dd>
+</dl>
+<p>}</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-cvnets.models.audio_classification.base_audio_classification">
+<span id="cvnets-models-audio-classification-base-audio-classification-module"></span><h2>cvnets.models.audio_classification.base_audio_classification module<a class="headerlink" href="#module-cvnets.models.audio_classification.base_audio_classification" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="cvnets.models.audio_classification.base_audio_classification.BaseAudioClassification">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cvnets.models.audio_classification.base_audio_classification.</span></span><span class="sig-name descname"><span class="pre">BaseAudioClassification</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cvnets/models/audio_classification/base_audio_classification.html#BaseAudioClassification"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.audio_classification.base_audio_classification.BaseAudioClassification" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel" title="cvnets.models.base_model.BaseAnyNNModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseAnyNNModel</span></code></a></p>
+<p>Base class for audio classification.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>opts</strong> – Command-line arguments</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.audio_classification.base_audio_classification.BaseAudioClassification.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/cvnets/models/audio_classification/base_audio_classification.html#BaseAudioClassification.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.audio_classification.base_audio_classification.BaseAudioClassification.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.audio_classification.base_audio_classification.BaseAudioClassification.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/cvnets/models/audio_classification/base_audio_classification.html#BaseAudioClassification.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.audio_classification.base_audio_classification.BaseAudioClassification.add_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Add model specific arguments</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-cvnets.models.audio_classification">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-cvnets.models.audio_classification" title="Permalink to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

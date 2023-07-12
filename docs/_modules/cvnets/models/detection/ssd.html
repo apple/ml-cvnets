@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cvnets.models.detection.ssd &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../../cvnets.html">cvnets</a></li>
+          <li class="breadcrumb-item"><a href="../../models.html">cvnets.models</a></li>
+      <li class="breadcrumb-item active">cvnets.models.detection.ssd</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cvnets.models.detection.ssd</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">nn</span>
+<span class="kn">from</span> <span class="nn">torchvision.ops</span> <span class="kn">import</span> <span class="n">batched_nms</span>
+
+<span class="kn">from</span> <span class="nn">cvnets.anchor_generator</span> <span class="kn">import</span> <span class="n">build_anchor_generator</span>
+<span class="kn">from</span> <span class="nn">cvnets.layers</span> <span class="kn">import</span> <span class="n">AdaptiveAvgPool2d</span><span class="p">,</span> <span class="n">ConvLayer2d</span><span class="p">,</span> <span class="n">SeparableConv2d</span>
+<span class="kn">from</span> <span class="nn">cvnets.matcher_det</span> <span class="kn">import</span> <span class="n">build_matcher</span>
+<span class="kn">from</span> <span class="nn">cvnets.misc.init_utils</span> <span class="kn">import</span> <span class="n">initialize_conv_layer</span>
+<span class="kn">from</span> <span class="nn">cvnets.models</span> <span class="kn">import</span> <span class="n">MODEL_REGISTRY</span>
+<span class="kn">from</span> <span class="nn">cvnets.models.classification.base_image_encoder</span> <span class="kn">import</span> <span class="n">BaseImageEncoder</span>
+<span class="kn">from</span> <span class="nn">cvnets.models.detection</span> <span class="kn">import</span> <span class="n">DetectionPredTuple</span>
+<span class="kn">from</span> <span class="nn">cvnets.models.detection.base_detection</span> <span class="kn">import</span> <span class="n">BaseDetection</span>
+<span class="kn">from</span> <span class="nn">cvnets.modules</span> <span class="kn">import</span> <span class="n">SSDHead</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">from</span> <span class="nn">utils.common_utils</span> <span class="kn">import</span> <span class="n">is_coreml_conversion</span>
+
+
+<div class="viewcode-block" id="SingleShotMaskDetector"><a class="viewcode-back" href="../../../../autogen/cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector">[docs]</a><span class="nd">@MODEL_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;ssd&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;detection&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">SingleShotMaskDetector</span><span class="p">(</span><span class="n">BaseDetection</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class implements a `Single Shot Object Detector &lt;https://arxiv.org/abs/1512.02325&gt;`_</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: command-line arguments</span>
+<span class="sd">        encoder (BaseImageEncoder): Encoder network (e.g., ResNet or MobileViT)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">coordinates</span> <span class="o">=</span> <span class="mi">4</span>  <span class="c1"># 4 coordinates (x1, y1, x2, y2) or (x, y, w, h)</span>
+
+<div class="viewcode-block" id="SingleShotMaskDetector.__init__"><a class="viewcode-back" href="../../../../autogen/cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">opts</span><span class="p">,</span> <span class="n">encoder</span><span class="p">:</span> <span class="n">BaseImageEncoder</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="n">anchor_gen_name</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;anchor_generator.name&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">anchor_gen_name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">anchor_gen_name</span> <span class="o">!=</span> <span class="s2">&quot;ssd&quot;</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;For SSD, we need --anchor-generator.name to be ssd&quot;</span><span class="p">)</span>
+        <span class="n">anchor_box_generator</span> <span class="o">=</span> <span class="n">build_anchor_generator</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">)</span>
+
+        <span class="n">output_strides_aspect_ratio</span> <span class="o">=</span> <span class="n">anchor_box_generator</span><span class="o">.</span><span class="n">output_strides_aspect_ratio</span>
+        <span class="n">output_strides</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">output_strides_aspect_ratio</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">anchors_aspect_ratio</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">output_strides_aspect_ratio</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+        <span class="n">n_os</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_strides</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;matcher.name&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;ssd&quot;</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;For SSD, we need --matcher.name as ssd&quot;</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="n">encoder</span><span class="o">=</span><span class="n">encoder</span><span class="p">)</span>
+
+        <span class="c1"># delete layers that are not required in detection network</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">classifier</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">conv_1x1_exp</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">proj_channels</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.detection.ssd.proj_channels&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="n">proj_channels</span> <span class="o">=</span> <span class="n">proj_channels</span> <span class="o">+</span> <span class="p">[</span><span class="mi">128</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_os</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">proj_channels</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">n_os</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">anchors_aspect_ratio</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">proj_channels</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;SSD model requires anchors to be defined for feature maps from each output stride. Also&quot;</span>
+                <span class="s2">&quot;len(anchors_aspect_ratio) == len(output_strides) == len(proj_channels). &quot;</span>
+                <span class="s2">&quot;Got len(output_strides)=</span><span class="si">{}</span><span class="s2">, len(anchors_aspect_ratio)=</span><span class="si">{}</span><span class="s2">, len(proj_channels)=</span><span class="si">{}</span><span class="s2">.&quot;</span>
+                <span class="s2">&quot; Please specify correct arguments using following arguments: &quot;</span>
+                <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--model.detection.ssd.anchors-aspect-ratio &quot;</span>
+                <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--model.detection.ssd.output-strides&quot;</span>
+                <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--model.detection.ssd.proj-channels&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">n_os</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">anchors_aspect_ratio</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">proj_channels</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="n">extra_layers</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">enc_channels_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">in_channels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc_l5_channels</span>
+
+        <span class="n">extra_proj_list</span> <span class="o">=</span> <span class="p">[</span><span class="mi">256</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">output_strides</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">proj_channels</span><span class="p">))</span>
+        <span class="n">proj_channels</span> <span class="o">=</span> <span class="n">proj_channels</span> <span class="o">+</span> <span class="n">extra_proj_list</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">os</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">output_strides</span><span class="p">):</span>
+            <span class="n">out_channels</span> <span class="o">=</span> <span class="n">proj_channels</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">os</span> <span class="o">==</span> <span class="mi">8</span><span class="p">:</span>
+                <span class="n">enc_channels_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enc_l3_channels</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">os</span> <span class="o">==</span> <span class="mi">16</span><span class="p">:</span>
+                <span class="n">enc_channels_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enc_l4_channels</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">os</span> <span class="o">==</span> <span class="mi">32</span><span class="p">:</span>
+                <span class="n">enc_channels_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enc_l5_channels</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">os</span> <span class="o">&gt;</span> <span class="mi">32</span> <span class="ow">and</span> <span class="n">os</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="n">extra_layers</span><span class="p">[</span><span class="s2">&quot;os_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="p">)]</span> <span class="o">=</span> <span class="n">SeparableConv2d</span><span class="p">(</span>
+                    <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                    <span class="n">in_channels</span><span class="o">=</span><span class="n">in_channels</span><span class="p">,</span>
+                    <span class="n">out_channels</span><span class="o">=</span><span class="n">out_channels</span><span class="p">,</span>
+                    <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                    <span class="n">use_act</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">use_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">enc_channels_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out_channels</span><span class="p">)</span>
+                <span class="n">in_channels</span> <span class="o">=</span> <span class="n">out_channels</span>
+            <span class="k">elif</span> <span class="n">os</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="n">extra_layers</span><span class="p">[</span><span class="s2">&quot;os_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="p">)]</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+                    <span class="n">AdaptiveAvgPool2d</span><span class="p">(</span><span class="n">output_size</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+                    <span class="n">ConvLayer2d</span><span class="p">(</span>
+                        <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                        <span class="n">in_channels</span><span class="o">=</span><span class="n">in_channels</span><span class="p">,</span>
+                        <span class="n">out_channels</span><span class="o">=</span><span class="n">out_channels</span><span class="p">,</span>
+                        <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">use_act</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">use_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="p">),</span>
+                <span class="p">)</span>
+                <span class="n">enc_channels_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out_channels</span><span class="p">)</span>
+                <span class="n">in_channels</span> <span class="o">=</span> <span class="n">out_channels</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extra_layers</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">extra_layers</span> <span class="k">else</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleDict</span><span class="p">(</span><span class="n">extra_layers</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra_layers</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reset_layers</span><span class="p">(</span><span class="n">module</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">extra_layers</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fpn</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.detection.ssd.use_fpn&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="kn">from</span> <span class="nn">cvnets.modules</span> <span class="kn">import</span> <span class="n">FeaturePyramidNetwork</span>
+
+            <span class="n">fpn_channels</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.detection.ssd.fpn_out_channels&quot;</span><span class="p">,</span> <span class="mi">256</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fpn</span> <span class="o">=</span> <span class="n">FeaturePyramidNetwork</span><span class="p">(</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                <span class="n">in_channels</span><span class="o">=</span><span class="n">enc_channels_list</span><span class="p">,</span>
+                <span class="n">output_strides</span><span class="o">=</span><span class="n">output_strides</span><span class="p">,</span>
+                <span class="n">out_channels</span><span class="o">=</span><span class="n">fpn_channels</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="c1"># update the enc_channels_list</span>
+            <span class="n">enc_channels_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">fpn_channels</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_strides</span><span class="p">)</span>
+            <span class="c1"># for FPN, we do not need to do projections</span>
+            <span class="n">proj_channels</span> <span class="o">=</span> <span class="n">enc_channels_list</span>
+
+        <span class="c1"># Anchor box related parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conf_threshold</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.detection.ssd.conf_threshold&quot;</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nms_threshold</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.detection.ssd.nms_iou_threshold&quot;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">top_k</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.detection.ssd.top_k&quot;</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">objects_per_image</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.detection.ssd.objects_per_image&quot;</span><span class="p">,</span> <span class="mi">200</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">anchor_box_generator</span> <span class="o">=</span> <span class="n">anchor_box_generator</span>
+
+        <span class="n">anchors_aspect_ratio</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">anchor_box_generator</span><span class="o">.</span><span class="n">num_anchors_per_os</span><span class="p">()</span>
+
+        <span class="c1"># Create SSD detection and classification heads</span>
+        <span class="n">anchor_steps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">anchor_box_generator</span><span class="o">.</span><span class="n">step</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ssd_heads</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">os</span><span class="p">,</span> <span class="n">in_dim</span><span class="p">,</span> <span class="n">proj_dim</span><span class="p">,</span> <span class="n">n_anchors</span><span class="p">,</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">output_strides</span><span class="p">,</span>
+            <span class="n">enc_channels_list</span><span class="p">,</span>
+            <span class="n">proj_channels</span><span class="p">,</span>
+            <span class="n">anchors_aspect_ratio</span><span class="p">,</span>
+            <span class="n">anchor_steps</span><span class="p">,</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ssd_heads</span> <span class="o">+=</span> <span class="p">[</span>
+                <span class="n">SSDHead</span><span class="p">(</span>
+                    <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                    <span class="n">in_channels</span><span class="o">=</span><span class="n">in_dim</span><span class="p">,</span>
+                    <span class="n">n_classes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_detection_classes</span><span class="p">,</span>
+                    <span class="n">n_coordinates</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">coordinates</span><span class="p">,</span>
+                    <span class="n">n_anchors</span><span class="o">=</span><span class="n">n_anchors</span><span class="p">,</span>
+                    <span class="n">proj_channels</span><span class="o">=</span><span class="n">proj_dim</span><span class="p">,</span>
+                    <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span> <span class="k">if</span> <span class="n">os</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="k">else</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="n">stride</span><span class="o">=</span><span class="n">step</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">anchors_aspect_ratio</span> <span class="o">=</span> <span class="n">anchors_aspect_ratio</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_strides</span> <span class="o">=</span> <span class="n">output_strides</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">match_prior</span> <span class="o">=</span> <span class="n">build_matcher</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">anchor_box_generator</span><span class="o">.</span><span class="n">step</span></div>
+
+<div class="viewcode-block" id="SingleShotMaskDetector.add_arguments"><a class="viewcode-back" href="../../../../autogen/cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.detection.ssd.anchors-aspect-ratio&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;append&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="p">[[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Anchors aspect ratio in each feature map obtained at different output strides.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.detection.ssd.output-strides&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Extract feature maps from these output strides.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.detection.ssd.proj-channels&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="mi">512</span><span class="p">]</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Projection channels for feature map obtained at each output stride&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># depreciated</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.detection.ssd.min-box-size&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Min. box size. Value between 0 and 1. Good default value is 0.1&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.detection.ssd.max-box-size&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Max. box size. Value between 0 and 1. Good default value is 1.05&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Depreciated</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.detection.ssd.center-variance&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Center variance.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.detection.ssd.size-variance&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Size variance.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.detection.ssd.iou-threshold&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;IOU Threshold.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># inference related arguments</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.detection.ssd.conf-threshold&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Confidence threshold. For evaluation on COCO, set to 0.01, so that we can compute mAP&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.detection.ssd.top-k&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Keep only top-k objects before NMS&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.detection.ssd.objects-per-image&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Keep only these many objects after NMS&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.detection.ssd.nms-iou-threshold&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;NMS IoU threshold &quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># FPN</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.detection.ssd.fpn-out-channels&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of output channels in FPN&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.detection.ssd.use-fpn&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Use SSD with FPN&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="SingleShotMaskDetector.reset_layers"><a class="viewcode-back" href="../../../../autogen/cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector.reset_layers">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">reset_layers</span><span class="p">(</span><span class="n">module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">module</span><span class="o">.</span><span class="n">modules</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">):</span>
+                <span class="n">initialize_conv_layer</span><span class="p">(</span><span class="n">module</span><span class="o">=</span><span class="n">layer</span><span class="p">,</span> <span class="n">init_method</span><span class="o">=</span><span class="s2">&quot;xavier_uniform&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SingleShotMaskDetector.process_anchors_ar"><a class="viewcode-back" href="../../../../autogen/cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector.process_anchors_ar">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">process_anchors_ar</span><span class="p">(</span><span class="n">anchor_ar</span><span class="p">:</span> <span class="n">List</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">anchor_ar</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+        <span class="n">new_ar</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">ar</span> <span class="ow">in</span> <span class="n">anchor_ar</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ar</span> <span class="ow">in</span> <span class="n">new_ar</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">new_ar</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ar</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">new_ar</span></div>
+
+<div class="viewcode-block" id="SingleShotMaskDetector.get_backbone_features"><a class="viewcode-back" href="../../../../autogen/cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector.get_backbone_features">[docs]</a>    <span class="k">def</span> <span class="nf">get_backbone_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+        <span class="c1"># extract features from the backbone network</span>
+        <span class="n">enc_end_points</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">extract_end_points_all</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">end_points</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">os</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_strides</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">os</span> <span class="o">==</span> <span class="mi">8</span><span class="p">:</span>
+                <span class="n">end_points</span><span class="p">[</span><span class="s2">&quot;os_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="p">)]</span> <span class="o">=</span> <span class="n">enc_end_points</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;out_l3&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">os</span> <span class="o">==</span> <span class="mi">16</span><span class="p">:</span>
+                <span class="n">end_points</span><span class="p">[</span><span class="s2">&quot;os_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="p">)]</span> <span class="o">=</span> <span class="n">enc_end_points</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;out_l4&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">os</span> <span class="o">==</span> <span class="mi">32</span><span class="p">:</span>
+                <span class="n">end_points</span><span class="p">[</span><span class="s2">&quot;os_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="p">)]</span> <span class="o">=</span> <span class="n">enc_end_points</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;out_l5&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">end_points</span><span class="p">[</span><span class="s2">&quot;os_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_strides</span><span class="p">[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])]</span>
+                <span class="n">end_points</span><span class="p">[</span><span class="s2">&quot;os_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="p">)]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra_layers</span><span class="p">[</span><span class="s2">&quot;os_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="p">)](</span>
+                    <span class="n">x</span>
+                <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fpn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># apply Feature Pyramid Network</span>
+            <span class="n">end_points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fpn</span><span class="p">(</span><span class="n">end_points</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">end_points</span></div>
+
+<div class="viewcode-block" id="SingleShotMaskDetector.ssd_forward"><a class="viewcode-back" href="../../../../autogen/cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector.ssd_forward">[docs]</a>    <span class="k">def</span> <span class="nf">ssd_forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">end_points</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">),</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">...</span><span class="p">]]:</span>
+
+        <span class="n">locations</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">confidences</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">anchors</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">os</span><span class="p">,</span> <span class="n">ssd_head</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_strides</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ssd_heads</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">end_points</span><span class="p">[</span><span class="s2">&quot;os_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="p">)]</span>
+            <span class="n">fm_h</span><span class="p">,</span> <span class="n">fm_w</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+            <span class="n">loc</span><span class="p">,</span> <span class="n">pred</span> <span class="o">=</span> <span class="n">ssd_head</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+            <span class="n">locations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loc</span><span class="p">)</span>
+            <span class="n">confidences</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pred</span><span class="p">)</span>
+
+            <span class="n">anchors_fm_ctr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">anchor_box_generator</span><span class="p">(</span>
+                <span class="n">fm_height</span><span class="o">=</span><span class="n">fm_h</span><span class="p">,</span> <span class="n">fm_width</span><span class="o">=</span><span class="n">fm_w</span><span class="p">,</span> <span class="n">fm_output_stride</span><span class="o">=</span><span class="n">os</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+            <span class="p">)</span>
+            <span class="n">anchors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">anchors_fm_ctr</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">))</span>
+
+        <span class="n">locations</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">locations</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">confidences</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">confidences</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">anchors</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">anchors</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">anchors</span> <span class="o">=</span> <span class="n">anchors</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">confidences</span><span class="p">,</span> <span class="n">locations</span><span class="p">,</span> <span class="n">anchors</span></div>
+
+<div class="viewcode-block" id="SingleShotMaskDetector.forward"><a class="viewcode-back" href="../../../../autogen/cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">Dict</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Dict</span><span class="p">):</span>
+            <span class="n">input_tensor</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">):</span>
+            <span class="n">input_tensor</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;Input to SSD should be either a Tensor or a Dict of Tensors&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">device</span> <span class="o">=</span> <span class="n">input_tensor</span><span class="o">.</span><span class="n">device</span>
+        <span class="n">backbone_end_points</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_backbone_features</span><span class="p">(</span><span class="n">input_tensor</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_coreml_conversion</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">):</span>
+            <span class="n">confidences</span><span class="p">,</span> <span class="n">locations</span><span class="p">,</span> <span class="n">anchors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ssd_forward</span><span class="p">(</span>
+                <span class="n">end_points</span><span class="o">=</span><span class="n">backbone_end_points</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+            <span class="p">)</span>
+
+            <span class="n">output_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;scores&quot;</span><span class="p">:</span> <span class="n">confidences</span><span class="p">,</span> <span class="s2">&quot;boxes&quot;</span><span class="p">:</span> <span class="n">locations</span><span class="p">}</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+                <span class="c1"># compute the detection results during evaluation</span>
+                <span class="n">scores</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Softmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)(</span><span class="n">confidences</span><span class="p">)</span>
+                <span class="n">boxes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">match_prior</span><span class="o">.</span><span class="n">convert_to_boxes</span><span class="p">(</span>
+                    <span class="n">pred_locations</span><span class="o">=</span><span class="n">locations</span><span class="p">,</span> <span class="n">anchors</span><span class="o">=</span><span class="n">anchors</span>
+                <span class="p">)</span>
+
+                <span class="n">detections</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">postprocess_detections</span><span class="p">(</span><span class="n">boxes</span><span class="o">=</span><span class="n">boxes</span><span class="p">,</span> <span class="n">scores</span><span class="o">=</span><span class="n">scores</span><span class="p">)</span>
+                <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;detections&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">detections</span>
+
+            <span class="k">return</span> <span class="n">output_dict</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ssd_forward</span><span class="p">(</span><span class="n">end_points</span><span class="o">=</span><span class="n">backbone_end_points</span><span class="p">,</span> <span class="n">is_prediction</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SingleShotMaskDetector.predict"><a class="viewcode-back" href="../../../../autogen/cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector.predict">[docs]</a>    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DetectionPredTuple</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Predict the bounding boxes given an image tensor&quot;&quot;&quot;</span>
+        <span class="n">bsz</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">if</span> <span class="n">bsz</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;Prediction is supported with a batch size of 1 in </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">device</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">device</span>
+        <span class="n">enc_end_points</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_backbone_features</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">confidences</span><span class="p">,</span> <span class="n">locations</span><span class="p">,</span> <span class="n">anchors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ssd_forward</span><span class="p">(</span>
+            <span class="n">end_points</span><span class="o">=</span><span class="n">enc_end_points</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+        <span class="p">)</span>
+
+        <span class="n">scores</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Softmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)(</span><span class="n">confidences</span><span class="p">)</span>
+
+        <span class="n">boxes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">match_prior</span><span class="o">.</span><span class="n">convert_to_boxes</span><span class="p">(</span>
+            <span class="n">pred_locations</span><span class="o">=</span><span class="n">locations</span><span class="p">,</span> <span class="n">anchors</span><span class="o">=</span><span class="n">anchors</span>
+        <span class="p">)</span>
+        <span class="n">detections</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">postprocess_detections</span><span class="p">(</span><span class="n">boxes</span><span class="o">=</span><span class="n">boxes</span><span class="p">,</span> <span class="n">scores</span><span class="o">=</span><span class="n">scores</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">detections</span></div>
+
+<div class="viewcode-block" id="SingleShotMaskDetector.postprocess_detections"><a class="viewcode-back" href="../../../../autogen/cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector.postprocess_detections">[docs]</a>    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">postprocess_detections</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">boxes</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">scores</span><span class="p">:</span> <span class="n">Tensor</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">DetectionPredTuple</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Post process detections, including NMS&quot;&quot;&quot;</span>
+        <span class="c1"># boxes [B, N, 4]</span>
+        <span class="c1"># scores [B, N]</span>
+        <span class="c1"># labels [B, N]</span>
+
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">boxes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">n_classes</span> <span class="o">=</span> <span class="n">scores</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">device</span> <span class="o">=</span> <span class="n">boxes</span><span class="o">.</span><span class="n">device</span>
+        <span class="n">box_dtype</span> <span class="o">=</span> <span class="n">boxes</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="n">scores_dtype</span> <span class="o">=</span> <span class="n">scores</span><span class="o">.</span><span class="n">dtype</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">b_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">):</span>
+            <span class="n">object_labels</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">object_boxes</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">object_scores</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">for</span> <span class="n">class_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_classes</span><span class="p">):</span>
+                <span class="n">probs</span> <span class="o">=</span> <span class="n">scores</span><span class="p">[</span><span class="n">b_id</span><span class="p">,</span> <span class="p">:,</span> <span class="n">class_index</span><span class="p">]</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">probs</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">conf_threshold</span>
+                <span class="n">probs</span> <span class="o">=</span> <span class="n">probs</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">probs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">masked_boxes</span> <span class="o">=</span> <span class="n">boxes</span><span class="p">[</span><span class="n">b_id</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="p">:]</span>
+
+                <span class="c1"># keep only top-k indices</span>
+                <span class="n">num_topk</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">top_k</span><span class="p">,</span> <span class="n">probs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+                <span class="n">probs</span><span class="p">,</span> <span class="n">idxs</span> <span class="o">=</span> <span class="n">probs</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">num_topk</span><span class="p">)</span>
+                <span class="n">masked_boxes</span> <span class="o">=</span> <span class="n">masked_boxes</span><span class="p">[</span><span class="n">idxs</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+                <span class="n">object_boxes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">masked_boxes</span><span class="p">)</span>
+                <span class="n">object_scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
+                <span class="n">object_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span>
+                        <span class="n">probs</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="n">class_index</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">object_scores</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">DetectionPredTuple</span><span class="p">(</span>
+                    <span class="n">labels</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">),</span>
+                    <span class="n">scores</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">scores_dtype</span><span class="p">),</span>
+                    <span class="n">boxes</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">box_dtype</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># concatenate all results</span>
+                <span class="n">object_scores</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">object_scores</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">object_boxes</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">object_boxes</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">object_labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">object_labels</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+                <span class="c1"># non-maximum suppression</span>
+                <span class="n">keep</span> <span class="o">=</span> <span class="n">batched_nms</span><span class="p">(</span>
+                    <span class="n">object_boxes</span><span class="p">,</span> <span class="n">object_scores</span><span class="p">,</span> <span class="n">object_labels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nms_threshold</span>
+                <span class="p">)</span>
+                <span class="n">keep</span> <span class="o">=</span> <span class="n">keep</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">objects_per_image</span><span class="p">]</span>
+
+                <span class="n">output</span> <span class="o">=</span> <span class="n">DetectionPredTuple</span><span class="p">(</span>
+                    <span class="n">labels</span><span class="o">=</span><span class="n">object_labels</span><span class="p">[</span><span class="n">keep</span><span class="p">],</span>
+                    <span class="n">scores</span><span class="o">=</span><span class="n">object_scores</span><span class="p">[</span><span class="n">keep</span><span class="p">],</span>
+                    <span class="n">boxes</span><span class="o">=</span><span class="n">object_boxes</span><span class="p">[</span><span class="n">keep</span><span class="p">],</span>
+                <span class="p">)</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">results</span></div>
+
+<div class="viewcode-block" id="SingleShotMaskDetector.dummy_input_and_label"><a class="viewcode-back" href="../../../../autogen/cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector.dummy_input_and_label">[docs]</a>    <span class="k">def</span> <span class="nf">dummy_input_and_label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create dummy input and labels for CI/CD purposes.&quot;&quot;&quot;</span>
+        <span class="n">img_channels</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="n">height</span> <span class="o">=</span> <span class="mi">320</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="mi">320</span>
+        <span class="n">n_classes</span> <span class="o">=</span> <span class="mi">80</span>
+
+        <span class="k">def</span> <span class="nf">generate_anchors</span><span class="p">(</span><span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Generate anchors **on-the-fly** based on the input resolution.&quot;&quot;&quot;</span>
+            <span class="n">anchors</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">output_stride</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_strides</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">output_stride</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                    <span class="n">fm_width</span> <span class="o">=</span> <span class="n">fm_height</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">fm_width</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">width</span> <span class="o">/</span> <span class="n">output_stride</span><span class="p">))</span>
+                    <span class="n">fm_height</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">height</span> <span class="o">/</span> <span class="n">output_stride</span><span class="p">))</span>
+                <span class="n">fm_anchor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">anchor_box_generator</span><span class="p">(</span>
+                    <span class="n">fm_height</span><span class="o">=</span><span class="n">fm_height</span><span class="p">,</span>
+                    <span class="n">fm_width</span><span class="o">=</span><span class="n">fm_width</span><span class="p">,</span>
+                    <span class="n">fm_output_stride</span><span class="o">=</span><span class="n">output_stride</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">anchors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fm_anchor</span><span class="p">)</span>
+            <span class="n">anchors</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">anchors</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">anchors</span>
+
+        <span class="c1"># GT boxes have the same shape as anchors. So, we use anchors as GT boxes</span>
+        <span class="n">gt_boxes</span> <span class="o">=</span> <span class="n">generate_anchors</span><span class="p">(</span><span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">)</span>
+        <span class="n">gt_boxes</span> <span class="o">=</span> <span class="n">gt_boxes</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">gt_box_labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
+            <span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">high</span><span class="o">=</span><span class="n">n_classes</span><span class="p">,</span>
+            <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">gt_boxes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">img_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span>
+            <span class="n">batch_size</span><span class="p">,</span> <span class="n">img_channels</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span>
+        <span class="p">)</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;box_labels&quot;</span><span class="p">:</span> <span class="n">gt_box_labels</span><span class="p">,</span>
+            <span class="s2">&quot;box_coordinates&quot;</span><span class="p">:</span> <span class="n">gt_boxes</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;samples&quot;</span><span class="p">:</span> <span class="n">img_tensor</span><span class="p">,</span> <span class="s2">&quot;targets&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="p">}</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

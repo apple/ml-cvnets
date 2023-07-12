@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>data.video_reader.pyav_reader &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../video_reader.html">data.video_reader</a></li>
+      <li class="breadcrumb-item active">data.video_reader.pyav_reader</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for data.video_reader.pyav_reader</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">import</span> <span class="nn">av</span>
+<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">from</span> <span class="nn">data.transforms.base_transforms</span> <span class="kn">import</span> <span class="n">BaseTransformation</span>
+<span class="kn">from</span> <span class="nn">data.video_reader</span> <span class="kn">import</span> <span class="n">VIDEO_READER_REGISTRY</span><span class="p">,</span> <span class="n">BaseAVReader</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+
+
+<div class="viewcode-block" id="PyAVReader"><a class="viewcode-back" href="../../../autogen/data.video_reader.html#data.video_reader.pyav_reader.PyAVReader">[docs]</a><span class="nd">@VIDEO_READER_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;pyav&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">PyAVReader</span><span class="p">(</span><span class="n">BaseAVReader</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Video Reader using PyAV.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="PyAVReader.read_video"><a class="viewcode-back" href="../../../autogen/data.video_reader.html#data.video_reader.pyav_reader.PyAVReader.read_video">[docs]</a>    <span class="k">def</span> <span class="nf">read_video</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">av_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">stream_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">audio_sample_rate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">custom_frame_transforms</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BaseTransformation</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">video_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">av</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">av_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">container</span><span class="p">:</span>
+            <span class="n">audio_frames</span> <span class="o">=</span> <span class="n">video_frames</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">audio_fps</span> <span class="o">=</span> <span class="n">video_fps</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">for</span> <span class="n">stream</span> <span class="ow">in</span> <span class="n">container</span><span class="o">.</span><span class="n">streams</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fast_decoding</span><span class="p">:</span>
+                    <span class="c1"># use multi-threading for decoding</span>
+                    <span class="n">stream</span><span class="o">.</span><span class="n">thread_type</span> <span class="o">=</span> <span class="s2">&quot;AUTO&quot;</span>
+
+                <span class="n">container</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">stream</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;audio&quot;</span><span class="p">:</span>
+                    <span class="c1"># Skip audio stream if audio not required.</span>
+                    <span class="k">if</span> <span class="n">video_only</span><span class="p">:</span>
+                        <span class="k">continue</span>
+                    <span class="c1"># Compute audio frame stats.</span>
+                    <span class="k">assert</span> <span class="p">(</span>
+                        <span class="n">audio_fps</span> <span class="ow">is</span> <span class="kc">None</span>
+                    <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Multiple audio streams exist in &#39;</span><span class="si">{</span><span class="n">av_file</span><span class="si">}</span><span class="s2">&#39;, while only one is expected. (stream_idx=</span><span class="si">{</span><span class="n">stream_idx</span><span class="si">}</span><span class="s2">)&quot;</span>
+                    <span class="k">assert</span> <span class="n">audio_frames</span> <span class="ow">is</span> <span class="kc">None</span>
+
+                    <span class="n">audio_stream</span> <span class="o">=</span> <span class="n">container</span><span class="o">.</span><span class="n">streams</span><span class="o">.</span><span class="n">audio</span><span class="p">[</span><span class="n">stream_idx</span><span class="p">]</span>
+                    <span class="n">n_audio_channels</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">audio_stream</span><span class="o">.</span><span class="n">layout</span><span class="o">.</span><span class="n">channels</span><span class="p">)</span>
+                    <span class="n">audio_frames</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">if</span> <span class="n">audio_sample_rate</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">resampler</span> <span class="o">=</span> <span class="n">av</span><span class="o">.</span><span class="n">AudioResampler</span><span class="p">(</span><span class="n">rate</span><span class="o">=</span><span class="n">audio_sample_rate</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">container</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">audio</span><span class="o">=</span><span class="n">stream_idx</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="n">audio_sample_rate</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">frame</span> <span class="o">=</span> <span class="n">resampler</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="n">frame</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="n">audio_frames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                            <span class="n">frame</span><span class="o">.</span><span class="n">to_ndarray</span><span class="p">()</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_audio_channels</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                        <span class="p">)</span>
+                    <span class="n">audio_frames</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
+                        <span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">audio_frames</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+                    <span class="n">audio_fps</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">audio_sample_rate</span>
+                        <span class="k">if</span> <span class="n">audio_sample_rate</span> <span class="o">&gt;</span> <span class="mi">0</span>
+                        <span class="k">else</span> <span class="n">audio_stream</span><span class="o">.</span><span class="n">sample_rate</span>
+                    <span class="p">)</span>
+
+                <span class="k">elif</span> <span class="n">stream</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;video&quot;</span><span class="p">:</span>
+                    <span class="k">assert</span> <span class="n">video_fps</span> <span class="ow">is</span> <span class="kc">None</span>
+                    <span class="k">assert</span> <span class="n">video_frames</span> <span class="ow">is</span> <span class="kc">None</span>
+
+                    <span class="n">video_stream</span> <span class="o">=</span> <span class="n">container</span><span class="o">.</span><span class="n">streams</span><span class="o">.</span><span class="n">video</span><span class="p">[</span><span class="n">stream_idx</span><span class="p">]</span>
+                    <span class="n">n_frames</span> <span class="o">=</span> <span class="n">video_stream</span><span class="o">.</span><span class="n">frames</span>
+                    <span class="n">width</span> <span class="o">=</span> <span class="n">video_stream</span><span class="o">.</span><span class="n">width</span>
+                    <span class="n">height</span> <span class="o">=</span> <span class="n">video_stream</span><span class="o">.</span><span class="n">height</span>
+                    <span class="n">video_fps</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">video_stream</span><span class="o">.</span><span class="n">base_rate</span><span class="p">)</span>
+
+                    <span class="n">video_frames</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+                        <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_frames</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span>
+                    <span class="p">)</span>
+                    <span class="n">frame_transforms</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">frame_transforms</span>
+                        <span class="k">if</span> <span class="n">custom_frame_transforms</span> <span class="ow">is</span> <span class="kc">None</span>
+                        <span class="k">else</span> <span class="n">custom_frame_transforms</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">video_frame</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">container</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">video</span><span class="o">=</span><span class="n">stream_idx</span><span class="p">)):</span>
+                        <span class="n">video_frame</span> <span class="o">=</span> <span class="n">video_frame</span><span class="o">.</span><span class="n">to_image</span><span class="p">()</span>
+                        <span class="n">video_frame</span> <span class="o">=</span> <span class="n">frame_transforms</span><span class="p">({</span><span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">video_frame</span><span class="p">})[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span>
+                        <span class="n">video_frames</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">video_frame</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s2">&quot;audio&quot;</span><span class="p">:</span> <span class="n">audio_frames</span><span class="p">,</span>
+                <span class="s2">&quot;video&quot;</span><span class="p">:</span> <span class="n">video_frames</span><span class="p">,</span>
+                <span class="s2">&quot;metadata&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;audio_fps&quot;</span><span class="p">:</span> <span class="n">audio_fps</span><span class="p">,</span>
+                    <span class="s2">&quot;video_fps&quot;</span><span class="p">:</span> <span class="n">video_fps</span><span class="p">,</span>
+                    <span class="s2">&quot;filename&quot;</span><span class="p">:</span> <span class="n">av_file</span><span class="p">,</span>
+                <span class="p">},</span>
+            <span class="p">}</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,133 @@
+cvnets.models.classification package
+====================================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   cvnets.models.classification.config
+
+Submodules
+----------
+
+cvnets.models.classification.base\_image\_encoder module
+--------------------------------------------------------
+
+.. automodule:: cvnets.models.classification.base_image_encoder
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.byteformer module
+----------------------------------------------
+
+.. automodule:: cvnets.models.classification.byteformer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.efficientnet module
+------------------------------------------------
+
+.. automodule:: cvnets.models.classification.efficientnet
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.fastvit module
+-------------------------------------------
+
+.. automodule:: cvnets.models.classification.fastvit
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.mobilenetv1 module
+-----------------------------------------------
+
+.. automodule:: cvnets.models.classification.mobilenetv1
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.mobilenetv2 module
+-----------------------------------------------
+
+.. automodule:: cvnets.models.classification.mobilenetv2
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.mobilenetv3 module
+-----------------------------------------------
+
+.. automodule:: cvnets.models.classification.mobilenetv3
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.mobileone module
+---------------------------------------------
+
+.. automodule:: cvnets.models.classification.mobileone
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.mobilevit module
+---------------------------------------------
+
+.. automodule:: cvnets.models.classification.mobilevit
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.mobilevit\_v2 module
+-------------------------------------------------
+
+.. automodule:: cvnets.models.classification.mobilevit_v2
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.regnet module
+------------------------------------------
+
+.. automodule:: cvnets.models.classification.regnet
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.resnet module
+------------------------------------------
+
+.. automodule:: cvnets.models.classification.resnet
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.swin\_transformer module
+-----------------------------------------------------
+
+.. automodule:: cvnets.models.classification.swin_transformer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.classification.vit module
+---------------------------------------
+
+.. automodule:: cvnets.models.classification.vit
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cvnets.models.classification
+   :members:
+   :undoc-members:
+   :show-inheritance:

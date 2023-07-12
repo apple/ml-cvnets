@@ -1,0 +1,37 @@
+data.video\_reader package
+==========================
+
+Submodules
+----------
+
+data.video\_reader.base\_av\_reader module
+------------------------------------------
+
+.. automodule:: data.video_reader.base_av_reader
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+data.video\_reader.decord\_reader module
+----------------------------------------
+
+.. automodule:: data.video_reader.decord_reader
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+data.video\_reader.pyav\_reader module
+--------------------------------------
+
+.. automodule:: data.video_reader.pyav_reader
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: data.video_reader
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>engine.eval_detection &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">engine.eval_detection</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for engine.eval_detection</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">glob</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">nn</span>
+<span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">F</span>
+<span class="kn">from</span> <span class="nn">torchvision.transforms</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">F_vision</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+
+<span class="kn">from</span> <span class="nn">common</span> <span class="kn">import</span> <span class="n">SUPPORTED_IMAGE_EXTNS</span>
+<span class="kn">from</span> <span class="nn">cvnets</span> <span class="kn">import</span> <span class="n">get_model</span>
+<span class="kn">from</span> <span class="nn">cvnets.models.detection</span> <span class="kn">import</span> <span class="n">DetectionPredTuple</span>
+<span class="kn">from</span> <span class="nn">data</span> <span class="kn">import</span> <span class="n">create_test_loader</span>
+<span class="kn">from</span> <span class="nn">data.datasets.detection.coco_base</span> <span class="kn">import</span> <span class="n">COCODetection</span>
+<span class="kn">from</span> <span class="nn">engine.detection_utils.coco_map</span> <span class="kn">import</span> <span class="n">compute_quant_scores</span>
+<span class="kn">from</span> <span class="nn">engine.utils</span> <span class="kn">import</span> <span class="n">autocast_fn</span><span class="p">,</span> <span class="n">get_batch_size</span>
+<span class="kn">from</span> <span class="nn">options.opts</span> <span class="kn">import</span> <span class="n">get_training_arguments</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span><span class="p">,</span> <span class="n">resources</span>
+<span class="kn">from</span> <span class="nn">utils.common_utils</span> <span class="kn">import</span> <span class="n">create_directories</span><span class="p">,</span> <span class="n">device_setup</span>
+<span class="kn">from</span> <span class="nn">utils.ddp_utils</span> <span class="kn">import</span> <span class="n">is_master</span>
+<span class="kn">from</span> <span class="nn">utils.download_utils</span> <span class="kn">import</span> <span class="n">get_local_path</span>
+<span class="kn">from</span> <span class="nn">utils.tensor_utils</span> <span class="kn">import</span> <span class="n">image_size_from_opts</span><span class="p">,</span> <span class="n">to_numpy</span>
+<span class="kn">from</span> <span class="nn">utils.visualization_utils</span> <span class="kn">import</span> <span class="n">draw_bounding_boxes</span>
+
+<span class="c1"># Evaluation on MSCOCO detection task</span>
+<span class="n">object_names</span> <span class="o">=</span> <span class="n">COCODetection</span><span class="o">.</span><span class="n">class_names</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="predict_and_save"><a class="viewcode-back" href="../../autogen/engine.html#engine.eval_detection.predict_and_save">[docs]</a><span class="k">def</span> <span class="nf">predict_and_save</span><span class="p">(</span>
+    <span class="n">opts</span><span class="p">,</span>
+    <span class="n">input_tensor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">input_np</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">),</span>
+    <span class="n">is_coco_evaluation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">file_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">output_stride</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
+    <span class="n">orig_h</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">orig_w</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function makes a prediction on the input tensor and optionally save the detection results</span>
+<span class="sd">    Args:</span>
+<span class="sd">        opts: command-line arguments</span>
+<span class="sd">        input_tensor (Tensor): Input tensor of size :math:`(1, C, H, W)`</span>
+<span class="sd">        model (nn.Module): detection model</span>
+<span class="sd">        input_np (Optional[np.ndarray]): Input numpy image of size :math:`(H, W, C)`. Used only for visualization purposes. Defaults to None</span>
+<span class="sd">        device (Optional[str]): Device. Defaults to cpu.</span>
+<span class="sd">        is_coco_evaluation (Optional[bool]): Evaluating on MS-COCO object detection. Defaults to False.</span>
+<span class="sd">        file_name (Optional[bool]): File name for storing detection results. Only applicable when `is_coco_evaluation` is False. Defaults to None.</span>
+<span class="sd">        output_stride (Optional[int]): Output stride. This is used to ensure that image size is divisible by this factor. Defaults to 32.</span>
+<span class="sd">        orig_h (Optional[int]): Original height of the input image. Useful for visualizing detection results. Defaults to None.</span>
+<span class="sd">        orig_w (Optional[int]): Original width of the input image. Useful for visualizing detection results. Defaults to None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mixed_precision_training</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.mixed_precision&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">mixed_precision_dtype</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.mixed_precision_dtype&quot;</span><span class="p">,</span> <span class="s2">&quot;float16&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">input_np</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_coco_evaluation</span><span class="p">:</span>
+        <span class="n">input_np</span> <span class="o">=</span> <span class="n">to_numpy</span><span class="p">(</span><span class="n">input_tensor</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span>  <span class="c1"># convert to numpy</span>
+            <span class="mi">0</span>
+        <span class="p">)</span>  <span class="c1"># remove batch dimension</span>
+
+    <span class="n">curr_height</span><span class="p">,</span> <span class="n">curr_width</span> <span class="o">=</span> <span class="n">input_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+
+    <span class="c1"># check if dimensions are multiple of output_stride, otherwise, we get dimension mismatch errors.</span>
+    <span class="c1"># if not, then resize them</span>
+    <span class="n">new_h</span> <span class="o">=</span> <span class="p">(</span><span class="n">curr_height</span> <span class="o">//</span> <span class="n">output_stride</span><span class="p">)</span> <span class="o">*</span> <span class="n">output_stride</span>
+    <span class="n">new_w</span> <span class="o">=</span> <span class="p">(</span><span class="n">curr_width</span> <span class="o">//</span> <span class="n">output_stride</span><span class="p">)</span> <span class="o">*</span> <span class="n">output_stride</span>
+
+    <span class="k">if</span> <span class="n">new_h</span> <span class="o">!=</span> <span class="n">curr_height</span> <span class="ow">or</span> <span class="n">new_w</span> <span class="o">!=</span> <span class="n">curr_width</span><span class="p">:</span>
+        <span class="c1"># resize the input image, so that we do not get dimension mismatch errors in the forward pass</span>
+        <span class="n">input_tensor</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span>
+            <span class="nb">input</span><span class="o">=</span><span class="n">input_tensor</span><span class="p">,</span>
+            <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">new_h</span><span class="p">,</span> <span class="n">new_w</span><span class="p">),</span>
+            <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;bilinear&quot;</span><span class="p">,</span>
+            <span class="n">align_corners</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># move data to device</span>
+    <span class="n">input_tensor</span> <span class="o">=</span> <span class="n">input_tensor</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">autocast_fn</span><span class="p">(</span>
+        <span class="n">enabled</span><span class="o">=</span><span class="n">mixed_precision_training</span><span class="p">,</span> <span class="n">amp_precision</span><span class="o">=</span><span class="n">mixed_precision_dtype</span>
+    <span class="p">):</span>
+        <span class="c1"># prediction</span>
+        <span class="c1"># We dot scale inside the prediction function because we resize the input tensor such</span>
+        <span class="c1"># that the dimensions are divisible by output stride.</span>
+        <span class="n">prediction</span><span class="p">:</span> <span class="n">DetectionPredTuple</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">input_tensor</span><span class="p">,</span> <span class="n">is_scaling</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">orig_w</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">orig_h</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="n">orig_h</span><span class="p">,</span> <span class="n">orig_w</span> <span class="o">=</span> <span class="n">input_np</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">orig_h</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">orig_w</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="n">orig_h</span><span class="p">,</span> <span class="n">orig_w</span> <span class="o">=</span> <span class="n">input_np</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">orig_h</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">orig_w</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+    <span class="c1"># convert tensors to numpy</span>
+    <span class="n">boxes</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">boxes</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">scores</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">scores</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+    <span class="n">masks</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">masks</span>
+
+    <span class="c1"># Ensure that there is at least one mask</span>
+    <span class="k">if</span> <span class="n">masks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># masks are in [N, H, W] format</span>
+        <span class="c1"># for interpolation, add a dummy batch dimension</span>
+        <span class="n">masks</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span>
+            <span class="n">masks</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+            <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">orig_h</span><span class="p">,</span> <span class="n">orig_w</span><span class="p">),</span>
+            <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;bilinear&quot;</span><span class="p">,</span>
+            <span class="n">align_corners</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># convert to binary masks</span>
+        <span class="n">masks</span> <span class="o">=</span> <span class="n">masks</span> <span class="o">&gt;</span> <span class="mf">0.5</span>
+        <span class="n">masks</span> <span class="o">=</span> <span class="n">masks</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+    <span class="n">boxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">a_min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">a_max</span><span class="o">=</span><span class="n">orig_w</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">boxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">orig_w</span><span class="p">)</span>
+    <span class="n">boxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">a_min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">a_max</span><span class="o">=</span><span class="n">orig_h</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">boxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">orig_h</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">is_coco_evaluation</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">boxes</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">masks</span>
+
+    <span class="n">detection_res_file_name</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">file_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">file_name</span> <span class="o">=</span> <span class="n">file_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;.jpg&quot;</span>
+        <span class="n">res_dir</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/detection_results&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.exp_loc&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">res_dir</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">res_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">detection_res_file_name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">res_dir</span><span class="p">,</span> <span class="n">file_name</span><span class="p">)</span>
+
+    <span class="n">draw_bounding_boxes</span><span class="p">(</span>
+        <span class="n">image</span><span class="o">=</span><span class="n">input_np</span><span class="p">,</span>
+        <span class="n">boxes</span><span class="o">=</span><span class="n">boxes</span><span class="p">,</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>
+        <span class="n">scores</span><span class="o">=</span><span class="n">scores</span><span class="p">,</span>
+        <span class="n">masks</span><span class="o">=</span><span class="n">masks</span><span class="p">,</span>
+        <span class="c1"># some models may not use background class which is present in class names.</span>
+        <span class="c1"># adjust the class names</span>
+        <span class="n">object_names</span><span class="o">=</span><span class="n">object_names</span><span class="p">[</span><span class="o">-</span><span class="n">model</span><span class="o">.</span><span class="n">n_detection_classes</span> <span class="p">:]</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;n_detection_classes&quot;</span><span class="p">)</span>
+        <span class="k">else</span> <span class="n">object_names</span><span class="p">,</span>
+        <span class="n">is_bgr_format</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">save_path</span><span class="o">=</span><span class="n">detection_res_file_name</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="predict_labeled_dataset"><a class="viewcode-back" href="../../autogen/engine.html#engine.eval_detection.predict_labeled_dataset">[docs]</a><span class="k">def</span> <span class="nf">predict_labeled_dataset</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dev.device&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">))</span>
+
+    <span class="c1"># set-up data loaders</span>
+    <span class="n">test_loader</span> <span class="o">=</span> <span class="n">create_test_loader</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+
+    <span class="c1"># set-up the model</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">info</span><span class="p">()</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Model is in training mode. Switching to evaluation mode&quot;</span><span class="p">)</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">img_idx</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">test_loader</span><span class="p">)):</span>
+            <span class="n">samples</span><span class="p">,</span> <span class="n">targets</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;samples&quot;</span><span class="p">],</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">]</span>
+
+            <span class="n">batch_size</span> <span class="o">=</span> <span class="n">get_batch_size</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">Dict</span><span class="p">):</span>
+                <span class="k">assert</span> <span class="s2">&quot;image&quot;</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">,</span> <span class="s2">&quot;samples does not contain image key&quot;</span>
+                <span class="n">input_tensor</span> <span class="o">=</span> <span class="n">samples</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">input_tensor</span> <span class="o">=</span> <span class="n">samples</span>
+
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="n">batch_size</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="p">),</span> <span class="s2">&quot;We recommend to run detection evaluation with a batch size of 1&quot;</span>
+
+            <span class="n">orig_w</span> <span class="o">=</span> <span class="n">targets</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="n">orig_h</span> <span class="o">=</span> <span class="n">targets</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="n">image_id</span> <span class="o">=</span> <span class="n">targets</span><span class="p">[</span><span class="s2">&quot;image_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+            <span class="n">boxes</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">masks</span> <span class="o">=</span> <span class="n">predict_and_save</span><span class="p">(</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                <span class="n">input_tensor</span><span class="o">=</span><span class="n">input_tensor</span><span class="p">,</span>
+                <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+                <span class="n">is_coco_evaluation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">orig_w</span><span class="o">=</span><span class="n">orig_w</span><span class="p">,</span>
+                <span class="n">orig_h</span><span class="o">=</span><span class="n">orig_h</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">predictions</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">image_id</span><span class="p">,</span> <span class="n">boxes</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">masks</span><span class="p">])</span>
+
+        <span class="n">compute_quant_scores</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="read_and_process_image"><a class="viewcode-back" href="../../autogen/engine.html#engine.eval_detection.read_and_process_image">[docs]</a><span class="k">def</span> <span class="nf">read_and_process_image</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">image_fname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">input_img</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">image_fname</span><span class="p">)</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s2">&quot;RGB&quot;</span><span class="p">)</span>
+    <span class="n">input_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">input_img</span><span class="p">)</span>
+    <span class="n">orig_w</span><span class="p">,</span> <span class="n">orig_h</span> <span class="o">=</span> <span class="n">input_img</span><span class="o">.</span><span class="n">size</span>
+
+    <span class="c1"># Resize the image to the resolution that detector supports</span>
+    <span class="n">res_h</span><span class="p">,</span> <span class="n">res_w</span> <span class="o">=</span> <span class="n">image_size_from_opts</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+    <span class="n">input_img</span> <span class="o">=</span> <span class="n">F_vision</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span>
+        <span class="n">input_img</span><span class="p">,</span>
+        <span class="n">size</span><span class="o">=</span><span class="p">[</span><span class="n">res_h</span><span class="p">,</span> <span class="n">res_w</span><span class="p">],</span>
+        <span class="n">interpolation</span><span class="o">=</span><span class="n">F_vision</span><span class="o">.</span><span class="n">InterpolationMode</span><span class="o">.</span><span class="n">BILINEAR</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">input_tensor</span> <span class="o">=</span> <span class="n">F_vision</span><span class="o">.</span><span class="n">pil_to_tensor</span><span class="p">(</span><span class="n">input_img</span><span class="p">)</span>
+    <span class="n">input_tensor</span> <span class="o">=</span> <span class="n">input_tensor</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="mf">255.0</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">input_tensor</span><span class="p">,</span> <span class="n">input_np</span><span class="p">,</span> <span class="n">orig_h</span><span class="p">,</span> <span class="n">orig_w</span></div>
+
+
+<div class="viewcode-block" id="predict_image"><a class="viewcode-back" href="../../autogen/engine.html#engine.eval_detection.predict_image">[docs]</a><span class="k">def</span> <span class="nf">predict_image</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">image_fname</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">image_fname</span> <span class="o">=</span> <span class="n">get_local_path</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">image_fname</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">image_fname</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Image file does not exist at: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">image_fname</span><span class="p">))</span>
+
+    <span class="n">input_tensor</span><span class="p">,</span> <span class="n">input_imp_copy</span><span class="p">,</span> <span class="n">orig_h</span><span class="p">,</span> <span class="n">orig_w</span> <span class="o">=</span> <span class="n">read_and_process_image</span><span class="p">(</span>
+        <span class="n">opts</span><span class="p">,</span> <span class="n">image_fname</span><span class="o">=</span><span class="n">image_fname</span>
+    <span class="p">)</span>
+
+    <span class="n">image_fname</span> <span class="o">=</span> <span class="n">image_fname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">device</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dev.device&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">))</span>
+    <span class="c1"># set-up the model</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">info</span><span class="p">()</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Model is in training mode. Switching to evaluation mode&quot;</span><span class="p">)</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="n">predict_and_save</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">input_tensor</span><span class="o">=</span><span class="n">input_tensor</span><span class="p">,</span>
+            <span class="n">input_np</span><span class="o">=</span><span class="n">input_imp_copy</span><span class="p">,</span>
+            <span class="n">file_name</span><span class="o">=</span><span class="n">image_fname</span><span class="p">,</span>
+            <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">orig_h</span><span class="o">=</span><span class="n">orig_h</span><span class="p">,</span>
+            <span class="n">orig_w</span><span class="o">=</span><span class="n">orig_w</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="predict_images_in_folder"><a class="viewcode-back" href="../../autogen/engine.html#engine.eval_detection.predict_images_in_folder">[docs]</a><span class="k">def</span> <span class="nf">predict_images_in_folder</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">img_folder_path</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;evaluation.detection.path&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">img_folder_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">&quot;Image folder is not passed. Please use --evaluation.detection.path as an argument to pass the location of image folder&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">img_folder_path</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">img_folder_path</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">&quot;Image folder does not exist at: </span><span class="si">{}</span><span class="s2">. Please check&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">img_folder_path</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">img_files</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">SUPPORTED_IMAGE_EXTNS</span><span class="p">:</span>
+        <span class="n">img_files_with_extn</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/*</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">img_folder_path</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">img_files_with_extn</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">img_files_with_extn</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">img_files</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">img_files_with_extn</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">img_files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">&quot;Number of image files found at </span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">img_folder_path</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">img_files</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+        <span class="s2">&quot;Number of image files found at </span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">img_folder_path</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">img_files</span><span class="p">))</span>
+    <span class="p">)</span>
+
+    <span class="n">device</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dev.device&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">))</span>
+    <span class="c1"># set-up the model</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">info</span><span class="p">()</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Model is in training mode. Switching to evaluation mode&quot;</span><span class="p">)</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">img_idx</span><span class="p">,</span> <span class="n">image_fname</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">img_files</span><span class="p">):</span>
+            <span class="n">input_tensor</span><span class="p">,</span> <span class="n">input_np</span><span class="p">,</span> <span class="n">orig_h</span><span class="p">,</span> <span class="n">orig_w</span> <span class="o">=</span> <span class="n">read_and_process_image</span><span class="p">(</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="n">image_fname</span><span class="o">=</span><span class="n">image_fname</span>
+            <span class="p">)</span>
+
+            <span class="n">image_fname</span> <span class="o">=</span> <span class="n">image_fname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="n">predict_and_save</span><span class="p">(</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                <span class="n">input_tensor</span><span class="o">=</span><span class="n">input_tensor</span><span class="p">,</span>
+                <span class="n">input_np</span><span class="o">=</span><span class="n">input_np</span><span class="p">,</span>
+                <span class="n">file_name</span><span class="o">=</span><span class="n">image_fname</span><span class="p">,</span>
+                <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+                <span class="n">orig_h</span><span class="o">=</span><span class="n">orig_h</span><span class="p">,</span>
+                <span class="n">orig_w</span><span class="o">=</span><span class="n">orig_w</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="main_detection_evaluation"><a class="viewcode-back" href="../../autogen/engine.html#engine.eval_detection.main_detection_evaluation">[docs]</a><span class="k">def</span> <span class="nf">main_detection_evaluation</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">opts</span> <span class="o">=</span> <span class="n">get_training_arguments</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="n">dataset_name</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.name&quot;</span><span class="p">,</span> <span class="s2">&quot;imagenet&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">dataset_name</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;coco&quot;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="c1"># replace model specific datasets (e.g., coco_ssd) with general COCO dataset</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.name&quot;</span><span class="p">,</span> <span class="s2">&quot;coco&quot;</span><span class="p">)</span>
+
+    <span class="c1"># device set-up</span>
+    <span class="n">opts</span> <span class="o">=</span> <span class="n">device_setup</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+
+    <span class="n">node_rank</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;ddp.rank&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">node_rank</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;--rank should be &gt;=0. Got </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">node_rank</span><span class="p">))</span>
+
+    <span class="n">is_master_node</span> <span class="o">=</span> <span class="n">is_master</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+
+    <span class="c1"># create the directory for saving results</span>
+    <span class="n">save_dir</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.results_loc&quot;</span><span class="p">,</span> <span class="s2">&quot;results&quot;</span><span class="p">)</span>
+    <span class="n">run_label</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.run_label&quot;</span><span class="p">,</span> <span class="s2">&quot;run_1&quot;</span><span class="p">)</span>
+    <span class="n">exp_dir</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">save_dir</span><span class="p">,</span> <span class="n">run_label</span><span class="p">)</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.exp_loc&quot;</span><span class="p">,</span> <span class="n">exp_dir</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Results (if any) will be stored here: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">exp_dir</span><span class="p">))</span>
+
+    <span class="n">create_directories</span><span class="p">(</span><span class="n">dir_path</span><span class="o">=</span><span class="n">exp_dir</span><span class="p">,</span> <span class="n">is_master_node</span><span class="o">=</span><span class="n">is_master_node</span><span class="p">)</span>
+
+    <span class="n">num_gpus</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dev.num_gpus&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">num_gpus</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">cls_norm_type</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.normalization.name&quot;</span><span class="p">,</span> <span class="s2">&quot;batch_norm_2d&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cls_norm_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">cls_norm_type</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;sync&quot;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># replace sync_batch_norm with standard batch norm on PU</span>
+            <span class="nb">setattr</span><span class="p">(</span>
+                <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.normalization.name&quot;</span><span class="p">,</span> <span class="n">cls_norm_type</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;sync_&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span>
+                <span class="n">opts</span><span class="p">,</span>
+                <span class="s2">&quot;model.classification.normalization.name&quot;</span><span class="p">,</span>
+                <span class="n">cls_norm_type</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;sync_&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+            <span class="p">)</span>
+
+    <span class="c1"># we disable the DDP setting for evaluation tasks</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;ddp.use_distributed&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># No of data workers = no of CPUs (if not specified or -1)</span>
+    <span class="n">n_cpus</span> <span class="o">=</span> <span class="n">resources</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span>
+    <span class="n">dataset_workers</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.workers&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dataset_workers</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.workers&quot;</span><span class="p">,</span> <span class="n">n_cpus</span><span class="p">)</span>
+
+    <span class="c1"># We are not performing any operation like resizing and cropping on images</span>
+    <span class="c1"># Because image dimensions are different, we process 1 sample at a time.</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.train_batch_size0&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.val_batch_size0&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dev.device_id&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="n">eval_mode</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;evaluation.detection.mode&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">eval_mode</span> <span class="o">==</span> <span class="s2">&quot;single_image&quot;</span><span class="p">:</span>
+        <span class="n">num_classes</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.detection.n_classes&quot;</span><span class="p">,</span> <span class="mi">81</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">num_classes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+        <span class="c1"># test a single image</span>
+        <span class="n">img_f_name</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;evaluation.detection.path&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">predict_image</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">img_f_name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">eval_mode</span> <span class="o">==</span> <span class="s2">&quot;image_folder&quot;</span><span class="p">:</span>
+        <span class="n">num_seg_classes</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.detection.n_classes&quot;</span><span class="p">,</span> <span class="mi">81</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">num_seg_classes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+        <span class="c1"># test all images in a folder</span>
+        <span class="n">predict_images_in_folder</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">eval_mode</span> <span class="o">==</span> <span class="s2">&quot;validation_set&quot;</span><span class="p">:</span>
+        <span class="c1"># evaluate and compute stats for labeled image dataset</span>
+        <span class="c1"># This is useful for generating results for validation set and compute quantitative results</span>
+        <span class="n">predict_labeled_dataset</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">&quot;Supported modes are single_image, image_folder, and validation_set. Got: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">eval_mode</span>
+            <span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main_detection_evaluation</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

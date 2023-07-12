@@ -1,0 +1,29 @@
+cvnets.neural\_augmentor package
+================================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   cvnets.neural_augmentor.utils
+
+Submodules
+----------
+
+cvnets.neural\_augmentor.neural\_aug module
+-------------------------------------------
+
+.. automodule:: cvnets.neural_augmentor.neural_aug
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cvnets.neural_augmentor
+   :members:
+   :undoc-members:
+   :show-inheritance:

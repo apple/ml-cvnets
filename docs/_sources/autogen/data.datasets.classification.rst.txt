@@ -1,0 +1,85 @@
+data.datasets.classification package
+====================================
+
+Submodules
+----------
+
+data.datasets.classification.base\_image\_classification\_dataset module
+------------------------------------------------------------------------
+
+.. automodule:: data.datasets.classification.base_image_classification_dataset
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+data.datasets.classification.base\_imagenet\_shift\_dataset module
+------------------------------------------------------------------
+
+.. automodule:: data.datasets.classification.base_imagenet_shift_dataset
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+data.datasets.classification.imagenet module
+--------------------------------------------
+
+.. automodule:: data.datasets.classification.imagenet
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+data.datasets.classification.imagenet\_a module
+-----------------------------------------------
+
+.. automodule:: data.datasets.classification.imagenet_a
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+data.datasets.classification.imagenet\_r module
+-----------------------------------------------
+
+.. automodule:: data.datasets.classification.imagenet_r
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+data.datasets.classification.imagenet\_sketch module
+----------------------------------------------------
+
+.. automodule:: data.datasets.classification.imagenet_sketch
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+data.datasets.classification.imagenet\_synsets module
+-----------------------------------------------------
+
+.. automodule:: data.datasets.classification.imagenet_synsets
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+data.datasets.classification.imagenet\_v2 module
+------------------------------------------------
+
+.. automodule:: data.datasets.classification.imagenet_v2
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+data.datasets.classification.places365 module
+---------------------------------------------
+
+.. automodule:: data.datasets.classification.places365
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: data.datasets.classification
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,37 @@
+loss\_fn.distillation package
+=============================
+
+Submodules
+----------
+
+loss\_fn.distillation.base\_distillation module
+-----------------------------------------------
+
+.. automodule:: loss_fn.distillation.base_distillation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+loss\_fn.distillation.hard\_distillation module
+-----------------------------------------------
+
+.. automodule:: loss_fn.distillation.hard_distillation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+loss\_fn.distillation.soft\_kl\_distillation module
+---------------------------------------------------
+
+.. automodule:: loss_fn.distillation.soft_kl_distillation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: loss_fn.distillation
+   :members:
+   :undoc-members:
+   :show-inheritance:

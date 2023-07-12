@@ -1,0 +1,29 @@
+data.text\_tokenizer package
+============================
+
+Submodules
+----------
+
+data.text\_tokenizer.base\_tokenizer module
+-------------------------------------------
+
+.. automodule:: data.text_tokenizer.base_tokenizer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+data.text\_tokenizer.clip\_tokenizer module
+-------------------------------------------
+
+.. automodule:: data.text_tokenizer.clip_tokenizer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: data.text_tokenizer
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cvnets.models.classification.config.regnet &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../../_static/jquery.js"></script>
+        <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
+        <script src="../../../../../_static/doctools.js"></script>
+        <script src="../../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../../../cvnets.html">cvnets</a></li>
+          <li class="breadcrumb-item"><a href="../../../models.html">cvnets.models</a></li>
+      <li class="breadcrumb-item active">cvnets.models.classification.config.regnet</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cvnets.models.classification.config.regnet</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">from</span> <span class="nn">utils.math_utils</span> <span class="kn">import</span> <span class="n">make_divisible</span>
+
+<span class="n">supported_modes</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;x_200mf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;x_400mf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;x_600mf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;x_800mf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;x_1.6gf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;x_3.2gf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;x_4.0gf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;x_6.4gf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;x_8.0gf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;x_12gf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;x_16gf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;x_32gf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;y_200mf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;y_400mf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;y_800mf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;y_600mf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;y_1.6gf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;y_3.2gf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;y_4.0gf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;y_6.4gf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;y_8.0gf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;y_12gf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;y_16gf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;y_32gf&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="BlockParamsConfig"><a class="viewcode-back" href="../../../../../autogen/cvnets.models.classification.config.html#cvnets.models.classification.config.regnet.BlockParamsConfig">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">BlockParamsConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class stores the quantized linear block params. It is adapted from torchvision.models.regnet:</span>
+<span class="sd">        https://github.com/pytorch/vision/blob/c06d52b1c5f6aee36802661c3ebc6347b97cc59e/torchvision/models/regnet.py#L203</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        depth: The total number of XBlocks in the network</span>
+<span class="sd">        w_0: Initial width</span>
+<span class="sd">        w_a: Width slope</span>
+<span class="sd">        w_m: Width slope in the log space</span>
+<span class="sd">        groups: The number of groups to use in the XBlock. Referred to</span>
+<span class="sd">        se_ratio: The squeeze-excitation ratio. The number of channels in the SE module will be the</span>
+<span class="sd">            input channels scaled by this ratio.</span>
+<span class="sd">        bottleneck_multiplier: The number of output channels in the intermediate conv layers in bottleneck/Xblock</span>
+<span class="sd">            block will be scaled by this value.</span>
+<span class="sd">        quant: Block widths will be divisible by this value</span>
+<span class="sd">        stride: The stride of the 3x3 conv of the XBlocks</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BlockParamsConfig.__init__"><a class="viewcode-back" href="../../../../../autogen/cvnets.models.classification.config.html#cvnets.models.classification.config.regnet.BlockParamsConfig.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">depth</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">w_0</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">w_a</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">w_m</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">groups</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">se_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">bottleneck_multiplier</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">quant</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+        <span class="n">stride</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">w_a</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">w_0</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">w_m</span> <span class="o">&lt;=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">w_0</span> <span class="o">%</span> <span class="mi">8</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Invalid RegNet settings. Need&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; w_a &gt;= 0, given w_a=</span><span class="si">{</span><span class="n">w_a</span><span class="si">}</span><span class="s2">;&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; w_m &gt; 1, given w_m=</span><span class="si">{</span><span class="n">w_m</span><span class="si">}</span><span class="s2">;&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; w_0 &gt; 0 and w_0 % 8 == 0, given w_0=</span><span class="si">{</span><span class="n">w_0</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Continuous widths for each block. Each stage has a unique block width</span>
+        <span class="n">block_widths_cont</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">depth</span><span class="p">)</span> <span class="o">*</span> <span class="n">w_a</span> <span class="o">+</span> <span class="n">w_0</span>  <span class="c1"># u_j in eq. (2) of paper</span>
+        <span class="n">block_capacity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">block_widths_cont</span> <span class="o">/</span> <span class="n">w_0</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">w_m</span><span class="p">)</span>
+        <span class="p">)</span>  <span class="c1"># s_j in eq. (3) of paper</span>
+
+        <span class="c1"># Quantized block widths</span>
+        <span class="n">block_widths_quant</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">w_0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">w_m</span><span class="p">,</span> <span class="n">block_capacity</span><span class="p">),</span> <span class="n">quant</span><span class="p">))</span> <span class="o">*</span> <span class="n">quant</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="n">num_stages</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">block_widths_quant</span><span class="p">))</span>
+
+        <span class="c1"># Convert to per stage parameters</span>
+        <span class="n">split_helper</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">block_widths_quant</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">block_widths_quant</span><span class="p">,</span>
+            <span class="n">block_widths_quant</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">block_widths_quant</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">splits</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span> <span class="o">!=</span> <span class="n">wp</span> <span class="ow">or</span> <span class="n">r</span> <span class="o">!=</span> <span class="n">rp</span> <span class="k">for</span> <span class="n">w</span><span class="p">,</span> <span class="n">wp</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">rp</span> <span class="ow">in</span> <span class="n">split_helper</span><span class="p">]</span>
+
+        <span class="n">stage_widths</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span> <span class="k">for</span> <span class="n">w</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">block_widths_quant</span><span class="p">,</span> <span class="n">splits</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="n">t</span><span class="p">]</span>
+        <span class="n">stage_depths</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">([</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">splits</span><span class="p">)</span> <span class="k">if</span> <span class="n">t</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="p">)</span>
+
+        <span class="n">strides</span> <span class="o">=</span> <span class="p">[</span><span class="n">stride</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_stages</span>
+        <span class="n">bottleneck_multipliers</span> <span class="o">=</span> <span class="p">[</span><span class="n">bottleneck_multiplier</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_stages</span>
+        <span class="n">stage_groups</span> <span class="o">=</span> <span class="p">[</span><span class="n">groups</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_stages</span>
+
+        <span class="c1"># Adjust the compatibility of stage widths and group widths</span>
+        <span class="n">stage_widths</span><span class="p">,</span> <span class="n">stage_groups</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_widths_compatible</span><span class="p">(</span>
+            <span class="n">stage_widths</span><span class="p">,</span> <span class="n">stage_groups</span><span class="p">,</span> <span class="n">bottleneck_multipliers</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">depths</span> <span class="o">=</span> <span class="n">stage_depths</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">widths</span> <span class="o">=</span> <span class="n">stage_widths</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage_groups</span> <span class="o">=</span> <span class="n">stage_groups</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bottleneck_multipliers</span> <span class="o">=</span> <span class="n">bottleneck_multipliers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">strides</span> <span class="o">=</span> <span class="n">strides</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">se_ratio</span> <span class="o">=</span> <span class="n">se_ratio</span></div>
+
+    <span class="k">def</span> <span class="nf">_make_widths_compatible</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">stage_widths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+        <span class="n">stage_groups</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+        <span class="n">bottleneck_multipliers</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Scales widths by bottleneck multipliers and adjusts them to be compatible with</span>
+<span class="sd">        the specified groups.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Scale widths according to bottleneck multipliers</span>
+        <span class="n">widths</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">width</span> <span class="o">*</span> <span class="n">multiplier</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">width</span><span class="p">,</span> <span class="n">multiplier</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">stage_widths</span><span class="p">,</span> <span class="n">bottleneck_multipliers</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">group_widths_min</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="nb">min</span><span class="p">(</span><span class="n">groups</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span> <span class="k">for</span> <span class="n">groups</span><span class="p">,</span> <span class="n">width</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">stage_groups</span><span class="p">,</span> <span class="n">widths</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="c1"># Ensure the widths are divisible by groups</span>
+        <span class="n">bottleneck_widths</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">make_divisible</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="n">groups</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">width</span><span class="p">,</span> <span class="n">groups</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">widths</span><span class="p">,</span> <span class="n">group_widths_min</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="c1"># Undo scaling</span>
+        <span class="n">stage_widths</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">width</span> <span class="o">/</span> <span class="n">multiplier</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">width</span><span class="p">,</span> <span class="n">multiplier</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">bottleneck_widths</span><span class="p">,</span> <span class="n">bottleneck_multipliers</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">stage_widths</span><span class="p">,</span> <span class="n">group_widths_min</span>
+
+<div class="viewcode-block" id="BlockParamsConfig.extra_repr"><a class="viewcode-back" href="../../../../../autogen/cvnets.models.classification.config.html#cvnets.models.classification.config.regnet.BlockParamsConfig.extra_repr">[docs]</a>    <span class="k">def</span> <span class="nf">extra_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">extra_repr_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">extra_repr_str</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">depths=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">depths</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">extra_repr_str</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">widths=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">widths</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">extra_repr_str</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">strides=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">strides</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">extra_repr_str</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">stage_groups=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">stage_groups</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">extra_repr_str</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">bottleneck_multipliers=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">bottleneck_multipliers</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">extra_repr_str</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">se_ratio=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">se_ratio</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="k">return</span> <span class="n">extra_repr_str</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">(</span><span class="si">{}</span><span class="se">\n</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra_repr</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="get_configuration"><a class="viewcode-back" href="../../../../../autogen/cvnets.models.classification.config.html#cvnets.models.classification.config.regnet.get_configuration">[docs]</a><span class="k">def</span> <span class="nf">get_configuration</span><span class="p">(</span>
+    <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets the RegNet model configuration for the specified RegNet mode.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: command-line arguments</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        * A dictionary containing the configuration for each layer. Each key is of the form</span>
+<span class="sd">            layer&lt;i&gt; and the corresponding value is another dictionary with the following keys:</span>
+<span class="sd">                depth: The depth of the stage at layer&lt;i&gt;</span>
+<span class="sd">                width: The width of the blocks at this stage</span>
+<span class="sd">                groups: The convolution groups of each block at this stage</span>
+<span class="sd">                stride: The stride of the convolutions in each block at this stage</span>
+<span class="sd">                bottleneck_multiplier: The multiplier for the bottleneck conv in each of this stage&#39;s blocks</span>
+<span class="sd">                se_ratio: The squeeze-excitation ratio for each block in this stage</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">network_mode</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.classification.regnet.mode&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">network_mode</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">&quot;RegNet mode can&#39;t be none. Please specify --model.classification.regnet.mode&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">network_config</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+    <span class="n">block_params_config</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;x_200mf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">13</span><span class="p">,</span> <span class="mi">24</span><span class="p">,</span> <span class="mf">36.44</span><span class="p">,</span> <span class="mf">2.49</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
+        <span class="s2">&quot;x_400mf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">22</span><span class="p">,</span> <span class="mi">24</span><span class="p">,</span> <span class="mf">24.48</span><span class="p">,</span> <span class="mf">2.54</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span>
+        <span class="s2">&quot;x_600mf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">48</span><span class="p">,</span> <span class="mf">36.97</span><span class="p">,</span> <span class="mf">2.24</span><span class="p">,</span> <span class="mi">24</span><span class="p">),</span>
+        <span class="s2">&quot;x_800mf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">56</span><span class="p">,</span> <span class="mf">35.73</span><span class="p">,</span> <span class="mf">2.28</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span>
+        <span class="s2">&quot;x_1.6gf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="mf">34.01</span><span class="p">,</span> <span class="mf">2.25</span><span class="p">,</span> <span class="mi">24</span><span class="p">),</span>
+        <span class="s2">&quot;x_3.2gf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">25</span><span class="p">,</span> <span class="mi">88</span><span class="p">,</span> <span class="mf">26.31</span><span class="p">,</span> <span class="mf">2.25</span><span class="p">,</span> <span class="mi">48</span><span class="p">),</span>
+        <span class="s2">&quot;x_4.0gf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">23</span><span class="p">,</span> <span class="mi">96</span><span class="p">,</span> <span class="mf">38.65</span><span class="p">,</span> <span class="mf">2.43</span><span class="p">,</span> <span class="mi">40</span><span class="p">),</span>
+        <span class="s2">&quot;x_6.4gf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="mi">184</span><span class="p">,</span> <span class="mf">60.83</span><span class="p">,</span> <span class="mf">2.07</span><span class="p">,</span> <span class="mi">56</span><span class="p">),</span>
+        <span class="s2">&quot;x_8.0gf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">23</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="mf">49.56</span><span class="p">,</span> <span class="mf">2.88</span><span class="p">,</span> <span class="mi">120</span><span class="p">),</span>
+        <span class="s2">&quot;x_12gf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">19</span><span class="p">,</span> <span class="mi">168</span><span class="p">,</span> <span class="mf">73.36</span><span class="p">,</span> <span class="mf">2.37</span><span class="p">,</span> <span class="mi">112</span><span class="p">),</span>
+        <span class="s2">&quot;x_16gf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">22</span><span class="p">,</span> <span class="mi">216</span><span class="p">,</span> <span class="mf">55.59</span><span class="p">,</span> <span class="mf">2.1</span><span class="p">,</span> <span class="mi">128</span><span class="p">),</span>
+        <span class="s2">&quot;x_32gf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">23</span><span class="p">,</span> <span class="mi">320</span><span class="p">,</span> <span class="mf">69.86</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mi">168</span><span class="p">),</span>
+        <span class="s2">&quot;y_200mf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">13</span><span class="p">,</span> <span class="mi">24</span><span class="p">,</span> <span class="mf">36.44</span><span class="p">,</span> <span class="mf">2.49</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">se_ratio</span><span class="o">=</span><span class="mf">0.25</span><span class="p">),</span>
+        <span class="s2">&quot;y_400mf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">48</span><span class="p">,</span> <span class="mf">27.89</span><span class="p">,</span> <span class="mf">2.09</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">se_ratio</span><span class="o">=</span><span class="mf">0.25</span><span class="p">),</span>
+        <span class="s2">&quot;y_600mf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">48</span><span class="p">,</span> <span class="mf">32.54</span><span class="p">,</span> <span class="mf">2.32</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="n">se_ratio</span><span class="o">=</span><span class="mf">0.25</span><span class="p">),</span>
+        <span class="s2">&quot;y_800mf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mi">56</span><span class="p">,</span> <span class="mf">38.84</span><span class="p">,</span> <span class="mf">2.4</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="n">se_ratio</span><span class="o">=</span><span class="mf">0.25</span><span class="p">),</span>
+        <span class="s2">&quot;y_1.6gf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">27</span><span class="p">,</span> <span class="mi">48</span><span class="p">,</span> <span class="mf">20.71</span><span class="p">,</span> <span class="mf">2.65</span><span class="p">,</span> <span class="mi">24</span><span class="p">,</span> <span class="n">se_ratio</span><span class="o">=</span><span class="mf">0.25</span><span class="p">),</span>
+        <span class="s2">&quot;y_3.2gf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">21</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="mf">42.63</span><span class="p">,</span> <span class="mf">2.66</span><span class="p">,</span> <span class="mi">24</span><span class="p">,</span> <span class="n">se_ratio</span><span class="o">=</span><span class="mf">0.25</span><span class="p">),</span>
+        <span class="s2">&quot;y_4.0gf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">22</span><span class="p">,</span> <span class="mi">96</span><span class="p">,</span> <span class="mf">31.41</span><span class="p">,</span> <span class="mf">2.24</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="n">se_ratio</span><span class="o">=</span><span class="mf">0.25</span><span class="p">),</span>
+        <span class="s2">&quot;y_6.4gf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">25</span><span class="p">,</span> <span class="mi">112</span><span class="p">,</span> <span class="mf">33.22</span><span class="p">,</span> <span class="mf">2.27</span><span class="p">,</span> <span class="mi">72</span><span class="p">,</span> <span class="n">se_ratio</span><span class="o">=</span><span class="mf">0.25</span><span class="p">),</span>
+        <span class="s2">&quot;y_8.0gf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="mi">192</span><span class="p">,</span> <span class="mf">76.82</span><span class="p">,</span> <span class="mf">2.19</span><span class="p">,</span> <span class="mi">56</span><span class="p">,</span> <span class="n">se_ratio</span><span class="o">=</span><span class="mf">0.25</span><span class="p">),</span>
+        <span class="s2">&quot;y_12gf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">19</span><span class="p">,</span> <span class="mi">168</span><span class="p">,</span> <span class="mf">73.36</span><span class="p">,</span> <span class="mf">2.37</span><span class="p">,</span> <span class="mi">112</span><span class="p">,</span> <span class="n">se_ratio</span><span class="o">=</span><span class="mf">0.25</span><span class="p">),</span>
+        <span class="s2">&quot;y_16gf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mf">106.23</span><span class="p">,</span> <span class="mf">2.48</span><span class="p">,</span> <span class="mi">112</span><span class="p">,</span> <span class="n">se_ratio</span><span class="o">=</span><span class="mf">0.25</span><span class="p">),</span>
+        <span class="s2">&quot;y_32gf&quot;</span><span class="p">:</span> <span class="n">BlockParamsConfig</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">232</span><span class="p">,</span> <span class="mf">115.89</span><span class="p">,</span> <span class="mf">2.53</span><span class="p">,</span> <span class="mi">232</span><span class="p">,</span> <span class="n">se_ratio</span><span class="o">=</span><span class="mf">0.25</span><span class="p">),</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="n">network_mode</span> <span class="ow">in</span> <span class="n">block_params_config</span><span class="p">:</span>
+        <span class="n">regnet_block_params_cfg</span> <span class="o">=</span> <span class="n">block_params_config</span><span class="p">[</span><span class="n">network_mode</span><span class="p">]</span>
+
+        <span class="n">stage_depths</span> <span class="o">=</span> <span class="n">regnet_block_params_cfg</span><span class="o">.</span><span class="n">depths</span>
+        <span class="n">stage_widths</span> <span class="o">=</span> <span class="n">regnet_block_params_cfg</span><span class="o">.</span><span class="n">widths</span>
+        <span class="n">stage_groups</span> <span class="o">=</span> <span class="n">regnet_block_params_cfg</span><span class="o">.</span><span class="n">stage_groups</span>
+        <span class="n">bottleneck_multipliers</span> <span class="o">=</span> <span class="n">regnet_block_params_cfg</span><span class="o">.</span><span class="n">bottleneck_multipliers</span>
+        <span class="n">strides</span> <span class="o">=</span> <span class="n">regnet_block_params_cfg</span><span class="o">.</span><span class="n">strides</span>
+        <span class="n">se_ratio</span> <span class="o">=</span> <span class="n">regnet_block_params_cfg</span><span class="o">.</span><span class="n">se_ratio</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">layer_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;layer</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">)]):</span>
+            <span class="n">network_config</span><span class="p">[</span><span class="n">layer_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;depth&quot;</span><span class="p">:</span> <span class="n">stage_depths</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="n">stage_widths</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="s2">&quot;groups&quot;</span><span class="p">:</span> <span class="n">stage_groups</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="s2">&quot;stride&quot;</span><span class="p">:</span> <span class="n">strides</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="s2">&quot;bottleneck_multiplier&quot;</span><span class="p">:</span> <span class="n">bottleneck_multipliers</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="s2">&quot;se_ratio&quot;</span><span class="p">:</span> <span class="n">se_ratio</span><span class="p">,</span>
+            <span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Current supported modes for RegNet are </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">supported_modes</span><span class="p">)</span><span class="si">}</span><span class="s2">. Got: </span><span class="si">{</span><span class="n">network_mode</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">network_config</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>metrics.coco_map &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../metrics.html">metrics</a></li>
+      <li class="breadcrumb-item active">metrics.coco_map</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for metrics.coco_map</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">redirect_stdout</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">pycocotools</span> <span class="kn">import</span> <span class="n">mask</span> <span class="k">as</span> <span class="n">maskUtils</span>
+<span class="kn">from</span> <span class="nn">pycocotools.coco</span> <span class="kn">import</span> <span class="n">COCO</span>
+<span class="kn">from</span> <span class="nn">pycocotools.cocoeval</span> <span class="kn">import</span> <span class="n">COCOeval</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">F</span>
+
+<span class="kn">from</span> <span class="nn">cvnets.models.detection</span> <span class="kn">import</span> <span class="n">DetectionPredTuple</span>
+<span class="kn">from</span> <span class="nn">metrics</span> <span class="kn">import</span> <span class="n">METRICS_REGISTRY</span>
+<span class="kn">from</span> <span class="nn">metrics.metric_base</span> <span class="kn">import</span> <span class="n">BaseMetric</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">from</span> <span class="nn">utils.ddp_utils</span> <span class="kn">import</span> <span class="n">is_master</span>
+<span class="kn">from</span> <span class="nn">utils.tensor_utils</span> <span class="kn">import</span> <span class="n">all_gather_list</span>
+
+
+<div class="viewcode-block" id="COCOEvaluator"><a class="viewcode-back" href="../../autogen/metrics.html#metrics.coco_map.COCOEvaluator">[docs]</a><span class="nd">@METRICS_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;coco_map&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">COCOEvaluator</span><span class="p">(</span><span class="n">BaseMetric</span><span class="p">):</span>
+<div class="viewcode-block" id="COCOEvaluator.__init__"><a class="viewcode-back" href="../../autogen/metrics.html#metrics.coco_map.COCOEvaluator.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">opts</span><span class="p">,</span>
+        <span class="n">split</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;val&quot;</span><span class="p">,</span>
+        <span class="n">year</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2017</span><span class="p">,</span>
+        <span class="n">is_distributed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># disable printing on console, so that pycocotools print statements are not printed on console</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">disable_printing</span><span class="p">()</span>
+        <span class="n">bkrnd_id</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mi">0</span> <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.detection.no_background_id&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="p">)</span>
+
+        <span class="n">iou_types</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;stats.coco_map.iou_types&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;bbox&quot;</span><span class="p">])</span>
+
+        <span class="n">root</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.root_val&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">ann_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">root</span><span class="p">,</span> <span class="s2">&quot;annotations/instances_</span><span class="si">{}{}</span><span class="s2">.json&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">split</span><span class="p">,</span> <span class="n">year</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">coco_gt</span> <span class="o">=</span> <span class="n">COCO</span><span class="p">(</span><span class="n">ann_file</span><span class="p">)</span>
+
+        <span class="n">coco_categories</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">coco_gt</span><span class="o">.</span><span class="n">getCatIds</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coco_id_to_contiguous_id</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">coco_id</span><span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">bkrnd_id</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">coco_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">coco_categories</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">contiguous_id_to_coco_id</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">v</span><span class="p">:</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coco_id_to_contiguous_id</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">coco_gt</span> <span class="o">=</span> <span class="n">coco_gt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iou_types</span> <span class="o">=</span> <span class="n">iou_types</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_distributed</span> <span class="o">=</span> <span class="n">is_distributed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_master_node</span> <span class="o">=</span> <span class="n">is_master</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">coco_results</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+        <span class="c1"># enable printing, to enable cvnets log printing</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">enable_printing</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="COCOEvaluator.reset"><a class="viewcode-back" href="../../autogen/metrics.html#metrics.coco_map.COCOEvaluator.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coco_results</span> <span class="o">=</span> <span class="p">{</span><span class="n">iou_type</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">iou_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iou_types</span><span class="p">}</span></div>
+
+<div class="viewcode-block" id="COCOEvaluator.update"><a class="viewcode-back" href="../../autogen/metrics.html#metrics.coco_map.COCOEvaluator.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">prediction</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">],</span>
+        <span class="n">target</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">],</span>
+        <span class="n">extras</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{},</span>
+        <span class="n">batch_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">Dict</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="p">({</span><span class="s2">&quot;detections&quot;</span><span class="p">}</span> <span class="o">&lt;=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+        <span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;For coco evaluation during training, the output from the model should be a dictionary &quot;</span>
+                <span class="s2">&quot;and should contain the results in a key called detections&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">detections</span> <span class="o">=</span> <span class="n">prediction</span><span class="p">[</span><span class="s2">&quot;detections&quot;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">image_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">t</span><span class="p">[</span><span class="s2">&quot;image_id&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">target</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+            <span class="n">image_widths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">target</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span>
+            <span class="p">)</span>
+            <span class="n">image_heights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">target</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">image_ids</span> <span class="o">=</span> <span class="n">target</span><span class="p">[</span><span class="s2">&quot;image_id&quot;</span><span class="p">]</span>
+            <span class="n">image_widths</span> <span class="o">=</span> <span class="n">target</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">]</span>
+            <span class="n">image_heights</span> <span class="o">=</span> <span class="n">target</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">detections</span><span class="p">,</span> <span class="n">DetectionPredTuple</span><span class="p">):</span>
+            <span class="n">detections</span> <span class="o">=</span> <span class="p">[</span><span class="n">detections</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">detections</span><span class="p">,</span> <span class="n">List</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">detections</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">DetectionPredTuple</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;For coco evaluation during training, the results should be stored as a List of DetectionPredTuple&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">prepare_cache_results</span><span class="p">(</span>
+            <span class="n">detection_results</span><span class="o">=</span><span class="n">detections</span><span class="p">,</span>
+            <span class="n">image_ids</span><span class="o">=</span><span class="n">image_ids</span><span class="p">,</span>
+            <span class="n">image_widths</span><span class="o">=</span><span class="n">image_widths</span><span class="p">,</span>
+            <span class="n">image_heights</span><span class="o">=</span><span class="n">image_heights</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="COCOEvaluator.prepare_cache_results"><a class="viewcode-back" href="../../autogen/metrics.html#metrics.coco_map.COCOEvaluator.prepare_cache_results">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_cache_results</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">detection_results</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">DetectionPredTuple</span><span class="p">],</span>
+        <span class="n">image_ids</span><span class="p">,</span>
+        <span class="n">image_widths</span><span class="p">,</span>
+        <span class="n">image_heights</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">batch_results</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coco_results</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+        <span class="k">for</span> <span class="n">detection_result</span><span class="p">,</span> <span class="n">img_id</span><span class="p">,</span> <span class="n">img_w</span><span class="p">,</span> <span class="n">img_h</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">detection_results</span><span class="p">,</span> <span class="n">image_ids</span><span class="p">,</span> <span class="n">image_widths</span><span class="p">,</span> <span class="n">image_heights</span>
+        <span class="p">):</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="n">detection_result</span><span class="o">.</span><span class="n">labels</span>
+
+            <span class="k">if</span> <span class="n">label</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># no detections</span>
+                <span class="k">continue</span>
+            <span class="n">box</span> <span class="o">=</span> <span class="n">detection_result</span><span class="o">.</span><span class="n">boxes</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="n">detection_result</span><span class="o">.</span><span class="n">scores</span>
+
+            <span class="n">img_id</span><span class="p">,</span> <span class="n">img_w</span><span class="p">,</span> <span class="n">img_h</span> <span class="o">=</span> <span class="n">img_id</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="n">img_w</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="n">img_h</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+            <span class="n">box</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">box</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">img_w</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="n">img_w</span><span class="p">)</span>
+            <span class="n">box</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">box</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">img_h</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="n">img_h</span><span class="p">)</span>
+
+            <span class="c1"># convert box from xyxy to xywh format</span>
+            <span class="n">box</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">box</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">box</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">box</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">box</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="n">box</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+
+            <span class="n">box</span> <span class="o">=</span> <span class="n">box</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="n">score</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="s2">&quot;bbox&quot;</span> <span class="ow">in</span> <span class="n">batch_results</span><span class="p">:</span>
+                <span class="n">batch_results</span><span class="p">[</span><span class="s2">&quot;bbox&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="p">{</span>
+                            <span class="s2">&quot;image_id&quot;</span><span class="p">:</span> <span class="n">img_id</span><span class="p">,</span>
+                            <span class="s2">&quot;category_id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">contiguous_id_to_coco_id</span><span class="p">[</span>
+                                <span class="n">label</span><span class="p">[</span><span class="n">bbox_id</span><span class="p">]</span>
+                            <span class="p">],</span>
+                            <span class="s2">&quot;bbox&quot;</span><span class="p">:</span> <span class="n">box</span><span class="p">[</span><span class="n">bbox_id</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+                            <span class="s2">&quot;score&quot;</span><span class="p">:</span> <span class="n">score</span><span class="p">[</span><span class="n">bbox_id</span><span class="p">],</span>
+                        <span class="p">}</span>
+                        <span class="k">for</span> <span class="n">bbox_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">box</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                        <span class="k">if</span> <span class="n">label</span><span class="p">[</span><span class="n">bbox_id</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+
+            <span class="n">masks</span> <span class="o">=</span> <span class="n">detection_result</span><span class="o">.</span><span class="n">masks</span>
+            <span class="k">if</span> <span class="n">masks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;segm&quot;</span> <span class="ow">in</span> <span class="n">batch_results</span><span class="p">:</span>
+                <span class="c1"># masks are [N, H, W]. For interpolation, convert them to [1, N, H, W] and then back to [N, H, W]</span>
+                <span class="n">masks</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span>
+                    <span class="n">masks</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                    <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">img_h</span><span class="p">,</span> <span class="n">img_w</span><span class="p">),</span>
+                    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;bilinear&quot;</span><span class="p">,</span>
+                    <span class="n">align_corners</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">masks</span> <span class="o">=</span> <span class="n">masks</span> <span class="o">&gt;</span> <span class="mf">0.5</span>
+
+                <span class="n">masks</span> <span class="o">=</span> <span class="n">masks</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+                <span class="c1"># predicted masks are in [N, H, W] format</span>
+                <span class="n">rles</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">maskUtils</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">mask</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;F&quot;</span><span class="p">)</span>
+                    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">mask</span> <span class="ow">in</span> <span class="n">masks</span>
+                <span class="p">]</span>
+                <span class="k">for</span> <span class="n">rle</span> <span class="ow">in</span> <span class="n">rles</span><span class="p">:</span>
+                    <span class="n">rle</span><span class="p">[</span><span class="s2">&quot;counts&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rle</span><span class="p">[</span><span class="s2">&quot;counts&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+
+                <span class="n">batch_results</span><span class="p">[</span><span class="s2">&quot;segm&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="p">{</span>
+                            <span class="s2">&quot;image_id&quot;</span><span class="p">:</span> <span class="n">img_id</span><span class="p">,</span>
+                            <span class="s2">&quot;category_id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">contiguous_id_to_coco_id</span><span class="p">[</span><span class="n">label</span><span class="p">[</span><span class="n">seg_id</span><span class="p">]],</span>
+                            <span class="s2">&quot;segmentation&quot;</span><span class="p">:</span> <span class="n">rle</span><span class="p">,</span>
+                            <span class="s2">&quot;score&quot;</span><span class="p">:</span> <span class="n">score</span><span class="p">[</span><span class="n">seg_id</span><span class="p">],</span>
+                        <span class="p">}</span>
+                        <span class="k">for</span> <span class="n">seg_id</span><span class="p">,</span> <span class="n">rle</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rles</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">label</span><span class="p">[</span><span class="n">seg_id</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">batch_results</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">new_results</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="n">batch_results</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_distributed</span><span class="p">:</span>
+                <span class="c1"># Gather results from all processes</span>
+                <span class="n">gathered_results</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">]]</span> <span class="o">=</span> <span class="n">all_gather_list</span><span class="p">(</span><span class="n">new_results</span><span class="p">)</span>
+                <span class="c1"># Flatten results as the output of all_gather will be a list of list here</span>
+                <span class="n">new_results</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">results</span> <span class="ow">in</span> <span class="n">gathered_results</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">coco_results</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">new_results</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="COCOEvaluator.summarize_coco_results"><a class="viewcode-back" href="../../autogen/metrics.html#metrics.coco_map.COCOEvaluator.summarize_coco_results">[docs]</a>    <span class="k">def</span> <span class="nf">summarize_coco_results</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+        <span class="n">stats_map</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">iou_type</span><span class="p">,</span> <span class="n">coco_results</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coco_results</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">coco_results</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># during initial epochs, we may not have any sample results, so we can skip this part</span>
+                <span class="n">map_val</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">disable_printing</span><span class="p">()</span>
+
+                    <span class="k">with</span> <span class="n">redirect_stdout</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">()):</span>
+                        <span class="n">coco_dt</span> <span class="o">=</span> <span class="n">COCO</span><span class="o">.</span><span class="n">loadRes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coco_gt</span><span class="p">,</span> <span class="n">coco_results</span><span class="p">)</span>
+
+                    <span class="n">coco_eval</span> <span class="o">=</span> <span class="n">COCOeval</span><span class="p">(</span>
+                        <span class="n">cocoGt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">coco_gt</span><span class="p">,</span> <span class="n">cocoDt</span><span class="o">=</span><span class="n">coco_dt</span><span class="p">,</span> <span class="n">iouType</span><span class="o">=</span><span class="n">iou_type</span>
+                    <span class="p">)</span>
+                    <span class="n">coco_eval</span><span class="o">.</span><span class="n">evaluate</span><span class="p">()</span>
+                    <span class="n">coco_eval</span><span class="o">.</span><span class="n">accumulate</span><span class="p">()</span>
+
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_master_node</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">enable_printing</span><span class="p">()</span>
+
+                    <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Results for IoU Metric: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">iou_type</span><span class="p">))</span>
+                    <span class="n">coco_eval</span><span class="o">.</span><span class="n">summarize</span><span class="p">()</span>
+                    <span class="n">map_val</span> <span class="o">=</span> <span class="n">coco_eval</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">map_val</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">stats_map</span><span class="p">[</span><span class="n">iou_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">map_val</span> <span class="o">*</span> <span class="mi">100</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">enable_printing</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">stats_map</span></div>
+
+<div class="viewcode-block" id="COCOEvaluator.compute"><a class="viewcode-back" href="../../autogen/metrics.html#metrics.coco_map.COCOEvaluator.compute">[docs]</a>    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">summarize_coco_results</span><span class="p">()</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

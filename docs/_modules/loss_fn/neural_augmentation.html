@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>loss_fn.neural_augmentation &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../loss_fn.html">loss_fn</a></li>
+      <li class="breadcrumb-item active">loss_fn.neural_augmentation</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for loss_fn.neural_augmentation</h1><div class="highlight"><pre>
+<span></span><span class="c1">#  For licensing see accompanying LICENSE file.</span>
+<span class="c1">#  Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">F</span>
+
+<span class="kn">from</span> <span class="nn">loss_fn</span> <span class="kn">import</span> <span class="n">LOSS_REGISTRY</span><span class="p">,</span> <span class="n">BaseCriteria</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">from</span> <span class="nn">utils.ddp_utils</span> <span class="kn">import</span> <span class="n">is_master</span>
+
+
+<span class="c1"># NeuralAugmentation can be used with any task. Therefore, we register both name and type</span>
+<span class="c1"># as the same.</span>
+<div class="viewcode-block" id="NeuralAugmentation"><a class="viewcode-back" href="../../autogen/loss_fn.html#loss_fn.neural_augmentation.NeuralAugmentation">[docs]</a><span class="nd">@LOSS_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;neural_augmentation&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;neural_augmentation&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">NeuralAugmentation</span><span class="p">(</span><span class="n">BaseCriteria</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the augmentation loss, as described in the</span>
+<span class="sd">    `RangeAugment &lt;https://arxiv.org/abs/2212.10553&gt;`_ paper.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: command line arguments</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">__supported_metrics</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;psnr&quot;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="NeuralAugmentation.__init__"><a class="viewcode-back" href="../../autogen/loss_fn.html#loss_fn.neural_augmentation.NeuralAugmentation.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="n">perceptual_metric</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;loss.neural_augmentation.perceptual_metric&quot;</span><span class="p">)</span>
+        <span class="n">is_master_node</span> <span class="o">=</span> <span class="n">is_master</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">perceptual_metric</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">is_master_node</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;Perceptual metric can&#39;t be none. &quot;</span>
+                <span class="s2">&quot;Please specify perceptual metric using --loss.auxiliary.neural-augmentation.perceptual-metric argument&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">perceptual_metric</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">is_master_node</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;The type of perceptual metric is not string. Got: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="nb">type</span><span class="p">(</span><span class="n">perceptual_metric</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="n">perceptual_metric</span> <span class="o">=</span> <span class="n">perceptual_metric</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">target_value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;loss.neural_augmentation.target_value&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">curriculumn_learning</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iteration_based_training</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;scheduler.is_iteration_based&quot;</span><span class="p">,</span> <span class="kc">False</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">target_value</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;loss.neural_augmentation.alpha&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">perceptual_metric</span> <span class="o">==</span> <span class="s2">&quot;psnr&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">target_value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">is_master_node</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Target PSNR value can not be None.&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target_value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="n">target_value</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">is_master_node</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                            <span class="s2">&quot;PSNR value should be &gt;= 0 in </span><span class="si">{}</span><span class="s2">. Got: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">target_value</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+                <span class="c1"># compute target MSE using below equation</span>
+                <span class="c1"># # PSNR = 20 log10(255) - 10 log10(MSE)</span>
+                <span class="n">target_mse</span> <span class="o">=</span> <span class="mf">10.0</span> <span class="o">**</span> <span class="p">((</span><span class="mf">20.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="mf">255.0</span><span class="p">)</span> <span class="o">-</span> <span class="n">target_value</span><span class="p">)</span> <span class="o">/</span> <span class="mf">10.0</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span>
+                    <span class="n">target_mse</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">target_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">target_value</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target_value</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_value</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">start_target_value</span> <span class="o">=</span> <span class="n">target_value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">end_target_value</span> <span class="o">=</span> <span class="n">target_value</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">start_target_value</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">end_target_value</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">is_master_node</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                            <span class="s2">&quot;PSNR value should be &gt;= 0 in </span><span class="si">{}</span><span class="s2">. Got: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">target_value</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+
+                <span class="c1"># compute target MSE using below equation</span>
+                <span class="c1"># # PSNR = 20 log10(255) - 10 log10(MSE)</span>
+                <span class="n">start_target_mse</span> <span class="o">=</span> <span class="mf">10.0</span> <span class="o">**</span> <span class="p">(</span>
+                    <span class="p">(</span><span class="mf">20.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="mf">255.0</span><span class="p">)</span> <span class="o">-</span> <span class="n">start_target_value</span><span class="p">)</span> <span class="o">/</span> <span class="mf">10.0</span>
+                <span class="p">)</span>
+                <span class="n">end_target_mse</span> <span class="o">=</span> <span class="mf">10.0</span> <span class="o">**</span> <span class="p">(</span>
+                    <span class="p">(</span><span class="mf">20.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="mf">255.0</span><span class="p">)</span> <span class="o">-</span> <span class="n">end_target_value</span><span class="p">)</span> <span class="o">/</span> <span class="mf">10.0</span>
+                <span class="p">)</span>
+
+                <span class="n">max_steps</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;scheduler.max_iterations&quot;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iteration_based_training</span>
+                    <span class="k">else</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;scheduler.max_epochs&quot;</span><span class="p">)</span>
+                <span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">max_steps</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">is_master_node</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                        <span class="s2">&quot;Please specify </span><span class="si">{}</span><span class="s2">. Got None.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="s2">&quot;--scheduler.max-iterations&quot;</span>
+                            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iteration_based_training</span>
+                            <span class="k">else</span> <span class="s2">&quot;--scheduler.max-epochs&quot;</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+                <span class="n">curriculum_method</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+                    <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;loss.neural_augmentation.curriculum_method&quot;</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">curriculum_method</span> <span class="ow">in</span> <span class="n">CURRICULUM_METHOD</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span> <span class="o">=</span> <span class="n">CURRICULUM_METHOD</span><span class="p">[</span><span class="n">curriculum_method</span><span class="p">](</span>
+                        <span class="n">start</span><span class="o">=</span><span class="n">start_target_mse</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="n">end_target_mse</span><span class="p">,</span> <span class="n">period</span><span class="o">=</span><span class="n">max_steps</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">curriculumn_learning</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">target_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">start_target_value</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">end_target_value</span><span class="si">}</span><span class="s2">]&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+            <span class="c1"># the maximum possible MSE error is computed as:</span>
+            <span class="c1"># a = torch.ones((3, H, W)) * 255.0 # Max. input value is 255.0</span>
+            <span class="c1"># b = torch.zeros((3, H, W)) # min. input value is 0.0</span>
+            <span class="c1"># mse = torch.mean( (a -b) ** 2)</span>
+            <span class="c1"># 65025 is the maximum mse</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">/</span> <span class="mf">65025.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">is_master_node</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s2">&quot;Supported perceptual metrics are: </span><span class="si">{}</span><span class="s2">. Got: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">__supported_metrics</span><span class="p">,</span> <span class="n">perceptual_metric</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">perceptual_metric</span> <span class="o">=</span> <span class="n">perceptual_metric</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dev.device&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="NeuralAugmentation.add_arguments"><a class="viewcode-back" href="../../autogen/loss_fn.html#loss_fn.neural_augmentation.NeuralAugmentation.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--loss.neural-augmentation.perceptual-metric&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;psnr&quot;</span><span class="p">,</span>
+            <span class="n">choices</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">__supported_metrics</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Name of the perceptual metric to be used in </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--loss.neural-augmentation.target-value&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="mi">40</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span>
+            <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Target image similarity value in </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">. Defaults to [40, 20]&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--loss.neural-augmentation.curriculum-method&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;cosine&quot;</span><span class="p">,</span>
+            <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span> <span class="s2">&quot;cosine&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Curriculum for varying the target image similarity value in </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Supported curriculums are </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">__supported_metrics</span><span class="si">}</span><span class="s2">. Defaults to cosine&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--loss.neural-augmentation.alpha&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">100.0</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Scale loss value by alpha value. Defaults to 100. &quot;</span>
+            <span class="s2">&quot;Note: When perceptual metric is PSNR, alpha value is divided by 65025&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+    <span class="k">def</span> <span class="nf">_forward_psnr</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">input_tensor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">augmented_tensor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute the MSE error between input and augmented image, and minimizes</span>
+<span class="sd">        the distance between MSE error and target error.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            input_tensor: Input image of shape [N, C, H, W]</span>
+<span class="sd">            augmented_tensor: Augmented image of shape [N, C, H, W]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A scalar loss value</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">squared_err</span> <span class="o">=</span> <span class="p">((</span><span class="n">augmented_tensor</span> <span class="o">-</span> <span class="n">input_tensor</span><span class="p">)</span> <span class="o">*</span> <span class="mf">255.0</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="c1"># [B, C, H, W] --&gt; [B]</span>
+        <span class="n">pred_mse</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">squared_err</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">curriculumn_learning</span><span class="p">:</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;iterations&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iteration_based_training</span>
+                <span class="k">else</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;epoch&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">step</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_value</span><span class="p">):</span>
+                <span class="n">step</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="n">target_mse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span><span class="p">[</span><span class="n">step</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">target_mse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_value</span>
+
+        <span class="c1"># compute L1 loss between target and current MSE</span>
+        <span class="n">smooth_l1_loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">smooth_l1_loss</span><span class="p">(</span>
+            <span class="nb">input</span><span class="o">=</span><span class="n">pred_mse</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">=</span><span class="n">target_mse</span><span class="o">.</span><span class="n">expand_as</span><span class="p">(</span><span class="n">pred_mse</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">pred_mse</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">pred_mse</span><span class="o">.</span><span class="n">dtype</span>
+            <span class="p">),</span>
+            <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;mean&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">loss_na</span> <span class="o">=</span> <span class="n">smooth_l1_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span>
+        <span class="k">return</span> <span class="n">loss_na</span>
+
+    <span class="k">def</span> <span class="nf">_compute_loss</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">input_tensor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">augmented_tensor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute the neural augmentation loss.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            input_tensor: Input image of shape [N, C, H, W]</span>
+<span class="sd">            augmented_tensor: Augmented image of shape [N, C, H, W]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A scalar value</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">augmented_tensor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Augmented tensor can&#39;t be None in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> during training mode.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">forward_loss_fn</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;_forward_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">perceptual_metric</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">loss_na</span> <span class="o">=</span> <span class="n">forward_loss_fn</span><span class="p">(</span>
+            <span class="n">input_tensor</span><span class="o">=</span><span class="n">input_tensor</span><span class="p">,</span>
+            <span class="n">augmented_tensor</span><span class="o">=</span><span class="n">augmented_tensor</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">loss_na</span>
+
+<div class="viewcode-block" id="NeuralAugmentation.forward"><a class="viewcode-back" href="../../autogen/loss_fn.html#loss_fn.neural_augmentation.NeuralAugmentation.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">input_sample</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]]]],</span>
+        <span class="n">prediction</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">],</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute the loss between input and augmented image, as described in</span>
+<span class="sd">        `RangeAugment &lt;https://arxiv.org/abs/2212.10553&gt;`_ paper.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            input_sample: Input sample can either be a Tensor or a dictionary with mandatory key &quot;image&quot;. In</span>
+<span class="sd">                case of a dictionary, the values can be a Tensor or list of Tensors.</span>
+<span class="sd">            prediction: Output of augmentation model. Mapping of (string: Tensor) with `augmented_tensor`</span>
+<span class="sd">                as the required key.</span>
+
+<span class="sd">        Shapes:</span>
+<span class="sd">            input_sample:</span>
+<span class="sd">                * Tensor: The shape of input tensor is [N, C, H, W]</span>
+<span class="sd">                * Mapping[str, Tensor]: The shape of tensor is [N, C, H, W]</span>
+<span class="sd">                * Mapping[str, List[Tensor]]: The length of List is N, and the shape of each tensor is [1, C, H, W]</span>
+<span class="sd">            prediction: The shape of prediction[&quot;augmented_tensor&quot;] is [N, C, H, W]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A scalar loss value</span>
+
+<span class="sd">        ...note:</span>
+<span class="sd">            During validation or evaluation, neural augmentation loss is not computed and 0 is returned</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;Prediction needs to be an instance of Mapping and must contain augmented_tensor&quot;</span>
+                <span class="s2">&quot; as keys&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_sample</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+            <span class="n">input_sample</span> <span class="o">=</span> <span class="n">input_sample</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_sample</span><span class="p">,</span> <span class="n">List</span><span class="p">):</span>
+            <span class="c1"># if its a list of images, stack them</span>
+            <span class="n">input_sample</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">input_sample</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">augmented_tensor</span> <span class="o">=</span> <span class="n">prediction</span><span class="p">[</span><span class="s2">&quot;augmented_tensor&quot;</span><span class="p">]</span>
+        <span class="n">loss_na</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_loss</span><span class="p">(</span>
+            <span class="n">input_tensor</span><span class="o">=</span><span class="n">input_sample</span><span class="p">,</span>
+            <span class="n">augmented_tensor</span><span class="o">=</span><span class="n">augmented_tensor</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">loss_na</span></div>
+
+<div class="viewcode-block" id="NeuralAugmentation.extra_repr"><a class="viewcode-back" href="../../autogen/loss_fn.html#loss_fn.neural_augmentation.NeuralAugmentation.extra_repr">[docs]</a>    <span class="k">def</span> <span class="nf">extra_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> target_metric=</span><span class="si">{}</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> target_value=</span><span class="si">{}</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> curriculum_learning=</span><span class="si">{}</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> alpha=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">perceptual_metric</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">target_str</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">curriculumn_learning</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="linear_curriculum"><a class="viewcode-back" href="../../autogen/loss_fn.html#loss_fn.neural_augmentation.linear_curriculum">[docs]</a><span class="k">def</span> <span class="nf">linear_curriculum</span><span class="p">(</span><span class="n">start</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">period</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;This function implements linear curriculum</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        start: the starting value for the set of points</span>
+<span class="sd">        end: the ending value for the set of points</span>
+<span class="sd">        period: size of the constructed tensor</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A float tensor of length period</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="n">end</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="n">period</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cosine_curriculum"><a class="viewcode-back" href="../../autogen/loss_fn.html#loss_fn.neural_augmentation.cosine_curriculum">[docs]</a><span class="k">def</span> <span class="nf">cosine_curriculum</span><span class="p">(</span><span class="n">start</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">period</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;This function implements cosine curriculum</span>
+<span class="sd">    Args:</span>
+<span class="sd">        start: the starting value for the set of points</span>
+<span class="sd">        end: the ending value for the set of points</span>
+<span class="sd">        period: size of the constructed tensor</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A float tensor of length period</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">curr</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">end</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">start</span> <span class="o">-</span> <span class="n">end</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">i</span> <span class="o">/</span> <span class="p">(</span><span class="n">period</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">period</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="n">curr</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">curr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">curr</span></div>
+
+
+<span class="n">CURRICULUM_METHOD</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;linear&quot;</span><span class="p">:</span> <span class="n">linear_curriculum</span><span class="p">,</span>
+    <span class="s2">&quot;cosine&quot;</span><span class="p">:</span> <span class="n">cosine_curriculum</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

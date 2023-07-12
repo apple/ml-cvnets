@@ -1,0 +1,117 @@
+metrics package
+===============
+
+Submodules
+----------
+
+metrics.average\_precision module
+---------------------------------
+
+.. automodule:: metrics.average_precision
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+metrics.coco\_map module
+------------------------
+
+.. automodule:: metrics.coco_map
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+metrics.confusion\_mat module
+-----------------------------
+
+.. automodule:: metrics.confusion_mat
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+metrics.image\_text\_retrieval module
+-------------------------------------
+
+.. automodule:: metrics.image_text_retrieval
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+metrics.intersection\_over\_union module
+----------------------------------------
+
+.. automodule:: metrics.intersection_over_union
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+metrics.metric\_base module
+---------------------------
+
+.. automodule:: metrics.metric_base
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+metrics.metric\_base\_test module
+---------------------------------
+
+.. automodule:: metrics.metric_base_test
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+metrics.misc module
+-------------------
+
+.. automodule:: metrics.misc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+metrics.probability\_histograms module
+--------------------------------------
+
+.. automodule:: metrics.probability_histograms
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+metrics.psnr module
+-------------------
+
+.. automodule:: metrics.psnr
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+metrics.retrieval\_cmc module
+-----------------------------
+
+.. automodule:: metrics.retrieval_cmc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+metrics.stats module
+--------------------
+
+.. automodule:: metrics.stats
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+metrics.topk\_accuracy module
+-----------------------------
+
+.. automodule:: metrics.topk_accuracy
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: metrics
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>data.sampler.chain_sampler &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../sampler.html">data.sampler</a></li>
+      <li class="breadcrumb-item active">data.sampler.chain_sampler</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for data.sampler.chain_sampler</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span> <span class="nn">torch.utils.data.sampler</span> <span class="kn">import</span> <span class="n">Sampler</span>
+
+<span class="kn">from</span> <span class="nn">data.sampler</span> <span class="kn">import</span> <span class="n">SAMPLER_REGISTRY</span><span class="p">,</span> <span class="n">build_sampler</span>
+<span class="kn">from</span> <span class="nn">options.utils</span> <span class="kn">import</span> <span class="n">flatten_yaml_as_dict</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+
+
+<div class="viewcode-block" id="ChainSampler"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.chain_sampler.ChainSampler">[docs]</a><span class="nd">@SAMPLER_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;chain_sampler&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">ChainSampler</span><span class="p">(</span><span class="n">Sampler</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class is a wrapper for iterating over datasets for multiple or similar tasks, typically useful for</span>
+<span class="sd">    multi-task training.</span>
+<span class="sd">    `task_name` and `sampler_config` are two mandatory keys that allows us to use task-specific data samplers.</span>
+<span class="sd">    For specifying batch sizes, we use `train_batch_size0`, and `val_batch_size0` as keys for</span>
+<span class="sd">    training and validation sets. Note that the batch sizes are scaled automatically depending on the number of GPUs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: Command-line arguments</span>
+<span class="sd">        data_samplers: dictionary containing different samplers</span>
+
+<span class="sd">    Example::</span>
+<span class="sd">    # Example yaml config for combining different samplers is given below.</span>
+<span class="sd">    # Please note that configuration for each sampler should start with `-` in `chain_sampler`.</span>
+
+<span class="sd">    sampler:</span>
+<span class="sd">        name: &quot;chain_sampler&quot;</span>
+<span class="sd">        chain_sampler_mode: &quot;sequential&quot;</span>
+<span class="sd">        chain_sampler:</span>
+<span class="sd">          - task_name: &quot;segmentation&quot;</span>
+<span class="sd">            train_batch_size0: 10</span>
+<span class="sd">            sampler_config:</span>
+<span class="sd">              name: &quot;variable_batch_sampler&quot;</span>
+<span class="sd">              use_shards: false</span>
+<span class="sd">              num_repeats: 4</span>
+<span class="sd">              truncated_repeat_aug_sampler: false</span>
+<span class="sd">              vbs:</span>
+<span class="sd">                crop_size_width: 512</span>
+<span class="sd">                crop_size_height: 512</span>
+<span class="sd">                max_n_scales: 25</span>
+<span class="sd">                min_crop_size_width: 256</span>
+<span class="sd">                max_crop_size_width: 768</span>
+<span class="sd">                min_crop_size_height: 256</span>
+<span class="sd">                max_crop_size_height: 768</span>
+<span class="sd">                check_scale: 16</span>
+<span class="sd">          - task_name: &quot;classification&quot;</span>
+<span class="sd">            train_batch_size0: 20</span>
+<span class="sd">            sampler_config:</span>
+<span class="sd">              name: &quot;batch_sampler&quot;</span>
+<span class="sd">              bs:</span>
+<span class="sd">                crop_size_width: 512</span>
+<span class="sd">                crop_size_height: 512</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_SUPPORTED_SAMPLING_MODES</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;sequential&quot;</span><span class="p">,</span> <span class="s2">&quot;interleave&quot;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="ChainSampler.__init__"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.chain_sampler.ChainSampler.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">data_samplers</span> <span class="o">=</span> <span class="n">ChainSampler</span><span class="o">.</span><span class="n">build_chain_sampler</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">sampling_mode</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;sampler.chain_sampler_mode&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">sampling_mode</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Sampling mode can&#39;t be None in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sampling_mode</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Sampling mode in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> should be a type of string. Got: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">sampling_mode</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">sampling_mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SUPPORTED_SAMPLING_MODES</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Supported sampling mode in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> are </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_SUPPORTED_SAMPLING_MODES</span><span class="si">}</span><span class="s2">. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Got: </span><span class="si">{</span><span class="n">sampling_mode</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">samplers_dict</span> <span class="o">=</span> <span class="n">data_samplers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sampling_mode</span> <span class="o">=</span> <span class="n">sampling_mode</span></div>
+
+<div class="viewcode-block" id="ChainSampler.add_arguments"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.chain_sampler.ChainSampler.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add arguments for chain sampler.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">cls</span> <span class="o">!=</span> <span class="n">ChainSampler</span><span class="p">:</span>
+            <span class="c1"># Don&#39;t re-register arguments in subclasses that don&#39;t override `add_arguments()`.</span>
+            <span class="k">return</span> <span class="n">parser</span>
+
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--sampler.chain-sampler&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;append&quot;</span><span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--sampler.chain-sampler-mode&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;sequential&quot;</span><span class="p">,</span>
+            <span class="n">choices</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_SUPPORTED_SAMPLING_MODES</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Chain sampler mode. Defaults to sequential.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="ChainSampler.build_chain_sampler"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.chain_sampler.ChainSampler.build_chain_sampler">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">build_chain_sampler</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
+        <span class="n">n_data_samples</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+        <span class="n">is_training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Sampler</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build chain sampler from command line arguments and sampler registry</span>
+<span class="sd">        Args:</span>
+<span class="sd">            opts: command-line arguments</span>
+<span class="sd">            n_data_samples: Mapping containing the task name and number of dataset samples in task-specific dataset</span>
+<span class="sd">            is_training: Training mode or not</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A dictionary, sampler_dict, containing information about sampler name and module.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">chain_sampler_opts</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;sampler.chain_sampler&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">chain_sampler_opts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;sampler.chain_sampler in </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> can&#39;t be None. Please specify &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;sampler.chain_sampler using a yaml file.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">chain_sampler_opts</span><span class="p">,</span> <span class="n">List</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Chain sampler options are expected as a List. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Got type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">chain_sampler_opts</span><span class="p">)</span><span class="si">}</span><span class="s2"> and values: </span><span class="si">{</span><span class="n">chain_sampler_opts</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">num_samplers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">chain_sampler_opts</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">num_samplers</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;We need at least one sampler if using chain sampler&quot;</span><span class="p">)</span>
+        <span class="n">sampler_dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sampler_opts_</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">chain_sampler_opts</span><span class="p">):</span>
+            <span class="n">task_name</span> <span class="o">=</span> <span class="n">sampler_opts_</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;task_name&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">task_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;task_name is a mandatory key when using chain sampler&quot;</span><span class="p">)</span>
+
+            <span class="c1"># get sampler configuration</span>
+            <span class="n">sampler_opts_as_dict</span> <span class="o">=</span> <span class="n">sampler_opts_</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sampler_config&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">sampler_opts_as_dict</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s2">&quot;sampler_config is a mandatory key when using chain sampler&quot;</span>
+                <span class="p">)</span>
+
+            <span class="n">train_batch_size</span> <span class="o">=</span> <span class="n">sampler_opts_</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;train_batch_size0&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">val_batch_size</span> <span class="o">=</span> <span class="n">sampler_opts_</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;val_batch_size0&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+            <span class="c1"># flatten the dictionary</span>
+            <span class="n">sampler_opts_as_dict</span> <span class="o">=</span> <span class="n">flatten_yaml_as_dict</span><span class="p">(</span><span class="n">sampler_opts_as_dict</span><span class="p">)</span>
+
+            <span class="c1"># create a local copy and override the global opts with task-specific sampler opts</span>
+            <span class="n">sampler_opts</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+
+            <span class="c1"># `sampler_opts_as_dict` only contains the values of command-line arguments that are</span>
+            <span class="c1"># defined in the yaml file. Therefore, if a user misses few arguments, we won&#39;t have access</span>
+            <span class="c1"># to default values, leading to an error. To avoid this, we create a local copy of global</span>
+            <span class="c1"># command-line arguments and update it with `sampler_opts_as_dict` arguments</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">sampler_opts_as_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="c1"># we need to prefix each argument with sampler because we define individual samplers as</span>
+                <span class="c1"># `sampler.vbs.*` and not `vbs.*`</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">sampler_opts</span><span class="p">,</span> <span class="s2">&quot;sampler.&quot;</span> <span class="o">+</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+            <span class="c1"># override the batch size of sampler</span>
+            <span class="k">if</span> <span class="n">train_batch_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">sampler_opts</span><span class="p">,</span> <span class="s2">&quot;dataset.train_batch_size0&quot;</span><span class="p">,</span> <span class="n">train_batch_size</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">val_batch_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">sampler_opts</span><span class="p">,</span> <span class="s2">&quot;dataset.val_batch_size0&quot;</span><span class="p">,</span> <span class="n">val_batch_size</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n_data_samples</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s2">&quot;For chain sampler, we need n_data_samples as a dictionary with key as a task name &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;and value as number of data points. Got: </span><span class="si">{</span><span class="n">n_data_samples</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">task_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">n_data_samples</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Sample mapping from dataset has following keys (</span><span class="si">{</span><span class="n">n_data_samples</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">) &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;and does not contain </span><span class="si">{</span><span class="n">task_name</span><span class="si">}</span><span class="s2">. Please check.&quot;</span>
+                <span class="p">)</span>
+
+            <span class="c1"># build the sampler for the task</span>
+            <span class="n">sampler_dict</span><span class="p">[</span><span class="n">task_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">build_sampler</span><span class="p">(</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">sampler_opts</span><span class="p">,</span>
+                <span class="n">n_data_samples</span><span class="o">=</span><span class="n">n_data_samples</span><span class="p">[</span><span class="n">task_name</span><span class="p">],</span>
+                <span class="n">is_training</span><span class="o">=</span><span class="n">is_training</span><span class="p">,</span>
+                <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="c1"># see if the keys in n_data_samples and sampler_dict are the same or not</span>
+        <span class="c1"># i.e., intersection is null.</span>
+        <span class="n">is_intersection</span> <span class="o">=</span> <span class="n">n_data_samples</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="o">.</span><span class="n">isdisjoint</span><span class="p">(</span><span class="n">sampler_dict</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">is_intersection</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">,</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;The keys in n_data_samples and sampler_dict are not the same. &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Got: </span><span class="si">{</span><span class="n">n_data_samples</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">sampler_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">sampler_dict</span></div>
+
+    <span class="k">def</span> <span class="nf">_sequential_sampling</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Assuming we have samples from N datasets, then this function first iterates over</span>
+<span class="sd">        the entire first dataset, then the entire second dataset, and so on</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            Dataset 1: [A, B, C]</span>
+<span class="sd">            Dataset 2: [D, E, F, G, H]</span>
+
+<span class="sd">            The result of this sampler would be something like this [A, B, C, D, E, F, G, H]</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">dataset_sampler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samplers_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">batch_data</span> <span class="ow">in</span> <span class="n">dataset_sampler</span><span class="p">:</span>
+                <span class="c1"># append dataset name to the batch data</span>
+                <span class="k">yield</span> <span class="p">[</span><span class="n">x</span> <span class="o">+</span> <span class="p">(</span><span class="n">task_name</span><span class="p">,)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch_data</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_interleave_sampling</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Assuming we have samples from N datasets, then this function yields a batch from first dataset,</span>
+<span class="sd">        then a batch from second dataset, and so on. In other words, batches are sampled from N datasets</span>
+<span class="sd">        in a round-robin fashion.</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            Dataset 1: [A, B, C]</span>
+<span class="sd">            Dataset 2: [D, E, F, G, H]</span>
+
+<span class="sd">            The result of this sampler would be [A, D, B, E, C, F, G, H]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">items</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">samplers_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="n">task_names</span><span class="p">,</span> <span class="n">sampler_names</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">items</span><span class="p">)</span>
+        <span class="n">num_active_samplers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sampler_names</span><span class="p">)</span>
+        <span class="n">next_samplers</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">cycle</span><span class="p">(</span>
+            <span class="nb">iter</span><span class="p">(</span><span class="n">data_sampler</span><span class="p">)</span><span class="o">.</span><span class="fm">__next__</span> <span class="k">for</span> <span class="n">data_sampler</span> <span class="ow">in</span> <span class="n">sampler_names</span>
+        <span class="p">)</span>
+
+        <span class="k">while</span> <span class="n">num_active_samplers</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">next_sampler</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">next_samplers</span><span class="p">):</span>
+                    <span class="k">yield</span> <span class="p">[</span>
+                        <span class="n">x</span> <span class="o">+</span> <span class="p">(</span><span class="n">task_names</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="n">num_active_samplers</span><span class="p">],)</span>
+                        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">next_sampler</span><span class="p">()</span>
+                    <span class="p">]</span>
+            <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+                <span class="c1"># Remove the sampler that we just exhausted from the cycle.</span>
+                <span class="n">num_active_samplers</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="n">next_samplers</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">cycle</span><span class="p">(</span>
+                    <span class="n">itertools</span><span class="o">.</span><span class="n">islice</span><span class="p">(</span><span class="n">next_samplers</span><span class="p">,</span> <span class="n">num_active_samplers</span><span class="p">)</span>
+                <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampling_mode</span> <span class="o">==</span> <span class="s2">&quot;sequential&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sequential_sampling</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampling_mode</span> <span class="o">==</span> <span class="s2">&quot;interleave&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interleave_sampling</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">dataset_sampler</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">dataset_sampler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samplers_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="ChainSampler.set_epoch"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.chain_sampler.ChainSampler.set_epoch">[docs]</a>    <span class="k">def</span> <span class="nf">set_epoch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper function to set epoch in each sampler.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            epoch: Current epoch</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Nothing</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">dataset_sampler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samplers_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dataset_sampler</span><span class="p">,</span> <span class="s2">&quot;set_epoch&quot;</span><span class="p">):</span>
+                <span class="n">dataset_sampler</span><span class="o">.</span><span class="n">set_epoch</span><span class="p">(</span><span class="n">epoch</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ChainSampler.update_scales"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.chain_sampler.ChainSampler.update_scales">[docs]</a>    <span class="k">def</span> <span class="nf">update_scales</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">is_master_node</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper function to update scales in each sampler. This is typically useful for variable-batch samplers</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            epoch: Current epoch</span>
+<span class="sd">            is_master_node: Master node or not.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Nothing</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">dataset_sampler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samplers_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dataset_sampler</span><span class="p">,</span> <span class="s2">&quot;update_scales&quot;</span><span class="p">):</span>
+                <span class="n">dataset_sampler</span><span class="o">.</span><span class="n">update_scales</span><span class="p">(</span>
+                    <span class="n">epoch</span><span class="p">,</span> <span class="n">is_master_node</span><span class="o">=</span><span class="n">is_master_node</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+                <span class="p">)</span></div>
+
+<div class="viewcode-block" id="ChainSampler.update_indices"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.chain_sampler.ChainSampler.update_indices">[docs]</a>    <span class="k">def</span> <span class="nf">update_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_indices</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update sample indices of the datasets with these new indices.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            new_indices: Filtered indices of the samples that needs to be used in next epoch.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Nothing</span>
+
+<span class="sd">        ...note:</span>
+<span class="sd">            This function is useful for sample-efficient training. This function may be implemented</span>
+<span class="sd">            in future (depending on use-case)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">repr_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samplers_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">repr_str</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> --&gt; &quot;</span> <span class="o">+</span> <span class="n">v</span><span class="o">.</span><span class="fm">__repr__</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n\t\t</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">)&quot;</span>
+            <span class="p">)</span>
+            <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">)&quot;</span>
+        <span class="k">return</span> <span class="n">repr_str</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

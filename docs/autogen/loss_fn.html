@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>loss_fn package &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">loss_fn package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/autogen/loss_fn.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="loss-fn-package">
+<h1>loss_fn package<a class="headerlink" href="#loss-fn-package" title="Permalink to this heading"></a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="loss_fn.classification.html">loss_fn.classification package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.classification.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.classification.html#module-loss_fn.classification.base_classification_criteria">loss_fn.classification.base_classification_criteria module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="loss_fn.classification.html#loss_fn.classification.base_classification_criteria.BaseClassificationCriteria"><code class="docutils literal notranslate"><span class="pre">BaseClassificationCriteria</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.classification.html#loss_fn.classification.base_classification_criteria.BaseClassificationCriteria.__init__"><code class="docutils literal notranslate"><span class="pre">BaseClassificationCriteria.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.classification.html#loss_fn.classification.base_classification_criteria.BaseClassificationCriteria.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseClassificationCriteria.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.classification.html#loss_fn.classification.base_classification_criteria.BaseClassificationCriteria.forward"><code class="docutils literal notranslate"><span class="pre">BaseClassificationCriteria.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.classification.html#module-loss_fn.classification.binary_cross_entropy">loss_fn.classification.binary_cross_entropy module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="loss_fn.classification.html#loss_fn.classification.binary_cross_entropy.BinaryCrossEntropy"><code class="docutils literal notranslate"><span class="pre">BinaryCrossEntropy</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.classification.html#loss_fn.classification.binary_cross_entropy.BinaryCrossEntropy.__init__"><code class="docutils literal notranslate"><span class="pre">BinaryCrossEntropy.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.classification.html#loss_fn.classification.binary_cross_entropy.BinaryCrossEntropy.add_arguments"><code class="docutils literal notranslate"><span class="pre">BinaryCrossEntropy.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.classification.html#loss_fn.classification.binary_cross_entropy.BinaryCrossEntropy.extra_repr"><code class="docutils literal notranslate"><span class="pre">BinaryCrossEntropy.extra_repr()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.classification.html#module-loss_fn.classification.cross_entropy">loss_fn.classification.cross_entropy module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="loss_fn.classification.html#loss_fn.classification.cross_entropy.CrossEntropy"><code class="docutils literal notranslate"><span class="pre">CrossEntropy</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.classification.html#loss_fn.classification.cross_entropy.CrossEntropy.__init__"><code class="docutils literal notranslate"><span class="pre">CrossEntropy.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.classification.html#loss_fn.classification.cross_entropy.CrossEntropy.add_arguments"><code class="docutils literal notranslate"><span class="pre">CrossEntropy.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.classification.html#loss_fn.classification.cross_entropy.CrossEntropy.extra_repr"><code class="docutils literal notranslate"><span class="pre">CrossEntropy.extra_repr()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.classification.html#module-loss_fn.classification">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="loss_fn.detection.html">loss_fn.detection package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.detection.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.detection.html#module-loss_fn.detection.base_detection_criteria">loss_fn.detection.base_detection_criteria module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="loss_fn.detection.html#loss_fn.detection.base_detection_criteria.BaseDetectionCriteria"><code class="docutils literal notranslate"><span class="pre">BaseDetectionCriteria</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.detection.html#loss_fn.detection.base_detection_criteria.BaseDetectionCriteria.__init__"><code class="docutils literal notranslate"><span class="pre">BaseDetectionCriteria.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.detection.html#loss_fn.detection.base_detection_criteria.BaseDetectionCriteria.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseDetectionCriteria.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.detection.html#module-loss_fn.detection.mask_rcnn_loss">loss_fn.detection.mask_rcnn_loss module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="loss_fn.detection.html#loss_fn.detection.mask_rcnn_loss.MaskRCNNLoss"><code class="docutils literal notranslate"><span class="pre">MaskRCNNLoss</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.detection.html#loss_fn.detection.mask_rcnn_loss.MaskRCNNLoss.__init__"><code class="docutils literal notranslate"><span class="pre">MaskRCNNLoss.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.detection.html#loss_fn.detection.mask_rcnn_loss.MaskRCNNLoss.add_arguments"><code class="docutils literal notranslate"><span class="pre">MaskRCNNLoss.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.detection.html#loss_fn.detection.mask_rcnn_loss.MaskRCNNLoss.forward"><code class="docutils literal notranslate"><span class="pre">MaskRCNNLoss.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.detection.html#loss_fn.detection.mask_rcnn_loss.MaskRCNNLoss.extra_repr"><code class="docutils literal notranslate"><span class="pre">MaskRCNNLoss.extra_repr()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.detection.html#module-loss_fn.detection.ssd_multibox_loss">loss_fn.detection.ssd_multibox_loss module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="loss_fn.detection.html#loss_fn.detection.ssd_multibox_loss.SSDLoss"><code class="docutils literal notranslate"><span class="pre">SSDLoss</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.detection.html#loss_fn.detection.ssd_multibox_loss.SSDLoss.__init__"><code class="docutils literal notranslate"><span class="pre">SSDLoss.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.detection.html#loss_fn.detection.ssd_multibox_loss.SSDLoss.reset_unscaled_loss_values"><code class="docutils literal notranslate"><span class="pre">SSDLoss.reset_unscaled_loss_values()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.detection.html#loss_fn.detection.ssd_multibox_loss.SSDLoss.add_arguments"><code class="docutils literal notranslate"><span class="pre">SSDLoss.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.detection.html#loss_fn.detection.ssd_multibox_loss.SSDLoss.forward"><code class="docutils literal notranslate"><span class="pre">SSDLoss.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.detection.html#loss_fn.detection.ssd_multibox_loss.SSDLoss.extra_repr"><code class="docutils literal notranslate"><span class="pre">SSDLoss.extra_repr()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.detection.html#module-loss_fn.detection">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="loss_fn.distillation.html">loss_fn.distillation package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.distillation.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.distillation.html#module-loss_fn.distillation.base_distillation">loss_fn.distillation.base_distillation module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="loss_fn.distillation.html#loss_fn.distillation.base_distillation.BaseDistillationCriteria"><code class="docutils literal notranslate"><span class="pre">BaseDistillationCriteria</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.distillation.html#loss_fn.distillation.base_distillation.BaseDistillationCriteria.__init__"><code class="docutils literal notranslate"><span class="pre">BaseDistillationCriteria.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.distillation.html#loss_fn.distillation.base_distillation.BaseDistillationCriteria.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseDistillationCriteria.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.distillation.html#loss_fn.distillation.base_distillation.BaseDistillationCriteria.forward"><code class="docutils literal notranslate"><span class="pre">BaseDistillationCriteria.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.distillation.html#module-loss_fn.distillation.hard_distillation">loss_fn.distillation.hard_distillation module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="loss_fn.distillation.html#loss_fn.distillation.hard_distillation.HardDistillationLoss"><code class="docutils literal notranslate"><span class="pre">HardDistillationLoss</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.distillation.html#loss_fn.distillation.hard_distillation.HardDistillationLoss.__init__"><code class="docutils literal notranslate"><span class="pre">HardDistillationLoss.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.distillation.html#loss_fn.distillation.hard_distillation.HardDistillationLoss.add_arguments"><code class="docutils literal notranslate"><span class="pre">HardDistillationLoss.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.distillation.html#loss_fn.distillation.hard_distillation.HardDistillationLoss.extra_repr"><code class="docutils literal notranslate"><span class="pre">HardDistillationLoss.extra_repr()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.distillation.html#module-loss_fn.distillation.soft_kl_distillation">loss_fn.distillation.soft_kl_distillation module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="loss_fn.distillation.html#loss_fn.distillation.soft_kl_distillation.SoftKLLoss"><code class="docutils literal notranslate"><span class="pre">SoftKLLoss</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.distillation.html#loss_fn.distillation.soft_kl_distillation.SoftKLLoss.__init__"><code class="docutils literal notranslate"><span class="pre">SoftKLLoss.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.distillation.html#loss_fn.distillation.soft_kl_distillation.SoftKLLoss.add_arguments"><code class="docutils literal notranslate"><span class="pre">SoftKLLoss.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.distillation.html#loss_fn.distillation.soft_kl_distillation.SoftKLLoss.extra_repr"><code class="docutils literal notranslate"><span class="pre">SoftKLLoss.extra_repr()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.distillation.html#module-loss_fn.distillation">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="loss_fn.multi_modal_img_text.html">loss_fn.multi_modal_img_text package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.multi_modal_img_text.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.multi_modal_img_text.html#module-loss_fn.multi_modal_img_text.base_multi_modal_img_text_criteria">loss_fn.multi_modal_img_text.base_multi_modal_img_text_criteria module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="loss_fn.multi_modal_img_text.html#loss_fn.multi_modal_img_text.base_multi_modal_img_text_criteria.BaseMultiModalImageTextCriteria"><code class="docutils literal notranslate"><span class="pre">BaseMultiModalImageTextCriteria</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.multi_modal_img_text.html#loss_fn.multi_modal_img_text.base_multi_modal_img_text_criteria.BaseMultiModalImageTextCriteria.__init__"><code class="docutils literal notranslate"><span class="pre">BaseMultiModalImageTextCriteria.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.multi_modal_img_text.html#loss_fn.multi_modal_img_text.base_multi_modal_img_text_criteria.BaseMultiModalImageTextCriteria.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseMultiModalImageTextCriteria.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.multi_modal_img_text.html#module-loss_fn.multi_modal_img_text.contrastive_loss_clip">loss_fn.multi_modal_img_text.contrastive_loss_clip module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="loss_fn.multi_modal_img_text.html#loss_fn.multi_modal_img_text.contrastive_loss_clip.ContrastiveLossClip"><code class="docutils literal notranslate"><span class="pre">ContrastiveLossClip</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.multi_modal_img_text.html#loss_fn.multi_modal_img_text.contrastive_loss_clip.ContrastiveLossClip.__init__"><code class="docutils literal notranslate"><span class="pre">ContrastiveLossClip.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.multi_modal_img_text.html#loss_fn.multi_modal_img_text.contrastive_loss_clip.ContrastiveLossClip.forward"><code class="docutils literal notranslate"><span class="pre">ContrastiveLossClip.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="loss_fn.multi_modal_img_text.html#loss_fn.multi_modal_img_text.contrastive_loss_clip.gather_features"><code class="docutils literal notranslate"><span class="pre">gather_features()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.multi_modal_img_text.html#module-loss_fn.multi_modal_img_text">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="loss_fn.segmentation.html">loss_fn.segmentation package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.segmentation.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.segmentation.html#module-loss_fn.segmentation.base_segmentation_criteria">loss_fn.segmentation.base_segmentation_criteria module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="loss_fn.segmentation.html#loss_fn.segmentation.base_segmentation_criteria.BaseSegmentationCriteria"><code class="docutils literal notranslate"><span class="pre">BaseSegmentationCriteria</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.segmentation.html#loss_fn.segmentation.base_segmentation_criteria.BaseSegmentationCriteria.__init__"><code class="docutils literal notranslate"><span class="pre">BaseSegmentationCriteria.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.segmentation.html#loss_fn.segmentation.base_segmentation_criteria.BaseSegmentationCriteria.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseSegmentationCriteria.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.segmentation.html#module-loss_fn.segmentation.cross_entropy">loss_fn.segmentation.cross_entropy module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="loss_fn.segmentation.html#loss_fn.segmentation.cross_entropy.SegCrossEntropy"><code class="docutils literal notranslate"><span class="pre">SegCrossEntropy</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.segmentation.html#loss_fn.segmentation.cross_entropy.SegCrossEntropy.__init__"><code class="docutils literal notranslate"><span class="pre">SegCrossEntropy.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.segmentation.html#loss_fn.segmentation.cross_entropy.SegCrossEntropy.add_arguments"><code class="docutils literal notranslate"><span class="pre">SegCrossEntropy.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.segmentation.html#loss_fn.segmentation.cross_entropy.SegCrossEntropy.forward"><code class="docutils literal notranslate"><span class="pre">SegCrossEntropy.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="loss_fn.segmentation.html#loss_fn.segmentation.cross_entropy.SegCrossEntropy.extra_repr"><code class="docutils literal notranslate"><span class="pre">SegCrossEntropy.extra_repr()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.segmentation.html#module-loss_fn.segmentation">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="loss_fn.utils.html">loss_fn.utils package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.utils.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.utils.html#module-loss_fn.utils.build_helper">loss_fn.utils.build_helper module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="loss_fn.utils.html#loss_fn.utils.build_helper.build_cls_teacher_from_opts"><code class="docutils literal notranslate"><span class="pre">build_cls_teacher_from_opts()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.utils.html#module-loss_fn.utils.class_weighting">loss_fn.utils.class_weighting module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="loss_fn.utils.html#loss_fn.utils.class_weighting.compute_class_weights"><code class="docutils literal notranslate"><span class="pre">compute_class_weights()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="loss_fn.utils.html#module-loss_fn.utils">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</section>
+<section id="module-loss_fn.base_criteria">
+<span id="loss-fn-base-criteria-module"></span><h2>loss_fn.base_criteria module<a class="headerlink" href="#module-loss_fn.base_criteria" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="loss_fn.base_criteria.BaseCriteria">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">loss_fn.base_criteria.</span></span><span class="sig-name descname"><span class="pre">BaseCriteria</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/loss_fn/base_criteria.html#BaseCriteria"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.base_criteria.BaseCriteria" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>Base class for defining loss functions. Sub-classes must implement compute_loss function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>opts</strong> – command line arguments</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.base_criteria.BaseCriteria.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/loss_fn/base_criteria.html#BaseCriteria.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.base_criteria.BaseCriteria.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.base_criteria.BaseCriteria.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/loss_fn/base_criteria.html#BaseCriteria.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.base_criteria.BaseCriteria.add_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Add criterion-specific arguments to the parser.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.base_criteria.BaseCriteria.forward">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_sample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="reference internal" href="../_modules/loss_fn/base_criteria.html#BaseCriteria.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.base_criteria.BaseCriteria.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Compute the loss.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_sample</strong> – Input to the model.</p></li>
+<li><p><strong>prediction</strong> – Model’s output</p></li>
+<li><p><strong>target</strong> – Ground truth labels</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.base_criteria.BaseCriteria.extra_repr">
+<span class="sig-name descname"><span class="pre">extra_repr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/loss_fn/base_criteria.html#BaseCriteria.extra_repr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.base_criteria.BaseCriteria.extra_repr" title="Permalink to this definition"></a></dt>
+<dd><p>Set the extra representation of the module</p>
+<p>To print customized extra information, you should re-implement
+this method in your own modules. Both single-line and multi-line
+strings are acceptable.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-loss_fn.composite_loss">
+<span id="loss-fn-composite-loss-module"></span><h2>loss_fn.composite_loss module<a class="headerlink" href="#module-loss_fn.composite_loss" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="loss_fn.composite_loss.CompositeLoss">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">loss_fn.composite_loss.</span></span><span class="sig-name descname"><span class="pre">CompositeLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/loss_fn/composite_loss.html#CompositeLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.composite_loss.CompositeLoss" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#loss_fn.base_criteria.BaseCriteria" title="loss_fn.base_criteria.BaseCriteria"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseCriteria</span></code></a></p>
+<p>Combines different loss functions and returns the weighted sum of these losses.
+<cite>loss_category</cite> and <cite>loss_weight</cite> are two mandatory keys that allows us to combine
+different losses and compute their weighted sum. The <cite>loss_category</cite> specifies the category
+of a loss function and is a string (e.g., classification). The <cite>loss_weight</cite> specifies
+the contribution of a loss function and is a float value (e.g., 1.0). The sum of <a href="#id1"><span class="problematic" id="id2">`</span></a>loss_weight`s
+corresponding to different loss functions is not required to be 1.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>opts</strong> – command-line arguments</p>
+</dd>
+</dl>
+<p>Example::
+# Example yaml config for combining classification and neural_augmentation loss function is given below.
+# Please note that configuration for each loss function should start with <cite>-</cite> in <cite>composite_loss</cite>.</p>
+<dl>
+<dt>loss:</dt><dd><p>category: “composite_loss”
+composite_loss:</p>
+<blockquote>
+<div><ul>
+<li><p>loss_category: “classification”
+loss_weight: 1.0
+classification:</p>
+<blockquote>
+<div><p>name: “cross_entropy”
+cross_entropy:</p>
+<blockquote>
+<div><p>label_smoothing: 0.1</p>
+</div></blockquote>
+</div></blockquote>
+</li>
+<li><p>loss_category: “neural_augmentation”
+loss_weight: 1.0
+neural_augmentation:</p>
+<blockquote>
+<div><p>perceptual_metric: “psnr”
+target_value: [ 40, 10 ]
+curriculum_method: “cosine”</p>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.composite_loss.CompositeLoss.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/loss_fn/composite_loss.html#CompositeLoss.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.composite_loss.CompositeLoss.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.composite_loss.CompositeLoss.build_composite_loss_fn">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">build_composite_loss_fn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#loss_fn.base_criteria.BaseCriteria" title="loss_fn.base_criteria.BaseCriteria"><span class="pre">BaseCriteria</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/loss_fn/composite_loss.html#CompositeLoss.build_composite_loss_fn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.composite_loss.CompositeLoss.build_composite_loss_fn" title="Permalink to this definition"></a></dt>
+<dd><p>Build loss functions from command line arguments and loss registry</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>opts</strong> – command-line arguments</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tuple of two dictionaries. The first dictionary, task_loss_fn_mapping, contains
+information about loss function category and module. The second dictionary, <cite>task_loss_wts_mapping</cite>
+contains the information about loss function category and weight.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.composite_loss.CompositeLoss.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/loss_fn/composite_loss.html#CompositeLoss.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.composite_loss.CompositeLoss.add_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Add criterion-specific arguments to the parser.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.composite_loss.CompositeLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_sample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="reference internal" href="../_modules/loss_fn/composite_loss.html#CompositeLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.composite_loss.CompositeLoss.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Compute the weighted sum of different loss functions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_sample</strong> – Input to the model.</p></li>
+<li><p><strong>prediction</strong> – Model’s output</p></li>
+<li><p><strong>target</strong> – Ground truth labels</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>scalar loss value) with <cite>total_loss</cite> as a mandatory key.
+The other keys corresponds to loss category names and their values contain category-specific
+scalar loss values. total_loss is weighted sum of these category-specific losses.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A mapping of the form (str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.composite_loss.CompositeLoss.train">
+<span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/loss_fn/composite_loss.html#CompositeLoss.train"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.composite_loss.CompositeLoss.train" title="Permalink to this definition"></a></dt>
+<dd><p>Sets the loss functions in training mode.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.composite_loss.CompositeLoss.eval">
+<span class="sig-name descname"><span class="pre">eval</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/loss_fn/composite_loss.html#CompositeLoss.eval"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.composite_loss.CompositeLoss.eval" title="Permalink to this definition"></a></dt>
+<dd><p>Sets the loss functions in evaluation mode.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-loss_fn.neural_augmentation">
+<span id="loss-fn-neural-augmentation-module"></span><h2>loss_fn.neural_augmentation module<a class="headerlink" href="#module-loss_fn.neural_augmentation" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="loss_fn.neural_augmentation.NeuralAugmentation">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">loss_fn.neural_augmentation.</span></span><span class="sig-name descname"><span class="pre">NeuralAugmentation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/loss_fn/neural_augmentation.html#NeuralAugmentation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.neural_augmentation.NeuralAugmentation" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#loss_fn.base_criteria.BaseCriteria" title="loss_fn.base_criteria.BaseCriteria"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseCriteria</span></code></a></p>
+<p>Compute the augmentation loss, as described in the
+<a class="reference external" href="https://arxiv.org/abs/2212.10553">RangeAugment</a> paper.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>opts</strong> – command line arguments</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.neural_augmentation.NeuralAugmentation.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/loss_fn/neural_augmentation.html#NeuralAugmentation.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.neural_augmentation.NeuralAugmentation.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.neural_augmentation.NeuralAugmentation.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/loss_fn/neural_augmentation.html#NeuralAugmentation.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.neural_augmentation.NeuralAugmentation.add_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Add criterion-specific arguments to the parser.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.neural_augmentation.NeuralAugmentation.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_sample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="../_modules/loss_fn/neural_augmentation.html#NeuralAugmentation.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.neural_augmentation.NeuralAugmentation.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Compute the loss between input and augmented image, as described in
+<a class="reference external" href="https://arxiv.org/abs/2212.10553">RangeAugment</a> paper.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_sample</strong> – Input sample can either be a Tensor or a dictionary with mandatory key “image”. In
+case of a dictionary, the values can be a Tensor or list of Tensors.</p></li>
+<li><p><strong>prediction</strong> – Output of augmentation model. Mapping of (string: Tensor) with <cite>augmented_tensor</cite>
+as the required key.</p></li>
+</ul>
+</dd>
+</dl>
+<dl>
+<dt>Shapes:</dt><dd><dl class="simple">
+<dt>input_sample:</dt><dd><ul class="simple">
+<li><p>Tensor: The shape of input tensor is [N, C, H, W]</p></li>
+<li><p>Mapping[str, Tensor]: The shape of tensor is [N, C, H, W]</p></li>
+<li><p>Mapping[str, List[Tensor]]: The length of List is N, and the shape of each tensor is [1, C, H, W]</p></li>
+</ul>
+</dd>
+</dl>
+<p>prediction: The shape of prediction[“augmented_tensor”] is [N, C, H, W]</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A scalar loss value</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>…note:</dt><dd><p>During validation or evaluation, neural augmentation loss is not computed and 0 is returned</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.neural_augmentation.NeuralAugmentation.extra_repr">
+<span class="sig-name descname"><span class="pre">extra_repr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/loss_fn/neural_augmentation.html#NeuralAugmentation.extra_repr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.neural_augmentation.NeuralAugmentation.extra_repr" title="Permalink to this definition"></a></dt>
+<dd><p>Set the extra representation of the module</p>
+<p>To print customized extra information, you should re-implement
+this method in your own modules. Both single-line and multi-line
+strings are acceptable.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="loss_fn.neural_augmentation.linear_curriculum">
+<span class="sig-prename descclassname"><span class="pre">loss_fn.neural_augmentation.</span></span><span class="sig-name descname"><span class="pre">linear_curriculum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="../_modules/loss_fn/neural_augmentation.html#linear_curriculum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.neural_augmentation.linear_curriculum" title="Permalink to this definition"></a></dt>
+<dd><p>This function implements linear curriculum</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> – the starting value for the set of points</p></li>
+<li><p><strong>end</strong> – the ending value for the set of points</p></li>
+<li><p><strong>period</strong> – size of the constructed tensor</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A float tensor of length period</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="loss_fn.neural_augmentation.cosine_curriculum">
+<span class="sig-prename descclassname"><span class="pre">loss_fn.neural_augmentation.</span></span><span class="sig-name descname"><span class="pre">cosine_curriculum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="../_modules/loss_fn/neural_augmentation.html#cosine_curriculum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.neural_augmentation.cosine_curriculum" title="Permalink to this definition"></a></dt>
+<dd><p>This function implements cosine curriculum
+:param start: the starting value for the set of points
+:param end: the ending value for the set of points
+:param period: size of the constructed tensor</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A float tensor of length period</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-loss_fn">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-loss_fn" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="loss_fn.build_loss_fn">
+<span class="sig-prename descclassname"><span class="pre">loss_fn.</span></span><span class="sig-name descname"><span class="pre">build_loss_fn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">category</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#loss_fn.base_criteria.BaseCriteria" title="loss_fn.base_criteria.BaseCriteria"><span class="pre">BaseCriteria</span></a></span></span><a class="reference internal" href="../_modules/loss_fn.html#build_loss_fn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.build_loss_fn" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to build loss function from command-line arguments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>opts</strong> – command-line arguments</p></li>
+<li><p><strong>category</strong> – Optional task category (e.g., classification). Specifying category may be useful for
+building composite loss functions. See <cite>loss_fns.composite_loss.CompositeLoss.build_composite_loss_fn</cite>
+function for an example</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Loss function module</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="loss_fn.add_loss_fn_arguments">
+<span class="sig-prename descclassname"><span class="pre">loss_fn.</span></span><span class="sig-name descname"><span class="pre">add_loss_fn_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/loss_fn.html#add_loss_fn_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.add_loss_fn_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>This method gets a parser object, and for every loss that is registered in the
+LOSS_REGISTRY adds its arguments to it.</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

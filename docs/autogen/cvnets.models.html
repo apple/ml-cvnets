@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cvnets.models package &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">cvnets.models package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/autogen/cvnets.models.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="cvnets-models-package">
+<h1>cvnets.models package<a class="headerlink" href="#cvnets-models-package" title="Permalink to this heading"></a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="cvnets.models.audio_classification.html">cvnets.models.audio_classification package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.audio_classification.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.audio_classification.html#module-cvnets.models.audio_classification.audio_byteformer">cvnets.models.audio_classification.audio_byteformer module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.audio_classification.html#cvnets.models.audio_classification.audio_byteformer.AudioByteFormer"><code class="docutils literal notranslate"><span class="pre">AudioByteFormer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.audio_classification.html#cvnets.models.audio_classification.audio_byteformer.AudioByteFormer.forward"><code class="docutils literal notranslate"><span class="pre">AudioByteFormer.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.audio_classification.html#cvnets.models.audio_classification.audio_byteformer.AudioByteFormer.dummy_input_and_label"><code class="docutils literal notranslate"><span class="pre">AudioByteFormer.dummy_input_and_label()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.audio_classification.html#module-cvnets.models.audio_classification.base_audio_classification">cvnets.models.audio_classification.base_audio_classification module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.audio_classification.html#cvnets.models.audio_classification.base_audio_classification.BaseAudioClassification"><code class="docutils literal notranslate"><span class="pre">BaseAudioClassification</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.audio_classification.html#cvnets.models.audio_classification.base_audio_classification.BaseAudioClassification.__init__"><code class="docutils literal notranslate"><span class="pre">BaseAudioClassification.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.audio_classification.html#cvnets.models.audio_classification.base_audio_classification.BaseAudioClassification.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseAudioClassification.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.audio_classification.html#module-cvnets.models.audio_classification">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cvnets.models.classification.html">cvnets.models.classification package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.classification.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.classification.config.html">cvnets.models.classification.config package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.config.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.config.html#module-cvnets.models.classification.config.byteformer">cvnets.models.classification.config.byteformer module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.config.html#module-cvnets.models.classification.config.efficientnet">cvnets.models.classification.config.efficientnet module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.config.html#module-cvnets.models.classification.config.fastvit">cvnets.models.classification.config.fastvit module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.config.html#module-cvnets.models.classification.config.mobilenetv1">cvnets.models.classification.config.mobilenetv1 module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.config.html#module-cvnets.models.classification.config.mobilenetv2">cvnets.models.classification.config.mobilenetv2 module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.config.html#module-cvnets.models.classification.config.mobilenetv3">cvnets.models.classification.config.mobilenetv3 module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.config.html#module-cvnets.models.classification.config.mobileone">cvnets.models.classification.config.mobileone module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.config.html#module-cvnets.models.classification.config.mobilevit">cvnets.models.classification.config.mobilevit module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.config.html#module-cvnets.models.classification.config.mobilevit_v2">cvnets.models.classification.config.mobilevit_v2 module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.config.html#module-cvnets.models.classification.config.regnet">cvnets.models.classification.config.regnet module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.config.html#module-cvnets.models.classification.config.resnet">cvnets.models.classification.config.resnet module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.config.html#module-cvnets.models.classification.config.swin_transformer">cvnets.models.classification.config.swin_transformer module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.config.html#module-cvnets.models.classification.config.vit">cvnets.models.classification.config.vit module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.config.html#module-cvnets.models.classification.config">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.classification.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.base_image_encoder">cvnets.models.classification.base_image_encoder module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder"><code class="docutils literal notranslate"><span class="pre">BaseImageEncoder</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder.__init__"><code class="docutils literal notranslate"><span class="pre">BaseImageEncoder.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseImageEncoder.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder.check_model"><code class="docutils literal notranslate"><span class="pre">BaseImageEncoder.check_model()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder.update_classifier"><code class="docutils literal notranslate"><span class="pre">BaseImageEncoder.update_classifier()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder.extract_end_points_all"><code class="docutils literal notranslate"><span class="pre">BaseImageEncoder.extract_end_points_all()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder.extract_end_points_l4"><code class="docutils literal notranslate"><span class="pre">BaseImageEncoder.extract_end_points_l4()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder.extract_features"><code class="docutils literal notranslate"><span class="pre">BaseImageEncoder.extract_features()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder.forward_classifier"><code class="docutils literal notranslate"><span class="pre">BaseImageEncoder.forward_classifier()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder.forward"><code class="docutils literal notranslate"><span class="pre">BaseImageEncoder.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder.get_trainable_parameters"><code class="docutils literal notranslate"><span class="pre">BaseImageEncoder.get_trainable_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder.dummy_input_and_label"><code class="docutils literal notranslate"><span class="pre">BaseImageEncoder.dummy_input_and_label()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder.get_exportable_model"><code class="docutils literal notranslate"><span class="pre">BaseImageEncoder.get_exportable_model()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder.build_model"><code class="docutils literal notranslate"><span class="pre">BaseImageEncoder.build_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.set_model_specific_opts_before_model_building"><code class="docutils literal notranslate"><span class="pre">set_model_specific_opts_before_model_building()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.unset_model_specific_opts_after_model_building"><code class="docutils literal notranslate"><span class="pre">unset_model_specific_opts_after_model_building()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.byteformer">cvnets.models.classification.byteformer module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.byteformer.unfold_tokens"><code class="docutils literal notranslate"><span class="pre">unfold_tokens()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.byteformer.ByteFormer"><code class="docutils literal notranslate"><span class="pre">ByteFormer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.byteformer.ByteFormer.__init__"><code class="docutils literal notranslate"><span class="pre">ByteFormer.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.byteformer.ByteFormer.add_arguments"><code class="docutils literal notranslate"><span class="pre">ByteFormer.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.byteformer.ByteFormer.dummy_input_and_label"><code class="docutils literal notranslate"><span class="pre">ByteFormer.dummy_input_and_label()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.byteformer.ByteFormer.apply_token_reduction_net"><code class="docutils literal notranslate"><span class="pre">ByteFormer.apply_token_reduction_net()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.byteformer.ByteFormer.get_backbone_inputs"><code class="docutils literal notranslate"><span class="pre">ByteFormer.get_backbone_inputs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.byteformer.ByteFormer.backbone_forward"><code class="docutils literal notranslate"><span class="pre">ByteFormer.backbone_forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.byteformer.ByteFormer.get_downsampler_name"><code class="docutils literal notranslate"><span class="pre">ByteFormer.get_downsampler_name()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.byteformer.ByteFormer.get_downsampler"><code class="docutils literal notranslate"><span class="pre">ByteFormer.get_downsampler()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.byteformer.ByteFormer.forward"><code class="docutils literal notranslate"><span class="pre">ByteFormer.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.byteformer.ByteFormer.build_model"><code class="docutils literal notranslate"><span class="pre">ByteFormer.build_model()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.efficientnet">cvnets.models.classification.efficientnet module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.efficientnet.EfficientNet"><code class="docutils literal notranslate"><span class="pre">EfficientNet</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.efficientnet.EfficientNet.__init__"><code class="docutils literal notranslate"><span class="pre">EfficientNet.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.efficientnet.EfficientNet.add_arguments"><code class="docutils literal notranslate"><span class="pre">EfficientNet.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.fastvit">cvnets.models.classification.fastvit module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.fastvit.basic_blocks"><code class="docutils literal notranslate"><span class="pre">basic_blocks()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.fastvit.FastViT"><code class="docutils literal notranslate"><span class="pre">FastViT</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.fastvit.FastViT.__init__"><code class="docutils literal notranslate"><span class="pre">FastViT.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.fastvit.FastViT.add_arguments"><code class="docutils literal notranslate"><span class="pre">FastViT.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.fastvit.FastViT.get_exportable_model"><code class="docutils literal notranslate"><span class="pre">FastViT.get_exportable_model()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.mobilenetv1">cvnets.models.classification.mobilenetv1 module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.mobilenetv1.MobileNetv1"><code class="docutils literal notranslate"><span class="pre">MobileNetv1</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.mobilenetv1.MobileNetv1.__init__"><code class="docutils literal notranslate"><span class="pre">MobileNetv1.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.mobilenetv1.MobileNetv1.add_arguments"><code class="docutils literal notranslate"><span class="pre">MobileNetv1.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.mobilenetv2">cvnets.models.classification.mobilenetv2 module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.mobilenetv2.MobileNetV2"><code class="docutils literal notranslate"><span class="pre">MobileNetV2</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.mobilenetv2.MobileNetV2.__init__"><code class="docutils literal notranslate"><span class="pre">MobileNetV2.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.mobilenetv2.MobileNetV2.add_arguments"><code class="docutils literal notranslate"><span class="pre">MobileNetV2.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.mobilenetv3">cvnets.models.classification.mobilenetv3 module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.mobilenetv3.MobileNetV3"><code class="docutils literal notranslate"><span class="pre">MobileNetV3</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.mobilenetv3.MobileNetV3.__init__"><code class="docutils literal notranslate"><span class="pre">MobileNetV3.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.mobilenetv3.MobileNetV3.add_arguments"><code class="docutils literal notranslate"><span class="pre">MobileNetV3.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.mobileone">cvnets.models.classification.mobileone module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.mobileone.MobileOne"><code class="docutils literal notranslate"><span class="pre">MobileOne</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.mobileone.MobileOne.__init__"><code class="docutils literal notranslate"><span class="pre">MobileOne.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.mobileone.MobileOne.add_arguments"><code class="docutils literal notranslate"><span class="pre">MobileOne.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.mobileone.MobileOne.get_exportable_model"><code class="docutils literal notranslate"><span class="pre">MobileOne.get_exportable_model()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.mobilevit">cvnets.models.classification.mobilevit module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.mobilevit.MobileViT"><code class="docutils literal notranslate"><span class="pre">MobileViT</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.mobilevit.MobileViT.__init__"><code class="docutils literal notranslate"><span class="pre">MobileViT.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.mobilevit.MobileViT.add_arguments"><code class="docutils literal notranslate"><span class="pre">MobileViT.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.mobilevit_v2">cvnets.models.classification.mobilevit_v2 module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.mobilevit_v2.MobileViTv2"><code class="docutils literal notranslate"><span class="pre">MobileViTv2</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.mobilevit_v2.MobileViTv2.__init__"><code class="docutils literal notranslate"><span class="pre">MobileViTv2.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.mobilevit_v2.MobileViTv2.add_arguments"><code class="docutils literal notranslate"><span class="pre">MobileViTv2.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.regnet">cvnets.models.classification.regnet module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.regnet.RegNet"><code class="docutils literal notranslate"><span class="pre">RegNet</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.regnet.RegNet.__init__"><code class="docutils literal notranslate"><span class="pre">RegNet.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.regnet.RegNet.add_arguments"><code class="docutils literal notranslate"><span class="pre">RegNet.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.resnet">cvnets.models.classification.resnet module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.resnet.ResNet"><code class="docutils literal notranslate"><span class="pre">ResNet</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.resnet.ResNet.__init__"><code class="docutils literal notranslate"><span class="pre">ResNet.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.resnet.ResNet.add_arguments"><code class="docutils literal notranslate"><span class="pre">ResNet.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.swin_transformer">cvnets.models.classification.swin_transformer module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.swin_transformer.SwinTransformer"><code class="docutils literal notranslate"><span class="pre">SwinTransformer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.swin_transformer.SwinTransformer.__init__"><code class="docutils literal notranslate"><span class="pre">SwinTransformer.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.swin_transformer.SwinTransformer.extract_end_points_all"><code class="docutils literal notranslate"><span class="pre">SwinTransformer.extract_end_points_all()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.swin_transformer.SwinTransformer.add_arguments"><code class="docutils literal notranslate"><span class="pre">SwinTransformer.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.vit">cvnets.models.classification.vit module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.vit.VisionTransformer"><code class="docutils literal notranslate"><span class="pre">VisionTransformer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.vit.VisionTransformer.__init__"><code class="docutils literal notranslate"><span class="pre">VisionTransformer.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.vit.VisionTransformer.update_layer_norm_eps"><code class="docutils literal notranslate"><span class="pre">VisionTransformer.update_layer_norm_eps()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.vit.VisionTransformer.reset_simple_fpn_params"><code class="docutils literal notranslate"><span class="pre">VisionTransformer.reset_simple_fpn_params()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.vit.VisionTransformer.add_arguments"><code class="docutils literal notranslate"><span class="pre">VisionTransformer.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.vit.VisionTransformer.extract_patch_embeddings"><code class="docutils literal notranslate"><span class="pre">VisionTransformer.extract_patch_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.vit.VisionTransformer.extract_features"><code class="docutils literal notranslate"><span class="pre">VisionTransformer.extract_features()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.vit.VisionTransformer.forward_classifier"><code class="docutils literal notranslate"><span class="pre">VisionTransformer.forward_classifier()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.vit.VisionTransformer.forward"><code class="docutils literal notranslate"><span class="pre">VisionTransformer.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.vit.VisionTransformer.extract_end_points_all"><code class="docutils literal notranslate"><span class="pre">VisionTransformer.extract_end_points_all()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cvnets.models.detection.html">cvnets.models.detection package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.detection.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.detection.utils.html">cvnets.models.detection.utils package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.utils.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.utils.html#module-cvnets.models.detection.utils.rcnn_utils">cvnets.models.detection.utils.rcnn_utils module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.utils.html#module-cvnets.models.detection.utils">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.detection.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.detection.html#module-cvnets.models.detection.base_detection">cvnets.models.detection.base_detection module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.base_detection.BaseDetection"><code class="docutils literal notranslate"><span class="pre">BaseDetection</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.base_detection.BaseDetection.__init__"><code class="docutils literal notranslate"><span class="pre">BaseDetection.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.base_detection.BaseDetection.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseDetection.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.base_detection.BaseDetection.reset_layer_parameters"><code class="docutils literal notranslate"><span class="pre">BaseDetection.reset_layer_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.base_detection.BaseDetection.build_model"><code class="docutils literal notranslate"><span class="pre">BaseDetection.build_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.base_detection.check_feature_map_output_channels"><code class="docutils literal notranslate"><span class="pre">check_feature_map_output_channels()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.detection.html#module-cvnets.models.detection.mask_rcnn">cvnets.models.detection.mask_rcnn module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.mask_rcnn.MaskRCNNEncoder"><code class="docutils literal notranslate"><span class="pre">MaskRCNNEncoder</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.mask_rcnn.MaskRCNNEncoder.__init__"><code class="docutils literal notranslate"><span class="pre">MaskRCNNEncoder.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.mask_rcnn.MaskRCNNEncoder.get_augmented_tensor"><code class="docutils literal notranslate"><span class="pre">MaskRCNNEncoder.get_augmented_tensor()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.mask_rcnn.MaskRCNNEncoder.forward"><code class="docutils literal notranslate"><span class="pre">MaskRCNNEncoder.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.mask_rcnn.MaskRCNNEncoder.get_trainable_parameters"><code class="docutils literal notranslate"><span class="pre">MaskRCNNEncoder.get_trainable_parameters()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.mask_rcnn.MaskRCNNDetector"><code class="docutils literal notranslate"><span class="pre">MaskRCNNDetector</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.mask_rcnn.MaskRCNNDetector.__init__"><code class="docutils literal notranslate"><span class="pre">MaskRCNNDetector.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.mask_rcnn.MaskRCNNDetector.update_layer_norm_eps"><code class="docutils literal notranslate"><span class="pre">MaskRCNNDetector.update_layer_norm_eps()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.mask_rcnn.MaskRCNNDetector.set_norm_layer_opts"><code class="docutils literal notranslate"><span class="pre">MaskRCNNDetector.set_norm_layer_opts()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.mask_rcnn.MaskRCNNDetector.reset_norm_layer_opts"><code class="docutils literal notranslate"><span class="pre">MaskRCNNDetector.reset_norm_layer_opts()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.mask_rcnn.MaskRCNNDetector.add_arguments"><code class="docutils literal notranslate"><span class="pre">MaskRCNNDetector.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.mask_rcnn.MaskRCNNDetector.reset_generalized_rcnn_transform"><code class="docutils literal notranslate"><span class="pre">MaskRCNNDetector.reset_generalized_rcnn_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.mask_rcnn.MaskRCNNDetector.get_trainable_parameters"><code class="docutils literal notranslate"><span class="pre">MaskRCNNDetector.get_trainable_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.mask_rcnn.MaskRCNNDetector.forward"><code class="docutils literal notranslate"><span class="pre">MaskRCNNDetector.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.mask_rcnn.MaskRCNNDetector.predict"><code class="docutils literal notranslate"><span class="pre">MaskRCNNDetector.predict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.mask_rcnn.MaskRCNNDetector.dummy_input_and_label"><code class="docutils literal notranslate"><span class="pre">MaskRCNNDetector.dummy_input_and_label()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.detection.html#module-cvnets.models.detection.ssd">cvnets.models.detection.ssd module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector"><code class="docutils literal notranslate"><span class="pre">SingleShotMaskDetector</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector.coordinates"><code class="docutils literal notranslate"><span class="pre">SingleShotMaskDetector.coordinates</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector.__init__"><code class="docutils literal notranslate"><span class="pre">SingleShotMaskDetector.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector.add_arguments"><code class="docutils literal notranslate"><span class="pre">SingleShotMaskDetector.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector.reset_layers"><code class="docutils literal notranslate"><span class="pre">SingleShotMaskDetector.reset_layers()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector.process_anchors_ar"><code class="docutils literal notranslate"><span class="pre">SingleShotMaskDetector.process_anchors_ar()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector.get_backbone_features"><code class="docutils literal notranslate"><span class="pre">SingleShotMaskDetector.get_backbone_features()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector.ssd_forward"><code class="docutils literal notranslate"><span class="pre">SingleShotMaskDetector.ssd_forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector.forward"><code class="docutils literal notranslate"><span class="pre">SingleShotMaskDetector.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector.predict"><code class="docutils literal notranslate"><span class="pre">SingleShotMaskDetector.predict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector.postprocess_detections"><code class="docutils literal notranslate"><span class="pre">SingleShotMaskDetector.postprocess_detections()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.ssd.SingleShotMaskDetector.dummy_input_and_label"><code class="docutils literal notranslate"><span class="pre">SingleShotMaskDetector.dummy_input_and_label()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.detection.html#module-cvnets.models.detection">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.DetectionPredTuple"><code class="docutils literal notranslate"><span class="pre">DetectionPredTuple</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.DetectionPredTuple.boxes"><code class="docutils literal notranslate"><span class="pre">DetectionPredTuple.boxes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.DetectionPredTuple.labels"><code class="docutils literal notranslate"><span class="pre">DetectionPredTuple.labels</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.DetectionPredTuple.masks"><code class="docutils literal notranslate"><span class="pre">DetectionPredTuple.masks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#cvnets.models.detection.DetectionPredTuple.scores"><code class="docutils literal notranslate"><span class="pre">DetectionPredTuple.scores</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html">cvnets.models.multi_modal_img_text package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html#module-cvnets.models.multi_modal_img_text.base_multi_modal_img_text">cvnets.models.multi_modal_img_text.base_multi_modal_img_text module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html#cvnets.models.multi_modal_img_text.base_multi_modal_img_text.BaseMultiModalImageText"><code class="docutils literal notranslate"><span class="pre">BaseMultiModalImageText</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html#cvnets.models.multi_modal_img_text.base_multi_modal_img_text.BaseMultiModalImageText.__init__"><code class="docutils literal notranslate"><span class="pre">BaseMultiModalImageText.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html#cvnets.models.multi_modal_img_text.base_multi_modal_img_text.BaseMultiModalImageText.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseMultiModalImageText.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html#module-cvnets.models.multi_modal_img_text.clip">cvnets.models.multi_modal_img_text.clip module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html#cvnets.models.multi_modal_img_text.clip.CLIP"><code class="docutils literal notranslate"><span class="pre">CLIP</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html#cvnets.models.multi_modal_img_text.clip.CLIP.__init__"><code class="docutils literal notranslate"><span class="pre">CLIP.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html#cvnets.models.multi_modal_img_text.clip.CLIP.add_arguments"><code class="docutils literal notranslate"><span class="pre">CLIP.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html#cvnets.models.multi_modal_img_text.clip.CLIP.reset_parameters"><code class="docutils literal notranslate"><span class="pre">CLIP.reset_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html#cvnets.models.multi_modal_img_text.clip.CLIP.get_trainable_parameters"><code class="docutils literal notranslate"><span class="pre">CLIP.get_trainable_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html#cvnets.models.multi_modal_img_text.clip.CLIP.dummy_input_and_label"><code class="docutils literal notranslate"><span class="pre">CLIP.dummy_input_and_label()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html#cvnets.models.multi_modal_img_text.clip.CLIP.forward"><code class="docutils literal notranslate"><span class="pre">CLIP.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html#cvnets.models.multi_modal_img_text.clip.CLIP.build_model"><code class="docutils literal notranslate"><span class="pre">CLIP.build_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html#cvnets.models.multi_modal_img_text.clip.update_image_classifier"><code class="docutils literal notranslate"><span class="pre">update_image_classifier()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html#module-cvnets.models.multi_modal_img_text">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cvnets.models.segmentation.html">cvnets.models.segmentation package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.segmentation.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.segmentation.heads.html">cvnets.models.segmentation.heads package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.heads.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.heads.html#module-cvnets.models.segmentation.heads.base_seg_head">cvnets.models.segmentation.heads.base_seg_head module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.heads.html#module-cvnets.models.segmentation.heads.deeplabv3">cvnets.models.segmentation.heads.deeplabv3 module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.heads.html#module-cvnets.models.segmentation.heads.pspnet">cvnets.models.segmentation.heads.pspnet module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.heads.html#module-cvnets.models.segmentation.heads.simple_seg_head">cvnets.models.segmentation.heads.simple_seg_head module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.heads.html#module-cvnets.models.segmentation.heads">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.segmentation.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.segmentation.html#module-cvnets.models.segmentation.base_seg">cvnets.models.segmentation.base_seg module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.segmentation.html#cvnets.models.segmentation.base_seg.BaseSegmentation"><code class="docutils literal notranslate"><span class="pre">BaseSegmentation</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.html#cvnets.models.segmentation.base_seg.BaseSegmentation.__init__"><code class="docutils literal notranslate"><span class="pre">BaseSegmentation.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.html#cvnets.models.segmentation.base_seg.BaseSegmentation.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseSegmentation.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.html#cvnets.models.segmentation.base_seg.BaseSegmentation.maybe_seg_norm_layer"><code class="docutils literal notranslate"><span class="pre">BaseSegmentation.maybe_seg_norm_layer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.html#cvnets.models.segmentation.base_seg.BaseSegmentation.set_default_norm_layer"><code class="docutils literal notranslate"><span class="pre">BaseSegmentation.set_default_norm_layer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.html#cvnets.models.segmentation.base_seg.BaseSegmentation.dummy_input_and_label"><code class="docutils literal notranslate"><span class="pre">BaseSegmentation.dummy_input_and_label()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.html#cvnets.models.segmentation.base_seg.BaseSegmentation.update_classifier"><code class="docutils literal notranslate"><span class="pre">BaseSegmentation.update_classifier()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.html#cvnets.models.segmentation.base_seg.BaseSegmentation.set_model_specific_opts_before_model_building"><code class="docutils literal notranslate"><span class="pre">BaseSegmentation.set_model_specific_opts_before_model_building()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.segmentation.html#cvnets.models.segmentation.base_seg.set_model_specific_opts_before_model_building"><code class="docutils literal notranslate"><span class="pre">set_model_specific_opts_before_model_building()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.segmentation.html#cvnets.models.segmentation.base_seg.unset_model_specific_opts_after_model_building"><code class="docutils literal notranslate"><span class="pre">unset_model_specific_opts_after_model_building()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.segmentation.html#module-cvnets.models.segmentation.enc_dec">cvnets.models.segmentation.enc_dec module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.segmentation.html#cvnets.models.segmentation.enc_dec.SegEncoderDecoder"><code class="docutils literal notranslate"><span class="pre">SegEncoderDecoder</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.html#cvnets.models.segmentation.enc_dec.SegEncoderDecoder.__init__"><code class="docutils literal notranslate"><span class="pre">SegEncoderDecoder.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.html#cvnets.models.segmentation.enc_dec.SegEncoderDecoder.get_trainable_parameters"><code class="docutils literal notranslate"><span class="pre">SegEncoderDecoder.get_trainable_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.html#cvnets.models.segmentation.enc_dec.SegEncoderDecoder.forward"><code class="docutils literal notranslate"><span class="pre">SegEncoderDecoder.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.html#cvnets.models.segmentation.enc_dec.SegEncoderDecoder.update_classifier"><code class="docutils literal notranslate"><span class="pre">SegEncoderDecoder.update_classifier()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.html#cvnets.models.segmentation.enc_dec.SegEncoderDecoder.build_model"><code class="docutils literal notranslate"><span class="pre">SegEncoderDecoder.build_model()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.segmentation.html#module-cvnets.models.segmentation">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</section>
+<section id="module-cvnets.models.base_model">
+<span id="cvnets-models-base-model-module"></span><h2>cvnets.models.base_model module<a class="headerlink" href="#module-cvnets.models.base_model" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="cvnets.models.base_model.BaseAnyNNModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cvnets.models.base_model.</span></span><span class="sig-name descname"><span class="pre">BaseAnyNNModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cvnets/models/base_model.html#BaseAnyNNModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.base_model.BaseAnyNNModel" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></p>
+<p>Base class for any neural network</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.base_model.BaseAnyNNModel.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/cvnets/models/base_model.html#BaseAnyNNModel.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.base_model.BaseAnyNNModel.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.base_model.BaseAnyNNModel.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cvnets/models/base_model.html#BaseAnyNNModel.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.base_model.BaseAnyNNModel.add_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Add model-specific arguments</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.base_model.BaseAnyNNModel.reset_parameters">
+<span class="sig-name descname"><span class="pre">reset_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/cvnets/models/base_model.html#BaseAnyNNModel.reset_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.base_model.BaseAnyNNModel.reset_parameters" title="Permalink to this definition"></a></dt>
+<dd><p>Initialize model weights</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.base_model.BaseAnyNNModel.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="reference internal" href="../_modules/cvnets/models/base_model.html#BaseAnyNNModel.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.base_model.BaseAnyNNModel.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Implement the model-specific forward function in sub-classes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.base_model.BaseAnyNNModel.get_trainable_parameters">
+<span class="sig-name descname"><span class="pre">get_trainable_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">weight_decay</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">no_decay_bn_filter_bias</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Mapping</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/cvnets/models/base_model.html#BaseAnyNNModel.get_trainable_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.base_model.BaseAnyNNModel.get_trainable_parameters" title="Permalink to this definition"></a></dt>
+<dd><p>Get parameters for training along with the learning rate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>weight_decay</strong> – weight decay</p></li>
+<li><p><strong>no_decay_bn_filter_bias</strong> – Do not decay BN and biases. Defaults to False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Returns a tuple of length 2. The first entry is a list of dictionary with three keys
+(params, weight_decay, param_names). The second entry is a list of floats containing
+learning rate for each parameter.</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Kwargs may contain module_name. To avoid multiple arguments with the same name,
+we pop it and concatenate with encoder or head name</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.base_model.BaseAnyNNModel.dummy_input_and_label">
+<span class="sig-name descname"><span class="pre">dummy_input_and_label</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="reference internal" href="../_modules/cvnets/models/base_model.html#BaseAnyNNModel.dummy_input_and_label"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.base_model.BaseAnyNNModel.dummy_input_and_label" title="Permalink to this definition"></a></dt>
+<dd><p>Create dummy input and labels for CI/CD purposes. Child classes should implement it.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.base_model.BaseAnyNNModel.get_exportable_model">
+<span class="sig-name descname"><span class="pre">get_exportable_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Module</span></span></span><a class="reference internal" href="../_modules/cvnets/models/base_model.html#BaseAnyNNModel.get_exportable_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.base_model.BaseAnyNNModel.get_exportable_model" title="Permalink to this definition"></a></dt>
+<dd><p>This function can be used to prepare the architecture for inference. For example,
+re-parameterizing branches when possible. The functionality of this method may vary
+from model to model, so child model classes have to implement this method, if such a
+transformation exists.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.base_model.BaseAnyNNModel.freeze_norm_layers">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">freeze_norm_layers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cvnets.models.base_model.BaseAnyNNModel" title="cvnets.models.base_model.BaseAnyNNModel"><span class="pre">BaseAnyNNModel</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/cvnets/models/base_model.html#BaseAnyNNModel.freeze_norm_layers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.base_model.BaseAnyNNModel.freeze_norm_layers" title="Permalink to this definition"></a></dt>
+<dd><p>Freeze normalization layers in the model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>opts</strong> – Command-line arguments</p></li>
+<li><p><strong>model</strong> – An instance of <cite>BaseAnyNNModel</cite></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.base_model.BaseAnyNNModel.build_model">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">build_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cvnets.models.base_model.BaseAnyNNModel" title="cvnets.models.base_model.BaseAnyNNModel"><span class="pre">BaseAnyNNModel</span></a></span></span><a class="reference internal" href="../_modules/cvnets/models/base_model.html#BaseAnyNNModel.build_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.base_model.BaseAnyNNModel.build_model" title="Permalink to this definition"></a></dt>
+<dd><p>Build a model from command-line arguments. Sub-classes must implement this method</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>opts</strong> – Command-line arguments</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>…note::</dt><dd><p>This function is typically implemented in the base class for each task and
+implementation is reused by all models in that task.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.base_model.BaseAnyNNModel.info">
+<span class="sig-name descname"><span class="pre">info</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/cvnets/models/base_model.html#BaseAnyNNModel.info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.base_model.BaseAnyNNModel.info" title="Permalink to this definition"></a></dt>
+<dd><p>Prints model, parameters, and FLOPs on start rank.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-cvnets.models">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-cvnets.models" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="cvnets.models.get_model">
+<span class="sig-prename descclassname"><span class="pre">cvnets.models.</span></span><span class="sig-name descname"><span class="pre">get_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">category</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cvnets.models.base_model.BaseAnyNNModel" title="cvnets.models.base_model.BaseAnyNNModel"><span class="pre">BaseAnyNNModel</span></a></span></span><a class="reference internal" href="../_modules/cvnets/models.html#get_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.get_model" title="Permalink to this definition"></a></dt>
+<dd><p>Create a task-specific model from command-line arguments. If model category (or task) and name are
+passed as an argument, then they are used. Otherwise, <cite>dataset.category</cite> and <cite>model.{category}.name</cite> are
+read from command-line arguments to read model category and name, respectively.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>opts</strong> – Command-line arguments</p></li>
+<li><p><strong>category</strong> – Category or task (e.g., segmentation)</p></li>
+<li><p><strong>model_name</strong> – Model name for a specific task (e.g., vit for classification)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An instance of <cite>cvnets.models.BaseAnyNNModel</cite>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cvnets.models.arguments_model">
+<span class="sig-prename descclassname"><span class="pre">cvnets.models.</span></span><span class="sig-name descname"><span class="pre">arguments_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/cvnets/models.html#arguments_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.arguments_model" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

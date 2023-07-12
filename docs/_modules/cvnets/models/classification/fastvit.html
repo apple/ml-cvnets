@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cvnets.models.classification.fastvit &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../../cvnets.html">cvnets</a></li>
+          <li class="breadcrumb-item"><a href="../../models.html">cvnets.models</a></li>
+      <li class="breadcrumb-item active">cvnets.models.classification.fastvit</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cvnets.models.classification.fastvit</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+
+<span class="kn">from</span> <span class="nn">cvnets.layers</span> <span class="kn">import</span> <span class="n">GlobalPool</span><span class="p">,</span> <span class="n">Identity</span><span class="p">,</span> <span class="n">LinearLayer</span>
+<span class="kn">from</span> <span class="nn">cvnets.models</span> <span class="kn">import</span> <span class="n">MODEL_REGISTRY</span>
+<span class="kn">from</span> <span class="nn">cvnets.models.classification.base_image_encoder</span> <span class="kn">import</span> <span class="n">BaseImageEncoder</span>
+<span class="kn">from</span> <span class="nn">cvnets.models.classification.config.fastvit</span> <span class="kn">import</span> <span class="n">get_configuration</span>
+<span class="kn">from</span> <span class="nn">cvnets.modules.fastvit</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AttentionBlock</span><span class="p">,</span>
+    <span class="n">PatchEmbed</span><span class="p">,</span>
+    <span class="n">RepMixerBlock</span><span class="p">,</span>
+    <span class="n">convolutional_stem</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">cvnets.modules.mobileone_block</span> <span class="kn">import</span> <span class="n">MobileOneBlock</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+
+
+<div class="viewcode-block" id="basic_blocks"><a class="viewcode-back" href="../../../../autogen/cvnets.models.classification.html#cvnets.models.classification.fastvit.basic_blocks">[docs]</a><span class="k">def</span> <span class="nf">basic_blocks</span><span class="p">(</span>
+    <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
+    <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">block_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">num_blocks</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+    <span class="n">token_mixer_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="n">mlp_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">4.0</span><span class="p">,</span>
+    <span class="n">drop_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">drop_path_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">inference_mode</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">use_layer_scale</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">layer_scale_init_value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build FastViT blocks within a stage.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: Command line arguments.</span>
+<span class="sd">        dim: Number of embedding dimensions.</span>
+<span class="sd">        block_index: block index.</span>
+<span class="sd">        num_blocks: List containing number of blocks per stage.</span>
+<span class="sd">        token_mixer_type: Token mixer type.</span>
+<span class="sd">        kernel_size: Kernel size for repmixer.</span>
+<span class="sd">        mlp_ratio: MLP expansion ratio.</span>
+<span class="sd">        drop_rate: Dropout rate.</span>
+<span class="sd">        drop_path_rate: Drop path rate.</span>
+<span class="sd">        inference_mode: Flag to instantiate block in inference mode.</span>
+<span class="sd">        use_layer_scale: Flag to turn on layer scale regularization.</span>
+<span class="sd">        layer_scale_init_value: Layer scale value at initialization.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        nn.Sequential object of all the blocks within the stage.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">blocks</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">block_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">[</span><span class="n">block_index</span><span class="p">]):</span>
+        <span class="n">block_dpr</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">drop_path_rate</span>
+            <span class="o">*</span> <span class="p">(</span><span class="n">block_idx</span> <span class="o">+</span> <span class="nb">sum</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">[:</span><span class="n">block_index</span><span class="p">]))</span>
+            <span class="o">/</span> <span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">token_mixer_type</span> <span class="o">==</span> <span class="s2">&quot;repmixer&quot;</span><span class="p">:</span>
+            <span class="n">blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">RepMixerBlock</span><span class="p">(</span>
+                    <span class="n">opts</span><span class="p">,</span>
+                    <span class="n">dim</span><span class="p">,</span>
+                    <span class="n">kernel_size</span><span class="o">=</span><span class="n">kernel_size</span><span class="p">,</span>
+                    <span class="n">mlp_ratio</span><span class="o">=</span><span class="n">mlp_ratio</span><span class="p">,</span>
+                    <span class="n">drop</span><span class="o">=</span><span class="n">drop_rate</span><span class="p">,</span>
+                    <span class="n">drop_path</span><span class="o">=</span><span class="n">block_dpr</span><span class="p">,</span>
+                    <span class="n">inference_mode</span><span class="o">=</span><span class="n">inference_mode</span><span class="p">,</span>
+                    <span class="n">use_layer_scale</span><span class="o">=</span><span class="n">use_layer_scale</span><span class="p">,</span>
+                    <span class="n">layer_scale_init_value</span><span class="o">=</span><span class="n">layer_scale_init_value</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">token_mixer_type</span> <span class="o">==</span> <span class="s2">&quot;attention&quot;</span><span class="p">:</span>
+            <span class="n">blocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">AttentionBlock</span><span class="p">(</span>
+                    <span class="n">opts</span><span class="p">,</span>
+                    <span class="n">dim</span><span class="p">,</span>
+                    <span class="n">mlp_ratio</span><span class="o">=</span><span class="n">mlp_ratio</span><span class="p">,</span>
+                    <span class="n">drop</span><span class="o">=</span><span class="n">drop_rate</span><span class="p">,</span>
+                    <span class="n">drop_path</span><span class="o">=</span><span class="n">block_dpr</span><span class="p">,</span>
+                    <span class="n">use_layer_scale</span><span class="o">=</span><span class="n">use_layer_scale</span><span class="p">,</span>
+                    <span class="n">layer_scale_init_value</span><span class="o">=</span><span class="n">layer_scale_init_value</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Token mixer type: </span><span class="si">{}</span><span class="s2"> not supported&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">token_mixer_type</span><span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="n">blocks</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">blocks</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">blocks</span></div>
+
+
+<div class="viewcode-block" id="FastViT"><a class="viewcode-back" href="../../../../autogen/cvnets.models.classification.html#cvnets.models.classification.fastvit.FastViT">[docs]</a><span class="nd">@MODEL_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;fastvit&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;classification&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">FastViT</span><span class="p">(</span><span class="n">BaseImageEncoder</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class implements `FastViT architecture &lt;todo: add arxiv link here&gt;`_</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FastViT.__init__"><a class="viewcode-back" href="../../../../autogen/cvnets.models.classification.html#cvnets.models.classification.fastvit.FastViT.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cfg</span> <span class="o">=</span> <span class="n">get_configuration</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Warn users if model is instantiated in inference mode.</span>
+        <span class="n">inference_mode</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.classification.fastvit.inference_mode&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">inference_mode</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s1">&#39;Model instantiated in &quot;Inference mode&quot;. &#39;</span>
+                <span class="s2">&quot;This is not a desired mode for training.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Get metaformer parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opts</span> <span class="o">=</span> <span class="n">opts</span>
+        <span class="n">image_channels</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="n">layers</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;layers&quot;</span><span class="p">]</span>
+        <span class="n">pos_embs</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;pos_embs&quot;</span><span class="p">]</span>
+        <span class="n">embed_dims</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;embed_dims&quot;</span><span class="p">]</span>
+        <span class="n">token_mixers</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;token_mixers&quot;</span><span class="p">]</span>
+        <span class="n">mlp_ratios</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;mlp_ratios&quot;</span><span class="p">]</span>
+        <span class="n">num_classes</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.classification.n_classes&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Patch embedding configurations</span>
+        <span class="n">downsamples</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;downsamples&quot;</span><span class="p">]</span>
+        <span class="n">down_patch_size</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;down_patch_size&quot;</span><span class="p">]</span>
+        <span class="n">down_stride</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;down_stride&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Get regularization parameters</span>
+        <span class="n">drop_rate</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.classification.fastvit.dropout&quot;</span><span class="p">)</span>
+        <span class="n">drop_path_rate</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.classification.fastvit.drop_path&quot;</span><span class="p">)</span>
+        <span class="n">use_layer_scale</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.classification.fastvit.use_layer_scale&quot;</span><span class="p">)</span>
+        <span class="n">layer_scale_init_value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.classification.fastvit.layer_scale_init_value&quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">pos_embs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pos_embs</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;layers&quot;</span><span class="p">])</span>
+
+        <span class="c1"># convolutional stem</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_conf_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_1</span> <span class="o">=</span> <span class="n">convolutional_stem</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">image_channels</span><span class="p">,</span> <span class="n">embed_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_conf_dict</span><span class="p">[</span><span class="s2">&quot;conv1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="n">image_channels</span><span class="p">,</span> <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">embed_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer_1</span> <span class="o">=</span> <span class="n">Identity</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_conf_dict</span><span class="p">[</span><span class="s2">&quot;layer1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="n">embed_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">embed_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]}</span>
+
+        <span class="c1"># Build all stages of the network.</span>
+        <span class="n">network</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">layers</span><span class="p">)):</span>
+            <span class="n">blocks_per_stage</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="c1"># Add position embeddings if requested</span>
+            <span class="k">if</span> <span class="n">pos_embs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">blocks_per_stage</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pos_embs</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">opts</span><span class="p">,</span> <span class="n">embed_dims</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">embed_dims</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+            <span class="n">stage</span> <span class="o">=</span> <span class="n">basic_blocks</span><span class="p">(</span>
+                <span class="n">opts</span><span class="p">,</span>
+                <span class="n">embed_dims</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="n">i</span><span class="p">,</span>
+                <span class="n">layers</span><span class="p">,</span>
+                <span class="n">token_mixer_type</span><span class="o">=</span><span class="n">token_mixers</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="n">kernel_size</span><span class="o">=</span><span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;repmixer_kernel_size&quot;</span><span class="p">],</span>
+                <span class="n">mlp_ratio</span><span class="o">=</span><span class="n">mlp_ratios</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="n">drop_rate</span><span class="o">=</span><span class="n">drop_rate</span><span class="p">,</span>
+                <span class="n">drop_path_rate</span><span class="o">=</span><span class="n">drop_path_rate</span><span class="p">,</span>
+                <span class="n">use_layer_scale</span><span class="o">=</span><span class="n">use_layer_scale</span><span class="p">,</span>
+                <span class="n">layer_scale_init_value</span><span class="o">=</span><span class="n">layer_scale_init_value</span><span class="p">,</span>
+                <span class="n">inference_mode</span><span class="o">=</span><span class="n">inference_mode</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">blocks_per_stage</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stage</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">layers</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">network</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">blocks_per_stage</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model_conf_dict</span><span class="p">[</span><span class="s2">&quot;layer</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="n">embed_dims</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                    <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">embed_dims</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="p">}</span>
+                <span class="k">break</span>
+
+            <span class="c1"># Downsampling+PatchEmb. between two stages</span>
+            <span class="k">if</span> <span class="n">downsamples</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">or</span> <span class="n">embed_dims</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="n">embed_dims</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]:</span>
+                <span class="n">blocks_per_stage</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">PatchEmbed</span><span class="p">(</span>
+                        <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                        <span class="n">patch_size</span><span class="o">=</span><span class="n">down_patch_size</span><span class="p">,</span>
+                        <span class="n">stride</span><span class="o">=</span><span class="n">down_stride</span><span class="p">,</span>
+                        <span class="n">in_channels</span><span class="o">=</span><span class="n">embed_dims</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                        <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dims</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+
+            <span class="n">network</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">blocks_per_stage</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model_conf_dict</span><span class="p">[</span><span class="s2">&quot;layer</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="n">embed_dims</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">embed_dims</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span>
+            <span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer_2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_3</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_4</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_5</span> <span class="o">=</span> <span class="n">network</span>
+
+        <span class="c1"># Build 1x1 exp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_1x1_exp</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="o">*</span><span class="p">[</span>
+                <span class="n">MobileOneBlock</span><span class="p">(</span>
+                    <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                    <span class="n">in_channels</span><span class="o">=</span><span class="n">embed_dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                    <span class="n">out_channels</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">embed_dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;cls_ratio&quot;</span><span class="p">]),</span>
+                    <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                    <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="n">groups</span><span class="o">=</span><span class="n">embed_dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                    <span class="n">inference_mode</span><span class="o">=</span><span class="n">inference_mode</span><span class="p">,</span>
+                    <span class="n">use_se</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">num_conv_branches</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_conf_dict</span><span class="p">[</span><span class="s2">&quot;exp_before_cls&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="n">embed_dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+            <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">embed_dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;cls_ratio&quot;</span><span class="p">]),</span>
+        <span class="p">}</span>
+
+        <span class="c1"># Build classifier</span>
+        <span class="n">pool_type</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.layer.global_pool&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;global_pool&quot;</span><span class="p">,</span> <span class="n">module</span><span class="o">=</span><span class="n">GlobalPool</span><span class="p">(</span><span class="n">pool_type</span><span class="o">=</span><span class="n">pool_type</span><span class="p">,</span> <span class="n">keep_dim</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;classifier_fc&quot;</span><span class="p">,</span>
+            <span class="n">module</span><span class="o">=</span><span class="n">LinearLayer</span><span class="p">(</span>
+                <span class="n">in_features</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">embed_dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;cls_ratio&quot;</span><span class="p">]),</span>
+                <span class="n">out_features</span><span class="o">=</span><span class="n">num_classes</span><span class="p">,</span>
+                <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_conf_dict</span><span class="p">[</span><span class="s2">&quot;cls&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;in&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">embed_dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;cls_ratio&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;out&quot;</span><span class="p">:</span> <span class="n">num_classes</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="c1"># check model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_model</span><span class="p">()</span>
+
+        <span class="c1"># weight initialization</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_parameters</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FastViT.add_arguments"><a class="viewcode-back" href="../../../../autogen/cvnets.models.classification.html#cvnets.models.classification.fastvit.FastViT.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add model specific arguments&quot;&quot;&quot;</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.classification.fastvit.variant&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;T8&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Variant string for FastViT. Default: T8&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.classification.fastvit.inference-mode&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Flag to instantiate inference mode architecture. Default: False&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.classification.fastvit.dropout&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Dropout rate for regularization. Default: 0.0&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.classification.fastvit.drop-path&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Drop path rate. Default: 0.0&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.classification.fastvit.use-layer-scale&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Flag to turn on layer scale regularization. Default: True&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.classification.fastvit.layer-scale-init-value&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Drop path rate. Default: 1e-5&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="FastViT.get_exportable_model"><a class="viewcode-back" href="../../../../autogen/cvnets.models.classification.html#cvnets.models.classification.fastvit.FastViT.get_exportable_model">[docs]</a>    <span class="k">def</span> <span class="nf">get_exportable_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method returns a reparameterized model for faster inference.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Reparametrized FastViT model for faster inference.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Avoid editing original graph</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">modules</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s2">&quot;reparameterize&quot;</span><span class="p">):</span>
+                <span class="n">module</span><span class="o">.</span><span class="n">reparameterize</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">model</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

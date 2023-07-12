@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>data.datasets.detection.coco_ssd &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../datasets.html">data.datasets</a></li>
+      <li class="breadcrumb-item active">data.datasets.detection.coco_ssd</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for data.datasets.detection.coco_ssd</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
+
+<span class="kn">from</span> <span class="nn">cvnets.anchor_generator</span> <span class="kn">import</span> <span class="n">build_anchor_generator</span>
+<span class="kn">from</span> <span class="nn">cvnets.matcher_det</span> <span class="kn">import</span> <span class="n">build_matcher</span>
+<span class="kn">from</span> <span class="nn">data.collate_fns</span> <span class="kn">import</span> <span class="n">COLLATE_FN_REGISTRY</span>
+<span class="kn">from</span> <span class="nn">data.datasets</span> <span class="kn">import</span> <span class="n">DATASET_REGISTRY</span>
+<span class="kn">from</span> <span class="nn">data.datasets.detection.coco_base</span> <span class="kn">import</span> <span class="n">COCODetection</span>
+<span class="kn">from</span> <span class="nn">data.transforms</span> <span class="kn">import</span> <span class="n">image_pil</span> <span class="k">as</span> <span class="n">T</span>
+<span class="kn">from</span> <span class="nn">data.transforms.common</span> <span class="kn">import</span> <span class="n">Compose</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+
+
+<div class="viewcode-block" id="COCODetectionSSD"><a class="viewcode-back" href="../../../../autogen/data.datasets.detection.html#data.datasets.detection.coco_ssd.COCODetectionSSD">[docs]</a><span class="nd">@DATASET_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;coco_ssd&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;detection&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">COCODetectionSSD</span><span class="p">(</span><span class="n">COCODetection</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Dataset class for the MS COCO Object Detection using Single Shot Object Detector (SSD).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: Command-line arguments</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="COCODetectionSSD.__init__"><a class="viewcode-back" href="../../../../autogen/data.datasets.detection.html#data.datasets.detection.coco_ssd.COCODetectionSSD.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;matcher.name&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;ssd&quot;</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;For SSD, we need --matcher.name as ssd&quot;</span><span class="p">)</span>
+
+        <span class="n">anchor_gen_name</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;anchor_generator.name&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">anchor_gen_name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">anchor_gen_name</span> <span class="o">!=</span> <span class="s2">&quot;ssd&quot;</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;For SSD, we need --anchor-generator.name to be ssd&quot;</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># we build the anchor generator and matching inside the dataset</span>
+        <span class="c1"># so that we can use it with variable batch samplers.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">anchor_box_generator</span> <span class="o">=</span> <span class="n">build_anchor_generator</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="n">is_numpy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">match_prior</span> <span class="o">=</span> <span class="n">build_matcher</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">)</span>
+
+        <span class="c1"># output strides for generating anchors</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_strides</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">anchor_box_generator</span><span class="o">.</span><span class="n">output_strides</span>
+
+        <span class="c1"># set the collate functions for the dataset</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.collate_fn_name_train&quot;</span><span class="p">,</span> <span class="s2">&quot;coco_ssd_collate_fn&quot;</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.collate_fn_name_val&quot;</span><span class="p">,</span> <span class="s2">&quot;coco_ssd_collate_fn&quot;</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.collate_fn_name_test&quot;</span><span class="p">,</span> <span class="s2">&quot;coco_ssd_collate_fn&quot;</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_training_transforms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Compose</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Data augmentation during training.</span>
+
+<span class="sd">        Order of transformation is SSDCroping, PhotometricDistort, RandomHorizontalFlip, Resize,</span>
+<span class="sd">            BoxPercentCoords, ToTensor</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            size: Size for resizing the input image. Expected to be a tuple (height, width)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            An instance of `data.transforms.common.Compose.`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">aug_list</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">T</span><span class="o">.</span><span class="n">SSDCroping</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">),</span>
+            <span class="n">T</span><span class="o">.</span><span class="n">PhotometricDistort</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">),</span>
+            <span class="n">T</span><span class="o">.</span><span class="n">RandomHorizontalFlip</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">),</span>
+            <span class="n">T</span><span class="o">.</span><span class="n">Resize</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="n">img_size</span><span class="o">=</span><span class="n">size</span><span class="p">),</span>
+            <span class="n">T</span><span class="o">.</span><span class="n">BoxPercentCoords</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">),</span>
+            <span class="n">T</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">),</span>
+        <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">Compose</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="n">img_transforms</span><span class="o">=</span><span class="n">aug_list</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validation_transforms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Compose</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Data augmentation during validation or evaluation.</span>
+
+<span class="sd">        Default order of transformation is Resize, BoxPercentCoords, ToTensor.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            size: Size for resizing the input image. Expected to be a tuple (height, width)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            An instance of `data.transforms.common.Compose.`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">aug_list</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">T</span><span class="o">.</span><span class="n">Resize</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">),</span>
+            <span class="n">T</span><span class="o">.</span><span class="n">BoxPercentCoords</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">),</span>
+            <span class="n">T</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">Compose</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="n">img_transforms</span><span class="o">=</span><span class="n">aug_list</span><span class="p">)</span>
+
+<div class="viewcode-block" id="COCODetectionSSD.generate_anchors"><a class="viewcode-back" href="../../../../autogen/data.datasets.detection.html#data.datasets.detection.coco_ssd.COCODetectionSSD.generate_anchors">[docs]</a>    <span class="k">def</span> <span class="nf">generate_anchors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">height</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Given the height and width of the input to the SSD model, generate anchors</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            height: Height of the input image to the SSD model</span>
+<span class="sd">            width: Width of the input image to the SSD model</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor containing anchor locations</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">anchors</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">output_stride</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_strides</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">output_stride</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="n">fm_width</span> <span class="o">=</span> <span class="n">fm_height</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fm_width</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">width</span> <span class="o">/</span> <span class="n">output_stride</span><span class="p">))</span>
+                <span class="n">fm_height</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">height</span> <span class="o">/</span> <span class="n">output_stride</span><span class="p">))</span>
+            <span class="n">fm_anchor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">anchor_box_generator</span><span class="p">(</span>
+                <span class="n">fm_height</span><span class="o">=</span><span class="n">fm_height</span><span class="p">,</span>
+                <span class="n">fm_width</span><span class="o">=</span><span class="n">fm_width</span><span class="p">,</span>
+                <span class="n">fm_output_stride</span><span class="o">=</span><span class="n">output_stride</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">anchors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fm_anchor</span><span class="p">)</span>
+        <span class="n">anchors</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">anchors</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">anchors</span></div>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">sample_size_and_index</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the sample corresponding to the input sample index. Returned sample is transformed</span>
+<span class="sd">        into the size specified by the input.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            sample_size_and_index: Tuple of the form (crop_size_h, crop_size_w, sample_index)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A dictionary with `samples` and `targets` as keys corresponding to input and labels of</span>
+<span class="sd">            a sample, respectively.</span>
+
+<span class="sd">        Shapes:</span>
+<span class="sd">            The shape of values in output dictionary, output_data, are as follows:</span>
+
+<span class="sd">            output_data[&quot;samples&quot;][&quot;image&quot;]: Shape is [Channels, Height, Width]</span>
+<span class="sd">            output_data[&quot;targets&quot;][&quot;box_labels&quot;]: Shape is [Num of matched boxes]</span>
+<span class="sd">            output_data[&quot;targets&quot;][&quot;box_coordinates&quot;]: Shape is [Num of matched boxes, 4]</span>
+<span class="sd">            output_data[&quot;targets&quot;][&quot;image_id&quot;]: Shape is [1]</span>
+<span class="sd">            output_data[&quot;targets&quot;][&quot;image_width&quot;]: Shape is [1]</span>
+<span class="sd">            output_data[&quot;targets&quot;][&quot;image_height&quot;]: Shape is [1]</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">crop_size_h</span><span class="p">,</span> <span class="n">crop_size_w</span><span class="p">,</span> <span class="n">img_index</span> <span class="o">=</span> <span class="n">sample_size_and_index</span>
+
+        <span class="n">transform_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_augmentation_transforms</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">crop_size_h</span><span class="p">,</span> <span class="n">crop_size_w</span><span class="p">))</span>
+
+        <span class="n">image_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">[</span><span class="n">img_index</span><span class="p">]</span>
+
+        <span class="n">image</span><span class="p">,</span> <span class="n">img_fname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_image</span><span class="p">(</span><span class="n">image_id</span><span class="o">=</span><span class="n">image_id</span><span class="p">)</span>
+        <span class="n">im_width</span><span class="p">,</span> <span class="n">im_height</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">boxes</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_boxes_and_labels</span><span class="p">(</span>
+            <span class="n">image_id</span><span class="o">=</span><span class="n">image_id</span><span class="p">,</span> <span class="n">image_width</span><span class="o">=</span><span class="n">im_width</span><span class="p">,</span> <span class="n">image_height</span><span class="o">=</span><span class="n">im_height</span>
+        <span class="p">)</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">image</span><span class="p">,</span> <span class="s2">&quot;box_labels&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="p">,</span> <span class="s2">&quot;box_coordinates&quot;</span><span class="p">:</span> <span class="n">boxes</span><span class="p">}</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">transform_fn</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="c1"># convert to priors</span>
+        <span class="n">anchors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_anchors</span><span class="p">(</span><span class="n">height</span><span class="o">=</span><span class="n">crop_size_h</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">crop_size_w</span><span class="p">)</span>
+
+        <span class="n">gt_coordinates</span><span class="p">,</span> <span class="n">gt_labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">match_prior</span><span class="p">(</span>
+            <span class="n">gt_boxes</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;box_coordinates&quot;</span><span class="p">],</span>
+            <span class="n">gt_labels</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;box_labels&quot;</span><span class="p">],</span>
+            <span class="n">anchors</span><span class="o">=</span><span class="n">anchors</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">output_data</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;samples&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;image&quot;</span><span class="p">)},</span>
+            <span class="s2">&quot;targets&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;box_labels&quot;</span><span class="p">:</span> <span class="n">gt_labels</span><span class="p">,</span>
+                <span class="s2">&quot;box_coordinates&quot;</span><span class="p">:</span> <span class="n">gt_coordinates</span><span class="p">,</span>
+                <span class="s2">&quot;image_id&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">image_id</span><span class="p">),</span>
+                <span class="s2">&quot;image_width&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">im_width</span><span class="p">),</span>
+                <span class="s2">&quot;image_height&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">im_height</span><span class="p">),</span>
+            <span class="p">},</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">output_data</span>
+
+<div class="viewcode-block" id="COCODetectionSSD.extra_repr"><a class="viewcode-back" href="../../../../autogen/data.datasets.detection.html#data.datasets.detection.coco_ssd.COCODetectionSSD.extra_repr">[docs]</a>    <span class="k">def</span> <span class="nf">extra_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">extra_repr_str</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">extra_repr</span><span class="p">()</span>
+        <span class="n">extra_repr_str</span> <span class="o">+=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">matcher=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">match_prior</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">anchor_generator=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">anchor_box_generator</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">extra_repr_str</span></div></div>
+
+
+<div class="viewcode-block" id="coco_ssd_collate_fn"><a class="viewcode-back" href="../../../../autogen/data.datasets.detection.html#data.datasets.detection.coco_ssd.coco_ssd_collate_fn">[docs]</a><span class="nd">@COLLATE_FN_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;coco_ssd_collate_fn&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">coco_ssd_collate_fn</span><span class="p">(</span>
+    <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]]]],</span>
+    <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Combines a list of dictionaries into a single dictionary by concatenating matching fields.</span>
+
+<span class="sd">    For expected keys, see the keys in the output of `__getitem__` function of COCODetectionSSD class.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        batch: A list of dictionaries</span>
+<span class="sd">        opts: Command-line arguments</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A dictionary with `samples` and `targets` as keys.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">new_batch</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;samples&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="p">[]},</span>
+        <span class="s2">&quot;targets&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;box_labels&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;box_coordinates&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;image_id&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;image_width&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;image_height&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="n">b_id</span><span class="p">,</span> <span class="n">batch_</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">batch</span><span class="p">):</span>
+        <span class="c1"># prepare inputs</span>
+        <span class="n">new_batch</span><span class="p">[</span><span class="s2">&quot;samples&quot;</span><span class="p">][</span><span class="s2">&quot;image&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_</span><span class="p">[</span><span class="s2">&quot;samples&quot;</span><span class="p">][</span><span class="s2">&quot;image&quot;</span><span class="p">])</span>
+
+        <span class="c1"># prepare outputs</span>
+        <span class="n">new_batch</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">][</span><span class="s2">&quot;box_labels&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">][</span><span class="s2">&quot;box_labels&quot;</span><span class="p">])</span>
+        <span class="n">new_batch</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">][</span><span class="s2">&quot;box_coordinates&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">batch_</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">][</span><span class="s2">&quot;box_coordinates&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">new_batch</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">][</span><span class="s2">&quot;image_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">][</span><span class="s2">&quot;image_id&quot;</span><span class="p">])</span>
+        <span class="n">new_batch</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">][</span><span class="s2">&quot;image_width&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">][</span><span class="s2">&quot;image_width&quot;</span><span class="p">])</span>
+        <span class="n">new_batch</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">][</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">][</span><span class="s2">&quot;image_height&quot;</span><span class="p">])</span>
+
+    <span class="c1"># stack inputs</span>
+    <span class="n">new_batch</span><span class="p">[</span><span class="s2">&quot;samples&quot;</span><span class="p">][</span><span class="s2">&quot;image&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">new_batch</span><span class="p">[</span><span class="s2">&quot;samples&quot;</span><span class="p">][</span><span class="s2">&quot;image&quot;</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># stack outputs</span>
+    <span class="n">new_batch</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">][</span><span class="s2">&quot;box_labels&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+        <span class="n">new_batch</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">][</span><span class="s2">&quot;box_labels&quot;</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span>
+    <span class="p">)</span>
+
+    <span class="n">new_batch</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">][</span><span class="s2">&quot;box_coordinates&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+        <span class="n">new_batch</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">][</span><span class="s2">&quot;box_coordinates&quot;</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span>
+    <span class="p">)</span>
+
+    <span class="n">new_batch</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">][</span><span class="s2">&quot;image_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+        <span class="n">new_batch</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">][</span><span class="s2">&quot;image_id&quot;</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span>
+    <span class="p">)</span>
+
+    <span class="n">new_batch</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">][</span><span class="s2">&quot;image_width&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+        <span class="n">new_batch</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">][</span><span class="s2">&quot;image_width&quot;</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span>
+    <span class="p">)</span>
+
+    <span class="n">new_batch</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">][</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+        <span class="n">new_batch</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">][</span><span class="s2">&quot;image_height&quot;</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">new_batch</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

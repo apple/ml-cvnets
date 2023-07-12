@@ -1,0 +1,53 @@
+optim package
+=============
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   optim.scheduler
+
+Submodules
+----------
+
+optim.adam module
+-----------------
+
+.. automodule:: optim.adam
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+optim.adamw module
+------------------
+
+.. automodule:: optim.adamw
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+optim.base\_optim module
+------------------------
+
+.. automodule:: optim.base_optim
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+optim.sgd module
+----------------
+
+.. automodule:: optim.sgd
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: optim
+   :members:
+   :undoc-members:
+   :show-inheritance:

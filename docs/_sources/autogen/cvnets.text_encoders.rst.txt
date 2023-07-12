@@ -1,0 +1,29 @@
+cvnets.text\_encoders package
+=============================
+
+Submodules
+----------
+
+cvnets.text\_encoders.base\_text\_encoder module
+------------------------------------------------
+
+.. automodule:: cvnets.text_encoders.base_text_encoder
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.text\_encoders.transformer module
+----------------------------------------
+
+.. automodule:: cvnets.text_encoders.transformer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cvnets.text_encoders
+   :members:
+   :undoc-members:
+   :show-inheritance:

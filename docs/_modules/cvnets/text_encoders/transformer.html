@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cvnets.text_encoders.transformer &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../cvnets.html">cvnets</a></li>
+          <li class="breadcrumb-item"><a href="../text_encoders.html">cvnets.text_encoders</a></li>
+      <li class="breadcrumb-item active">cvnets.text_encoders.transformer</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cvnets.text_encoders.transformer</h1><div class="highlight"><pre>
+<span></span><span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">nn</span>
+<span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">F</span>
+<span class="kn">from</span> <span class="nn">torch.utils.checkpoint</span> <span class="kn">import</span> <span class="n">checkpoint</span> <span class="k">as</span> <span class="n">gradient_checkpoint_fn</span>
+
+<span class="kn">from</span> <span class="nn">cvnets.layers</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Dropout</span><span class="p">,</span>
+    <span class="n">Embedding</span><span class="p">,</span>
+    <span class="n">PositionalEmbedding</span><span class="p">,</span>
+    <span class="n">get_normalization_layer</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">cvnets.modules</span> <span class="kn">import</span> <span class="n">TransformerEncoder</span>
+<span class="kn">from</span> <span class="nn">cvnets.text_encoders</span> <span class="kn">import</span> <span class="n">TEXT_ENCODER_REGISTRY</span><span class="p">,</span> <span class="n">BaseTextEncoder</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+
+
+<div class="viewcode-block" id="TextTransformer"><a class="viewcode-back" href="../../../autogen/cvnets.text_encoders.html#cvnets.text_encoders.transformer.TextTransformer">[docs]</a><span class="nd">@TEXT_ENCODER_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;transformer&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">TextTransformer</span><span class="p">(</span><span class="n">BaseTextEncoder</span><span class="p">):</span>
+<div class="viewcode-block" id="TextTransformer.__init__"><a class="viewcode-back" href="../../../autogen/cvnets.text_encoders.html#cvnets.text_encoders.transformer.TextTransformer.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">opts</span><span class="p">,</span> <span class="n">projection_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">model_dim</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.text.transformer.model_dim&quot;</span><span class="p">,</span> <span class="mi">512</span><span class="p">)</span>
+        <span class="n">no_scale_embedding</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.text.transformer.no_scale_embedding&quot;</span><span class="p">,</span> <span class="kc">False</span>
+        <span class="p">)</span>
+        <span class="n">no_pos_embedding</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.text.transformer.no_pos_embedding&quot;</span><span class="p">,</span> <span class="kc">False</span>
+        <span class="p">)</span>
+        <span class="n">embed_dropout</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.text.transformer.embed_dropout&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">dropout</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.text.transformer.dropout&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">attn_dropout</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.text.transformer.attn_dropout&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">ffn_dropout</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.text.transformer.ffn_dropout&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">norm_layer</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.text.transformer.norm_layer&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="n">gradient_ckpt</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.text.transformer.gradient_checkpoint&quot;</span><span class="p">,</span> <span class="kc">False</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">norm_layer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;Normalization layer can not be None in </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="n">projection_dim</span><span class="o">=</span><span class="n">projection_dim</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># token embedding layer</span>
+        <span class="n">padding_index</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.padding_index&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">embedding_layer</span> <span class="o">=</span> <span class="n">Embedding</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">embedding_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span>
+            <span class="n">padding_idx</span><span class="o">=</span><span class="n">padding_index</span><span class="p">,</span>
+            <span class="n">num_embeddings</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">embed_scale</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="n">no_scale_embedding</span> <span class="k">else</span> <span class="n">model_dim</span><span class="o">**-</span><span class="mf">0.5</span>
+
+        <span class="n">context_length</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.text_context_length&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.debug_mode&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="n">context_length</span> <span class="o">=</span> <span class="mi">77</span>
+
+        <span class="k">assert</span> <span class="n">context_length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;Context length can&#39;t be None. Please set dataset.text_context_length &quot;</span>
+            <span class="s2">&quot;argument in your dataset class&quot;</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">positional_embedding</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">no_pos_embedding</span>
+            <span class="k">else</span> <span class="n">PositionalEmbedding</span><span class="p">(</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                <span class="n">num_embeddings</span><span class="o">=</span><span class="n">context_length</span><span class="p">,</span>
+                <span class="n">embedding_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span>
+                <span class="n">padding_idx</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.padding_index&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                <span class="n">is_learnable</span><span class="o">=</span><span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span>
+                    <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.text.transformer.sinusoidal_pos_emb&quot;</span><span class="p">,</span> <span class="kc">False</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">embedding_dropout</span> <span class="o">=</span> <span class="n">Dropout</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">embed_dropout</span><span class="p">)</span>
+
+        <span class="c1"># Transformer layer</span>
+
+        <span class="n">n_transformer_layers</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.text.transformer.n_transformer_layers&quot;</span><span class="p">,</span> <span class="mi">6</span>
+        <span class="p">)</span>
+        <span class="c1"># FFN multipliers for transformer layer</span>
+        <span class="n">ffn_multipliers</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.text.transformer.ffn_multiplier_per_layer&quot;</span><span class="p">,</span> <span class="mf">4.0</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ffn_multipliers</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
+            <span class="n">ffn_multipliers</span> <span class="o">=</span> <span class="p">[</span><span class="n">ffn_multipliers</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_transformer_layers</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ffn_multipliers</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> expects FFN multipliers as a list, whose length is the same as number of &quot;</span>
+                <span class="s2">&quot;transformer layers. Got: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">ffn_multipliers</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">ffn_multipliers</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">ffn_multipliers</span><span class="p">)</span> <span class="o">!=</span> <span class="n">n_transformer_layers</span>
+        <span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;We need FFN multiplier for each transformer layer. Got </span><span class="si">{}</span><span class="s2"> ffn multipliers while number of &quot;</span>
+                <span class="s2">&quot;transformer layers = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">ffn_multipliers</span><span class="p">),</span> <span class="n">n_transformer_layers</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="n">ffn_dims</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">model_dim</span> <span class="o">*</span> <span class="n">ffn_mult</span> <span class="o">/</span> <span class="mf">16.0</span><span class="p">)</span> <span class="o">*</span> <span class="mf">16.0</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">ffn_mult</span> <span class="ow">in</span> <span class="n">ffn_multipliers</span>
+        <span class="p">]</span>
+
+        <span class="c1"># Heads for transformer layers</span>
+        <span class="n">mha_heads</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.text.transformer.n_heads_per_layer&quot;</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mha_heads</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">mha_heads</span> <span class="o">=</span> <span class="p">[</span><span class="n">mha_heads</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_transformer_layers</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mha_heads</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> expects MHA heads as a list, whose length is the same as number of &quot;</span>
+                <span class="s2">&quot;transformer layers. Got: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">mha_heads</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mha_heads</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">mha_heads</span><span class="p">)</span> <span class="o">!=</span> <span class="n">n_transformer_layers</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> needs MHA heads for each transformer layer. Got </span><span class="si">{}</span><span class="s2"> mha heads while number of &quot;</span>
+                <span class="s2">&quot;transformer layers = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">mha_heads</span><span class="p">),</span> <span class="n">n_transformer_layers</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">TransformerEncoder</span><span class="p">(</span>
+                    <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                    <span class="n">embed_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span>
+                    <span class="n">num_heads</span><span class="o">=</span><span class="n">mha_heads</span><span class="p">[</span><span class="n">layer_idx</span><span class="p">],</span>
+                    <span class="n">ffn_latent_dim</span><span class="o">=</span><span class="n">ffn_dims</span><span class="p">[</span><span class="n">layer_idx</span><span class="p">],</span>
+                    <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
+                    <span class="n">ffn_dropout</span><span class="o">=</span><span class="n">ffn_dropout</span><span class="p">,</span>
+                    <span class="n">dropout</span><span class="o">=</span><span class="n">dropout</span><span class="p">,</span>
+                    <span class="n">transformer_norm_layer</span><span class="o">=</span><span class="n">norm_layer</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">layer_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_transformer_layers</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">final_layer_norm</span> <span class="o">=</span> <span class="n">get_normalization_layer</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="n">num_features</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">norm_type</span><span class="o">=</span><span class="n">norm_layer</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">projection_layer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">model_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection_dim</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">=</span> <span class="n">model_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_parameters_clip_style</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gradient_ckpt</span> <span class="o">=</span> <span class="n">gradient_ckpt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_pytorch_mha</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">causal_masking</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.text.transformer.causal_masking&quot;</span><span class="p">,</span> <span class="kc">False</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classes_per_split_zero_shot</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+            <span class="mi">1</span><span class="p">,</span>
+            <span class="nb">int</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.text.transformer.classes_per_split_zero_shot&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="TextTransformer.reset_parameters_clip_style"><a class="viewcode-back" href="../../../autogen/cvnets.text_encoders.html#cvnets.text_encoders.transformer.TextTransformer.reset_parameters_clip_style">[docs]</a>    <span class="k">def</span> <span class="nf">reset_parameters_clip_style</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;This function resets the weights of Transformer model as done in the CLIP paper&quot;&quot;&quot;</span>
+
+        <span class="c1"># reset the weights of the embedding and positional embedding layers</span>
+        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_layer</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">0.02</span><span class="p">)</span>
+        <span class="c1"># if self.positional_embedding is not None and not getattr(</span>
+        <span class="c1">#    self.opts, &quot;model.text.transformer.sinusoidal_pos_emb&quot;, False</span>
+        <span class="c1"># ):</span>
+        <span class="c1">#    nn.init.normal_(</span>
+        <span class="c1">#        self.positional_embedding.pos_embed.weight, mean=0.0, std=0.01</span>
+        <span class="c1">#    )</span>
+
+        <span class="c1"># compute standard deviation for different linear layers in transformer model</span>
+        <span class="n">attn_std</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_dim</span><span class="o">**-</span><span class="mf">0.5</span>
+        <span class="n">proj_std</span> <span class="o">=</span> <span class="n">attn_std</span> <span class="o">*</span> <span class="p">((</span><span class="mi">2</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="p">))</span> <span class="o">**</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="n">fc_std</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)</span> <span class="o">**</span> <span class="o">-</span><span class="mf">0.5</span>
+
+        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="p">:</span>
+            <span class="c1"># multi-head attention QKV projection layer</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span>
+                <span class="n">block</span><span class="o">.</span><span class="n">pre_norm_mha</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">qkv_proj</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="n">attn_std</span>
+            <span class="p">)</span>
+            <span class="c1"># multi-head attention output projection layer</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span>
+                <span class="n">block</span><span class="o">.</span><span class="n">pre_norm_mha</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">out_proj</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="n">proj_std</span>
+            <span class="p">)</span>
+            <span class="c1"># FFN expansion layer</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">pre_norm_ffn</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="n">fc_std</span><span class="p">)</span>
+            <span class="c1"># FFN reduction layer</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">pre_norm_ffn</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="n">proj_std</span><span class="p">)</span>
+
+        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">projection_layer</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="n">attn_std</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TextTransformer.add_arguments"><a class="viewcode-back" href="../../../autogen/cvnets.text_encoders.html#cvnets.text_encoders.transformer.TextTransformer.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">cls</span> <span class="o">!=</span> <span class="n">TextTransformer</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">parser</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.text.transformer.model-dim&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Model dimension of the transformer model&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.text.transformer.no-scale-embedding&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Do not scale the output of embedding layer in </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.text.transformer.no-pos-embedding&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Do not add positional embeddings to the output of embedding layer in </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.text.transformer.embed-dropout&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Dropout in embedding layer&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># transformer layer parameters</span>
+        <span class="n">default_layers</span> <span class="o">=</span> <span class="mi">6</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.text.transformer.n-transformer-layers&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="n">default_layers</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of transformer layers in </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.text.transformer.n-heads-per-layer&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="o">*</span> <span class="n">default_layers</span><span class="p">,</span>
+            <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of transformer heads per transformer layer&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.text.transformer.ffn-multiplier-per-layer&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="mf">4.0</span><span class="p">]</span> <span class="o">*</span> <span class="n">default_layers</span><span class="p">,</span>
+            <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;FFN multiplier for each transformer layer&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.text.transformer.attn-dropout&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Dropout in multi-head attention&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.text.transformer.ffn-dropout&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Dropout between linear layers in FFN&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.text.transformer.dropout&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Dropout in transformer&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.text.transformer.norm-layer&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;layer_norm&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Normalization layer&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.text.transformer.sinusoidal-pos-emb&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Use sinusoidal positional embedding&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.text.transformer.gradient-checkpoint&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Use gradient checkpointing&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.text.transformer.num-checkpoint-segments&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of gradient checkpoint segments&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.text.transformer.causal-masking&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Use causal masking&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.text.transformer.classes-per-split-zero-shot&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Divide zero-shot classes into these many chunks, for faster processing&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="TextTransformer.forward_embedding"><a class="viewcode-back" href="../../../autogen/cvnets.text_encoders.html#cvnets.text_encoders.transformer.TextTransformer.forward_embedding">[docs]</a>    <span class="k">def</span> <span class="nf">forward_embedding</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">text_tokens</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># [Batch, Seq_len] --&gt; [Batch, Seq_len, hidden_dim]</span>
+        <span class="n">token_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_layer</span><span class="p">(</span><span class="n">text_tokens</span><span class="p">)</span>
+        <span class="c1"># token_emb = self.embed_scale * token_emb</span>
+        <span class="n">seq_len</span> <span class="o">=</span> <span class="n">token_emb</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">positional_embedding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">token_emb</span> <span class="o">=</span> <span class="n">token_emb</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">positional_embedding</span><span class="p">(</span><span class="n">seq_len</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+                <span class="n">token_emb</span><span class="o">.</span><span class="n">dtype</span>
+            <span class="p">)</span>
+        <span class="n">token_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_dropout</span><span class="p">(</span><span class="n">token_emb</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">token_emb</span></div>
+
+<div class="viewcode-block" id="TextTransformer.build_attention_mask"><a class="viewcode-back" href="../../../autogen/cvnets.text_encoders.html#cvnets.text_encoders.transformer.TextTransformer.build_attention_mask">[docs]</a>    <span class="k">def</span> <span class="nf">build_attention_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="c1"># lazily create causal attention mask, with full attention between the vision tokens</span>
+        <span class="c1"># pytorch uses additive attention mask; fill with -inf</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">context_length</span><span class="p">,</span> <span class="n">context_length</span><span class="p">)</span>
+        <span class="n">mask</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="s2">&quot;-inf&quot;</span><span class="p">))</span>
+        <span class="n">mask</span><span class="o">.</span><span class="n">triu_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># zero out the lower diagonal</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_pytorch_mha</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># add dummy batch dimension</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">mask</span></div>
+
+<div class="viewcode-block" id="TextTransformer.encode_text"><a class="viewcode-back" href="../../../autogen/cvnets.text_encoders.html#cvnets.text_encoders.transformer.TextTransformer.encode_text">[docs]</a>    <span class="k">def</span> <span class="nf">encode_text</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">text_tokens</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">key_padding_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">return_all_tokens</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns token embeddings.</span>
+
+<span class="sd">        :param text_tokens: a tensor of token indices. ([Batch, Seq_len])</span>
+<span class="sd">        :param key_padding_mask: a tensor of boolean values as the padding mask.</span>
+<span class="sd">        :param return_all_tokens: a boolean flag to return all tokens, defaults to False</span>
+<span class="sd">            to return only EOT token embedding.</span>
+<span class="sd">        :return: a tensor of [Batch, Seq_len, hidden_dim] if return_all_tokens is True,</span>
+<span class="sd">            otherwise a tensor of [Batch, hidden_dim].</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># discrete tokens to continuous embeddings</span>
+        <span class="c1"># [Batch, Seq_len] --&gt; [Batch, Seq_len, hidden_dim]</span>
+        <span class="n">token_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_embedding</span><span class="p">(</span><span class="n">text_tokens</span><span class="p">)</span>
+
+        <span class="c1"># [1, Seq_len, Seq_len]</span>
+        <span class="n">attn_mask</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">causal_masking</span><span class="p">:</span>
+            <span class="n">attn_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_attention_mask</span><span class="p">(</span>
+                <span class="n">context_length</span><span class="o">=</span><span class="n">text_tokens</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">text_tokens</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">attn_mask</span> <span class="o">=</span> <span class="n">attn_mask</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">token_emb</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">token_emb</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">key_padding_mask</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_pytorch_mha</span><span class="p">:</span>
+            <span class="c1"># [Batch, Seq_len, hidden_dim] --&gt; [Seq_len, Batch, hidden_dim]</span>
+            <span class="c1"># we will use PyTorch&#39;s multi-head attention, which uses sequence_first format</span>
+            <span class="n">token_emb</span> <span class="o">=</span> <span class="n">token_emb</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformer</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gradient_ckpt</span><span class="p">:</span>
+                <span class="n">token_emb</span> <span class="o">=</span> <span class="n">gradient_checkpoint_fn</span><span class="p">(</span>
+                    <span class="n">layer</span><span class="p">,</span> <span class="n">token_emb</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">key_padding_mask</span><span class="p">,</span> <span class="n">attn_mask</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">token_emb</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span>
+                    <span class="n">token_emb</span><span class="p">,</span>
+                    <span class="n">key_padding_mask</span><span class="o">=</span><span class="n">key_padding_mask</span><span class="p">,</span>
+                    <span class="n">attn_mask</span><span class="o">=</span><span class="n">attn_mask</span><span class="p">,</span>
+                    <span class="n">use_pytorch_mha</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_pytorch_mha</span><span class="p">,</span>
+                <span class="p">)</span>
+
+        <span class="c1"># Apply layer norm</span>
+        <span class="n">token_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_layer_norm</span><span class="p">(</span><span class="n">token_emb</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">return_all_tokens</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_pytorch_mha</span><span class="p">:</span>
+                <span class="c1"># [Seq_len, Batch, hidden_dim] --&gt; [Batch, Seq_len, hidden_dim]</span>
+                <span class="n">token_emb</span> <span class="o">=</span> <span class="n">token_emb</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">token_emb</span>
+
+        <span class="c1"># take features from the eot embedding (eot_token is the highest number in each sequence)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_pytorch_mha</span><span class="p">:</span>
+            <span class="n">token_emb</span> <span class="o">=</span> <span class="n">token_emb</span><span class="p">[</span>
+                <span class="n">text_tokens</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">text_tokens</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">token_emb</span> <span class="o">=</span> <span class="n">token_emb</span><span class="p">[</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">text_tokens</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">text_tokens</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="p">]</span>
+
+        <span class="n">token_emb</span> <span class="o">=</span> <span class="n">token_emb</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection_layer</span>
+        <span class="c1"># normalize text features</span>
+        <span class="n">token_emb</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">token_emb</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">token_emb</span></div>
+
+<div class="viewcode-block" id="TextTransformer.forward_zero_shot"><a class="viewcode-back" href="../../../autogen/cvnets.text_encoders.html#cvnets.text_encoders.transformer.TextTransformer.forward_zero_shot">[docs]</a>    <span class="k">def</span> <span class="nf">forward_zero_shot</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">text_tokens</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">key_padding_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+        <span class="c1"># In case of zero-shot evaluation, text tokens is of shape [Batch, num_classes, num_captions, context_length]</span>
+        <span class="c1"># For example, in the ImageNet dataset, we have 1000 classes, and for each class we generate certain number of</span>
+        <span class="c1"># captions (each caption with context_length tokens)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;Zero-shot evaluation is only supported with eval mode&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">text_tokens</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;For zero-shot evaluation, expected size of text is [Batch, Num_classes, num_captions, context_len]&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">num_captions</span><span class="p">,</span> <span class="n">context_len</span> <span class="o">=</span> <span class="n">text_tokens</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="c1"># for zero-shot evaluation, text templates are the same across all images in the batch</span>
+        <span class="c1"># Therefore, batch size should be 1.</span>
+        <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">text_tokens</span> <span class="o">=</span> <span class="n">text_tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;For zero-shot evaluation, text templates are the same across all images in the batch.&quot;</span>
+                <span class="s2">&quot;Got: </span><span class="si">{}</span><span class="s2">. Please consider adjusting collate function.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">batch_size</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">text_features</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">start_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes_per_split_zero_shot</span><span class="p">):</span>
+            <span class="n">end_idx</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">start_idx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes_per_split_zero_shot</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">)</span>
+
+            <span class="n">text_tokens_split</span> <span class="o">=</span> <span class="n">text_tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">start_idx</span><span class="p">:</span><span class="n">end_idx</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+            <span class="n">num_classes_split</span> <span class="o">=</span> <span class="n">text_tokens_split</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">text_tokens_split</span> <span class="o">=</span> <span class="n">text_tokens_split</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                <span class="n">num_classes_split</span> <span class="o">*</span> <span class="n">num_captions</span><span class="p">,</span> <span class="n">context_len</span>
+            <span class="p">)</span>
+
+            <span class="n">key_padding_mask_split</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">key_padding_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">key_padding_mask_split</span> <span class="o">=</span> <span class="n">key_padding_mask</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">start_idx</span><span class="p">:</span><span class="n">end_idx</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+                <span class="n">key_padding_mask_split</span> <span class="o">=</span> <span class="n">key_padding_mask_split</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                    <span class="n">num_classes_split</span> <span class="o">*</span> <span class="n">num_captions</span><span class="p">,</span> <span class="n">context_len</span>
+                <span class="p">)</span>
+
+            <span class="c1"># [num_classes_per_split * num_cations, context_len] --&gt; [num_classes_per_split * num_cations, latent_dim]</span>
+            <span class="n">class_embedding_split</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode_text</span><span class="p">(</span>
+                <span class="n">text_tokens</span><span class="o">=</span><span class="n">text_tokens_split</span><span class="p">,</span> <span class="n">key_padding_mask</span><span class="o">=</span><span class="n">key_padding_mask_split</span>
+            <span class="p">)</span>
+
+            <span class="c1"># [num_classes_per_split * num_cations, latent_dim] --&gt; [num_classes_per_split, num_cations, latent_dim]</span>
+            <span class="n">class_embedding_split</span> <span class="o">=</span> <span class="n">class_embedding_split</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                <span class="n">num_classes_split</span><span class="p">,</span> <span class="n">num_captions</span><span class="p">,</span> <span class="n">class_embedding_split</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Compute mean of all classes</span>
+            <span class="c1"># [num_classes_per_split, num_cations, latent_dim] --&gt; [num_classes_per_split, latent_dim]</span>
+            <span class="n">mean_class_embedding_split</span> <span class="o">=</span> <span class="n">class_embedding_split</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># Normalize the embeddings</span>
+            <span class="n">mean_class_embedding_split</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">mean_class_embedding_split</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">text_features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mean_class_embedding_split</span><span class="p">)</span>
+
+        <span class="c1"># [num_classes_per_split, latent_dim] * num_splits --&gt; [num_classes, Latent_dim]</span>
+        <span class="n">text_features</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">text_features</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># [num_classes, Latent_dim] --&gt; [Latent_dim, num_classes]</span>
+        <span class="n">text_features</span> <span class="o">=</span> <span class="n">text_features</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">text_features</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="TextTransformer.forward"><a class="viewcode-back" href="../../../autogen/cvnets.text_encoders.html#cvnets.text_encoders.transformer.TextTransformer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">text_tokens</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">key_padding_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="n">text_tokens</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="c1"># It&#39;s for zero-shot evaluation.</span>
+            <span class="c1"># Each class in the dataset has multiple captions</span>
+            <span class="c1"># Encoding happens separately for each classes/captions due to OOM issue</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_zero_shot</span><span class="p">(</span>
+                <span class="n">text_tokens</span><span class="o">=</span><span class="n">text_tokens</span><span class="p">,</span>
+                <span class="n">key_padding_mask</span><span class="o">=</span><span class="n">key_padding_mask</span><span class="p">,</span>
+                <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">text_tokens</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="c1"># Image-text pair data with single caption</span>
+            <span class="c1"># [B, CL] --&gt; [B, d]</span>
+            <span class="n">text_tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode_text</span><span class="p">(</span>
+                <span class="n">text_tokens</span><span class="o">=</span><span class="n">text_tokens</span><span class="p">,</span>
+                <span class="n">key_padding_mask</span><span class="o">=</span><span class="n">key_padding_mask</span><span class="p">,</span>
+                <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">text_tokens</span>
+        <span class="k">elif</span> <span class="n">text_tokens</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="c1"># Image-text pair with multiple captions per image (e.g. Flickr-30k)</span>
+            <span class="c1"># Treat them as separate captions by reshaping into batch dim</span>
+            <span class="c1"># [B, N, C] --&gt; [B*N, C] -encode-&gt; [B*N, d] --&gt; [B, N, d]</span>
+            <span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">text_tokens</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">text_tokens</span> <span class="o">=</span> <span class="n">text_tokens</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">b</span> <span class="o">*</span> <span class="n">n</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">key_padding_mask</span><span class="p">:</span>
+                <span class="n">key_padding_mask</span> <span class="o">=</span> <span class="n">key_padding_mask</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">b</span> <span class="o">*</span> <span class="n">n</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">text_tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode_text</span><span class="p">(</span>
+                <span class="n">text_tokens</span><span class="o">=</span><span class="n">text_tokens</span><span class="p">,</span>
+                <span class="n">key_padding_mask</span><span class="o">=</span><span class="n">key_padding_mask</span><span class="p">,</span>
+                <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span>
+            <span class="n">text_tokens</span> <span class="o">=</span> <span class="n">text_tokens</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">text_tokens</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

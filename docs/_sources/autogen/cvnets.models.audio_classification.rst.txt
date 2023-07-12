@@ -1,0 +1,29 @@
+cvnets.models.audio\_classification package
+===========================================
+
+Submodules
+----------
+
+cvnets.models.audio\_classification.audio\_byteformer module
+------------------------------------------------------------
+
+.. automodule:: cvnets.models.audio_classification.audio_byteformer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.audio\_classification.base\_audio\_classification module
+----------------------------------------------------------------------
+
+.. automodule:: cvnets.models.audio_classification.base_audio_classification
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cvnets.models.audio_classification
+   :members:
+   :undoc-members:
+   :show-inheritance:

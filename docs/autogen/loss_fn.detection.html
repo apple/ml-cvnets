@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>loss_fn.detection package &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">loss_fn.detection package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/autogen/loss_fn.detection.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="loss-fn-detection-package">
+<h1>loss_fn.detection package<a class="headerlink" href="#loss-fn-detection-package" title="Permalink to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</section>
+<section id="module-loss_fn.detection.base_detection_criteria">
+<span id="loss-fn-detection-base-detection-criteria-module"></span><h2>loss_fn.detection.base_detection_criteria module<a class="headerlink" href="#module-loss_fn.detection.base_detection_criteria" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="loss_fn.detection.base_detection_criteria.BaseDetectionCriteria">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">loss_fn.detection.base_detection_criteria.</span></span><span class="sig-name descname"><span class="pre">BaseDetectionCriteria</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/loss_fn/detection/base_detection_criteria.html#BaseDetectionCriteria"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.detection.base_detection_criteria.BaseDetectionCriteria" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="loss_fn.html#loss_fn.base_criteria.BaseCriteria" title="loss_fn.base_criteria.BaseCriteria"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseCriteria</span></code></a></p>
+<p>Base class for defining detection loss functions. Sub-classes must implement forward function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>opts</strong> – command line arguments</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.detection.base_detection_criteria.BaseDetectionCriteria.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/loss_fn/detection/base_detection_criteria.html#BaseDetectionCriteria.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.detection.base_detection_criteria.BaseDetectionCriteria.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.detection.base_detection_criteria.BaseDetectionCriteria.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/loss_fn/detection/base_detection_criteria.html#BaseDetectionCriteria.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.detection.base_detection_criteria.BaseDetectionCriteria.add_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Add criterion-specific arguments to the parser.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-loss_fn.detection.mask_rcnn_loss">
+<span id="loss-fn-detection-mask-rcnn-loss-module"></span><h2>loss_fn.detection.mask_rcnn_loss module<a class="headerlink" href="#module-loss_fn.detection.mask_rcnn_loss" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="loss_fn.detection.mask_rcnn_loss.MaskRCNNLoss">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">loss_fn.detection.mask_rcnn_loss.</span></span><span class="sig-name descname"><span class="pre">MaskRCNNLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/loss_fn/detection/mask_rcnn_loss.html#MaskRCNNLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.detection.mask_rcnn_loss.MaskRCNNLoss" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#loss_fn.detection.base_detection_criteria.BaseDetectionCriteria" title="loss_fn.detection.base_detection_criteria.BaseDetectionCriteria"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseDetectionCriteria</span></code></a></p>
+<p>Mask RCNN loss is computed inside the MaskRCNN model. This class is a wrapper to extract
+loss values for different heads (RPN, classification, etc.) and compute the weighted sum.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>opts</strong> – command-line arguments</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.detection.mask_rcnn_loss.MaskRCNNLoss.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/loss_fn/detection/mask_rcnn_loss.html#MaskRCNNLoss.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.detection.mask_rcnn_loss.MaskRCNNLoss.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.detection.mask_rcnn_loss.MaskRCNNLoss.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/loss_fn/detection/mask_rcnn_loss.html#MaskRCNNLoss.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.detection.mask_rcnn_loss.MaskRCNNLoss.add_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Add criterion-specific arguments to the parser.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.detection.mask_rcnn_loss.MaskRCNNLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_sample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/loss_fn/detection/mask_rcnn_loss.html#MaskRCNNLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.detection.mask_rcnn_loss.MaskRCNNLoss.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Compute MaskRCNN loss.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_sample</strong> – Input image tensor to the model.</p></li>
+<li><p><strong>prediction</strong> – Mapping of the Maskrcnn losses.</p></li>
+</ul>
+</dd>
+</dl>
+<dl>
+<dt>Shapes:</dt><dd><p>input_sample: This loss function does not care about input to the model.
+prediction: Dictionary containing scalar Mask RCNN loss values. Expected keys are</p>
+<blockquote>
+<div><p>loss_classifier, loss_box_reg, loss_mask, loss_objectness, loss_rpn_box_reg.</p>
+</div></blockquote>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>scalar) is returned. Output contains following keys: (total_loss,
+loss_classifier, loss_box_reg, loss_mask, loss_objectness, loss_rpn_box_reg).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>A mapping of (string</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.detection.mask_rcnn_loss.MaskRCNNLoss.extra_repr">
+<span class="sig-name descname"><span class="pre">extra_repr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/loss_fn/detection/mask_rcnn_loss.html#MaskRCNNLoss.extra_repr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.detection.mask_rcnn_loss.MaskRCNNLoss.extra_repr" title="Permalink to this definition"></a></dt>
+<dd><p>Set the extra representation of the module</p>
+<p>To print customized extra information, you should re-implement
+this method in your own modules. Both single-line and multi-line
+strings are acceptable.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-loss_fn.detection.ssd_multibox_loss">
+<span id="loss-fn-detection-ssd-multibox-loss-module"></span><h2>loss_fn.detection.ssd_multibox_loss module<a class="headerlink" href="#module-loss_fn.detection.ssd_multibox_loss" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="loss_fn.detection.ssd_multibox_loss.SSDLoss">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">loss_fn.detection.ssd_multibox_loss.</span></span><span class="sig-name descname"><span class="pre">SSDLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/loss_fn/detection/ssd_multibox_loss.html#SSDLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.detection.ssd_multibox_loss.SSDLoss" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#loss_fn.detection.base_detection_criteria.BaseDetectionCriteria" title="loss_fn.detection.base_detection_criteria.BaseDetectionCriteria"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseDetectionCriteria</span></code></a></p>
+<p>Loss for single shot multi-box object detection</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>opts</strong> – command-line arguments</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.detection.ssd_multibox_loss.SSDLoss.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/loss_fn/detection/ssd_multibox_loss.html#SSDLoss.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.detection.ssd_multibox_loss.SSDLoss.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.detection.ssd_multibox_loss.SSDLoss.reset_unscaled_loss_values">
+<span class="sig-name descname"><span class="pre">reset_unscaled_loss_values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/loss_fn/detection/ssd_multibox_loss.html#SSDLoss.reset_unscaled_loss_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.detection.ssd_multibox_loss.SSDLoss.reset_unscaled_loss_values" title="Permalink to this definition"></a></dt>
+<dd><p>Reset the unscaled coefficients for confidence and regression losses to small values</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.detection.ssd_multibox_loss.SSDLoss.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/loss_fn/detection/ssd_multibox_loss.html#SSDLoss.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.detection.ssd_multibox_loss.SSDLoss.add_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Add criterion-specific arguments to the parser.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.detection.ssd_multibox_loss.SSDLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_sample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/loss_fn/detection/ssd_multibox_loss.html#SSDLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.detection.ssd_multibox_loss.SSDLoss.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Compute the SSD Loss</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_sample</strong> – Input image tensor to the model.</p></li>
+<li><p><strong>prediction</strong> – Model output. It is a mapping of the form (string: Tensor) containing two
+mandatory keys, i.e., scores and boxes</p></li>
+<li><p><strong>target</strong> – Ground truth labels. It is a mapping of the form (string: Tensor) containing two
+mandatory keys, i.e., box_labels and box_coordinates.</p></li>
+</ul>
+</dd>
+</dl>
+<dl>
+<dt>Shape:</dt><dd><p>input_sample: This loss function does not care about input to the model.
+prediction[“scores”]: Shape is [Batch size, number of anchors, number of classes]
+prediction[“boxes”]: Shape is [Batch size, number of anchors, 4] where 4 is the number of box coordinates</p>
+<p>target[“box_labels”]: Shape is [Batch size, number of anchors]
+target[“box_coordinates”]: Shape is [Batch size, number of anchors, 4]</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>scalar) is returned. Output contains following keys: (total_loss, reg_loss, cls_loss).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>A mapping of (string</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="loss_fn.detection.ssd_multibox_loss.SSDLoss.extra_repr">
+<span class="sig-name descname"><span class="pre">extra_repr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/loss_fn/detection/ssd_multibox_loss.html#SSDLoss.extra_repr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#loss_fn.detection.ssd_multibox_loss.SSDLoss.extra_repr" title="Permalink to this definition"></a></dt>
+<dd><p>Set the extra representation of the module</p>
+<p>To print customized extra information, you should re-implement
+this method in your own modules. Both single-line and multi-line
+strings are acceptable.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-loss_fn.detection">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-loss_fn.detection" title="Permalink to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

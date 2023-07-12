@@ -1,0 +1,34 @@
+data.datasets package
+=====================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   data.datasets.audio_classification
+   data.datasets.classification
+   data.datasets.detection
+   data.datasets.multi_modal_img_text
+   data.datasets.segmentation
+   data.datasets.utils
+
+Submodules
+----------
+
+data.datasets.dataset\_base module
+----------------------------------
+
+.. automodule:: data.datasets.dataset_base
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: data.datasets
+   :members:
+   :undoc-members:
+   :show-inheritance:

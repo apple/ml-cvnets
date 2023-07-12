@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>data.datasets.segmentation.ade20k &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../datasets.html">data.datasets</a></li>
+      <li class="breadcrumb-item active">data.datasets.segmentation.ade20k</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for data.datasets.segmentation.ade20k</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">data.datasets</span> <span class="kn">import</span> <span class="n">DATASET_REGISTRY</span>
+<span class="kn">from</span> <span class="nn">data.datasets.segmentation.base_segmentation</span> <span class="kn">import</span> <span class="n">BaseImageSegmentationDataset</span>
+
+
+<div class="viewcode-block" id="ADE20KDataset"><a class="viewcode-back" href="../../../../autogen/data.datasets.segmentation.html#data.datasets.segmentation.ade20k.ADE20KDataset">[docs]</a><span class="nd">@DATASET_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;ade20k&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;segmentation&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">ADE20KDataset</span><span class="p">(</span><span class="n">BaseImageSegmentationDataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Dataset class for the ADE20K dataset</span>
+
+<span class="sd">    The structure of the dataset should be something like this: ::</span>
+
+<span class="sd">    ADEChallengeData2016/annotations/training/*.png</span>
+<span class="sd">    ADEChallengeData2016/annotations/validation/*.png</span>
+
+<span class="sd">    ADEChallengeData2016/images/training/*.jpg</span>
+<span class="sd">    ADEChallengeData2016/images/validation/*.jpg</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: Command-line arguments</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ADE20KDataset.__init__"><a class="viewcode-back" href="../../../../autogen/data.datasets.segmentation.html#data.datasets.segmentation.ade20k.ADE20KDataset.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">root</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">root</span>
+
+        <span class="n">image_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">root</span><span class="p">,</span> <span class="s2">&quot;images&quot;</span><span class="p">,</span> <span class="s2">&quot;training&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_training</span> <span class="k">else</span> <span class="s2">&quot;validation&quot;</span>
+        <span class="p">)</span>
+        <span class="n">annotation_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">root</span><span class="p">,</span> <span class="s2">&quot;annotations&quot;</span><span class="p">,</span> <span class="s2">&quot;training&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_training</span> <span class="k">else</span> <span class="s2">&quot;validation&quot;</span>
+        <span class="p">)</span>
+
+        <span class="n">images</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">masks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">file_name</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">image_dir</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">file_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.jpg&quot;</span><span class="p">):</span>
+                <span class="n">img_f_name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">image_dir</span><span class="p">,</span> <span class="n">file_name</span><span class="p">)</span>
+                <span class="n">mask_f_name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">annotation_dir</span><span class="p">,</span> <span class="n">file_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;jpg&quot;</span><span class="p">,</span> <span class="s2">&quot;png&quot;</span><span class="p">)</span>
+                <span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">img_f_name</span><span class="p">)</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">mask_f_name</span><span class="p">):</span>
+                    <span class="n">images</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">img_f_name</span><span class="p">)</span>
+                    <span class="n">masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mask_f_name</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">images</span> <span class="o">=</span> <span class="n">images</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">masks</span> <span class="o">=</span> <span class="n">masks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ignore_label</span> <span class="o">=</span> <span class="mi">255</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">background_idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_dataset</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ADE20KDataset.adjust_mask_value"><a class="viewcode-back" href="../../../../autogen/data.datasets.segmentation.html#data.datasets.segmentation.ade20k.ADE20KDataset.adjust_mask_value">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">adjust_mask_value</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adjust the mask value by this factor&quot;&quot;&quot;</span>
+        <span class="c1"># because we do not include background index for ADE20k, we shift mask labels by 1</span>
+        <span class="k">return</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="ADE20KDataset.color_palette"><a class="viewcode-back" href="../../../../autogen/data.datasets.segmentation.html#data.datasets.segmentation.ade20k.ADE20KDataset.color_palette">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">color_palette</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Class index to RGB color mapping. The list index corresponds to class id.</span>
+<span class="sd">        Note that the color list is flattened.&quot;&quot;&quot;</span>
+        <span class="n">color_codes</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>  <span class="c1"># background</span>
+            <span class="p">[</span><span class="mi">120</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">120</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">180</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">120</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">230</span><span class="p">,</span> <span class="mi">230</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">80</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">50</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">120</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">80</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">140</span><span class="p">,</span> <span class="mi">140</span><span class="p">,</span> <span class="mi">140</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">204</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">230</span><span class="p">,</span> <span class="mi">230</span><span class="p">,</span> <span class="mi">230</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">250</span><span class="p">,</span> <span class="mi">7</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">224</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">235</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">7</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">150</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">61</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">120</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">70</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">51</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">82</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">143</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">140</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">204</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">51</span><span class="p">,</span> <span class="mi">7</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">204</span><span class="p">,</span> <span class="mi">70</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">102</span><span class="p">,</span> <span class="mi">200</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">61</span><span class="p">,</span> <span class="mi">230</span><span class="p">,</span> <span class="mi">250</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">51</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">11</span><span class="p">,</span> <span class="mi">102</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">71</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">224</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">9</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">230</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">220</span><span class="p">,</span> <span class="mi">220</span><span class="p">,</span> <span class="mi">220</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">92</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">112</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">214</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">7</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">224</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">184</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">71</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">41</span><span class="p">,</span> <span class="mi">10</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">7</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">224</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">8</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">102</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">61</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">194</span><span class="p">,</span> <span class="mi">7</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">122</span><span class="p">,</span> <span class="mi">8</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">41</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">153</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">51</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">235</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">160</span><span class="p">,</span> <span class="mi">150</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">163</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">140</span><span class="p">,</span> <span class="mi">140</span><span class="p">,</span> <span class="mi">140</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">250</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">15</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">31</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">224</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">153</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">71</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">235</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">173</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">31</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">11</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">200</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">82</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">245</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">61</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">112</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">133</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">163</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">102</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">194</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">143</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">51</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">82</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">41</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">173</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">173</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">153</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">92</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">245</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">102</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">173</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">184</span><span class="p">,</span> <span class="mi">184</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">61</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">71</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">204</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">194</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">82</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">112</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">51</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">194</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">122</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">163</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">153</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">10</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">112</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">143</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">82</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">163</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">235</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">184</span><span class="p">,</span> <span class="mi">170</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">133</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">92</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">184</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">31</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">184</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">214</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">112</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">92</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">224</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">112</span><span class="p">,</span> <span class="mi">224</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">70</span><span class="p">,</span> <span class="mi">184</span><span class="p">,</span> <span class="mi">160</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">163</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">153</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">71</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">163</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">204</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">143</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">235</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">133</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">235</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">245</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">122</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">245</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">190</span><span class="p">,</span> <span class="mi">212</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">214</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">204</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">153</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">41</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">204</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">41</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">41</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">173</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">245</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">71</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">122</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">184</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">92</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">184</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">133</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="mi">214</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">25</span><span class="p">,</span> <span class="mi">194</span><span class="p">,</span> <span class="mi">194</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">102</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="p">[</span><span class="mi">92</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">],</span>
+        <span class="p">]</span>
+        <span class="n">color_codes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">color_codes</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">color_codes</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ADE20KDataset.class_names"><a class="viewcode-back" href="../../../../autogen/data.datasets.segmentation.html#data.datasets.segmentation.ade20k.ADE20KDataset.class_names">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">class_names</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Class index (index of a list corresponds to class id) to class name&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="s2">&quot;background&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;wall&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;building&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sky&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;floor&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;tree&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ceiling&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;road&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bed &quot;</span><span class="p">,</span>
+            <span class="s2">&quot;windowpane&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;grass&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;cabinet&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sidewalk&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;person&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;earth&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;door&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;table&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;mountain&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;plant&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;curtain&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;chair&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;car&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;water&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;painting&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sofa&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;shelf&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;house&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sea&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;mirror&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;rug&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;field&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;armchair&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;seat&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;fence&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;desk&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;rock&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;wardrobe&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;lamp&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bathtub&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;railing&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;cushion&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;base&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;box&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;column&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;signboard&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;chest of drawers&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;counter&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sand&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sink&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;skyscraper&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;fireplace&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;refrigerator&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;grandstand&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;path&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;stairs&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;runway&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;case&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;pool table&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;pillow&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;screen door&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;stairway&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;river&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bridge&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bookcase&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;blind&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;coffee table&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;toilet&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;flower&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;book&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;hill&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bench&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;countertop&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;stove&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;palm&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;kitchen island&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;computer&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;swivel chair&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;boat&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bar&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;arcade machine&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;hovel&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bus&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;towel&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;light&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;truck&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;tower&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;chandelier&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;awning&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;streetlight&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;booth&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;television receiver&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;airplane&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;dirt track&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;apparel&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;pole&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;land&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bannister&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;escalator&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ottoman&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bottle&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;buffet&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;poster&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;stage&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;van&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ship&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;fountain&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;conveyer belt&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;canopy&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;washer&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;plaything&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;swimming pool&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;stool&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;barrel&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;basket&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;waterfall&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;tent&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bag&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;minibike&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;cradle&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;oven&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ball&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;food&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;step&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;tank&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;trade name&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;microwave&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;pot&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;animal&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bicycle&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;lake&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;dishwasher&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;screen&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;blanket&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sculpture&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;hood&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sconce&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;vase&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;traffic light&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;tray&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ashcan&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;fan&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;pier&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;crt screen&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;plate&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;monitor&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bulletin board&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;shower&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;radiator&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;glass&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;clock&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;flag&quot;</span><span class="p">,</span>
+        <span class="p">]</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

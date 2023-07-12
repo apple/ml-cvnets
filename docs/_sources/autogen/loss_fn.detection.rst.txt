@@ -1,0 +1,37 @@
+loss\_fn.detection package
+==========================
+
+Submodules
+----------
+
+loss\_fn.detection.base\_detection\_criteria module
+---------------------------------------------------
+
+.. automodule:: loss_fn.detection.base_detection_criteria
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+loss\_fn.detection.mask\_rcnn\_loss module
+------------------------------------------
+
+.. automodule:: loss_fn.detection.mask_rcnn_loss
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+loss\_fn.detection.ssd\_multibox\_loss module
+---------------------------------------------
+
+.. automodule:: loss_fn.detection.ssd_multibox_loss
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: loss_fn.detection
+   :members:
+   :undoc-members:
+   :show-inheritance:

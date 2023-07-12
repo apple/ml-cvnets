@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>loss_fn.multi_modal_img_text.contrastive_loss_clip &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../loss_fn.html">loss_fn</a></li>
+      <li class="breadcrumb-item active">loss_fn.multi_modal_img_text.contrastive_loss_clip</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for loss_fn.multi_modal_img_text.contrastive_loss_clip</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">F</span>
+
+<span class="kn">from</span> <span class="nn">loss_fn</span> <span class="kn">import</span> <span class="n">LOSS_REGISTRY</span>
+<span class="kn">from</span> <span class="nn">loss_fn.multi_modal_img_text.base_multi_modal_img_text_criteria</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BaseMultiModalImageTextCriteria</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">from</span> <span class="nn">utils.tensor_utils</span> <span class="kn">import</span> <span class="n">gather_all_features</span>
+
+
+<div class="viewcode-block" id="ContrastiveLossClip"><a class="viewcode-back" href="../../../autogen/loss_fn.multi_modal_img_text.html#loss_fn.multi_modal_img_text.contrastive_loss_clip.ContrastiveLossClip">[docs]</a><span class="nd">@LOSS_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;contrastive_loss_clip&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;multi_modal_image_text&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">ContrastiveLossClip</span><span class="p">(</span><span class="n">BaseMultiModalImageTextCriteria</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute contrastive loss between image and text pairs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: command-line arguments</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ContrastiveLossClip.__init__"><a class="viewcode-back" href="../../../autogen/loss_fn.multi_modal_img_text.html#loss_fn.multi_modal_img_text.contrastive_loss_clip.ContrastiveLossClip.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># need to set these default to prevent tests for failing</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;ddp.rank&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_distributed</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;ddp.use_distributed&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dev.device&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">_forward_clip</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">prediction</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the contrast loss between image and text representations</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            prediction: A mapping of the form (string: Tensor). image and text are mandatory keys</span>
+
+<span class="sd">        Shape:</span>
+<span class="sd">            prediction[&quot;image&quot;]: Shape is [N, d]</span>
+<span class="sd">            prediction[&quot;text&quot;]: Shape is [N, d]</span>
+<span class="sd">            where N and d are batch size and feature dimensions, respectively.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The output dictionary contains four keys (total_loss, image_loss, text_loss, logit_scale) and scalar</span>
+<span class="sd">            loss value for each of these keys. total_loss is sum of image_loss and text_loss.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">{</span><span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">}</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;image and text are mandatory keys for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">image_features</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;image&quot;</span><span class="p">)</span>
+        <span class="n">text_features</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">)</span>
+        <span class="n">logit_scale</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;logit_scale&quot;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">image_features</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Image features can&#39;t be None in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">text_features</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Text features can&#39;t be None in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Aggregate image and text features from all GPUs</span>
+        <span class="n">gathered_image_features</span><span class="p">,</span> <span class="n">gathered_text_features</span> <span class="o">=</span> <span class="n">gather_features</span><span class="p">(</span>
+            <span class="n">image_features</span><span class="o">=</span><span class="n">image_features</span><span class="p">,</span>
+            <span class="n">text_features</span><span class="o">=</span><span class="n">text_features</span><span class="p">,</span>
+            <span class="n">use_distributed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_distributed</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># compute logits</span>
+        <span class="c1"># [N, d] x [G x d]^T --&gt; [N, G], where G is global batch size</span>
+        <span class="n">logits_per_image</span> <span class="o">=</span> <span class="n">logit_scale</span> <span class="o">*</span> <span class="p">(</span>
+            <span class="n">image_features</span> <span class="o">@</span> <span class="n">gathered_text_features</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="c1"># [N, d] x [G, d]^T --&gt; [N, G]</span>
+        <span class="n">logits_per_text</span> <span class="o">=</span> <span class="n">logit_scale</span> <span class="o">*</span> <span class="p">(</span>
+            <span class="n">text_features</span> <span class="o">@</span> <span class="n">gathered_image_features</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># generate labels</span>
+        <span class="n">num_logits</span> <span class="o">=</span> <span class="n">logits_per_image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">contrastive_labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+            <span class="n">num_logits</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">logits_per_image</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span>
+        <span class="p">)</span>
+
+        <span class="c1"># shift the labels by rank id</span>
+        <span class="n">contrastive_labels</span> <span class="o">=</span> <span class="n">contrastive_labels</span> <span class="o">+</span> <span class="p">(</span><span class="n">num_logits</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">)</span>
+
+        <span class="c1"># compute cross entropy loss</span>
+        <span class="n">text_loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">logits_per_text</span><span class="p">,</span> <span class="n">contrastive_labels</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span>
+        <span class="n">image_loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">logits_per_image</span><span class="p">,</span> <span class="n">contrastive_labels</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span>
+        <span class="n">total_loss</span> <span class="o">=</span> <span class="n">image_loss</span> <span class="o">+</span> <span class="n">text_loss</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;total_loss&quot;</span><span class="p">:</span> <span class="n">total_loss</span><span class="p">,</span>
+            <span class="s2">&quot;image_loss&quot;</span><span class="p">:</span> <span class="n">image_loss</span><span class="p">,</span>
+            <span class="s2">&quot;text_loss&quot;</span><span class="p">:</span> <span class="n">text_loss</span><span class="p">,</span>
+            <span class="s2">&quot;logit_scale&quot;</span><span class="p">:</span> <span class="n">logit_scale</span><span class="p">,</span>
+        <span class="p">}</span>
+
+<div class="viewcode-block" id="ContrastiveLossClip.forward"><a class="viewcode-back" href="../../../autogen/loss_fn.multi_modal_img_text.html#loss_fn.multi_modal_img_text.contrastive_loss_clip.ContrastiveLossClip.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">input_sample</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="n">prediction</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">],</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes contrastive loss between image and text representations, optionally with neural aug</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            input_sample: Input to the model.</span>
+<span class="sd">            prediction: A mapping of the form (string: Tensor). image and text are mandatory keys.</span>
+
+<span class="sd">        Shape:</span>
+<span class="sd">            input_sample: This loss function does not care about this argument.</span>
+<span class="sd">            prediction[&quot;image&quot;]: Shape is [N, d]</span>
+<span class="sd">            prediction[&quot;text&quot;]: Shape is [N, d]</span>
+
+<span class="sd">            where N is the local batch size and d is the feature dimension.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The output dictionary contains four keys (total_loss, image_loss, text_loss, logit_scale) and scalar</span>
+<span class="sd">            loss value for each of these keys. total_loss is sum of image_loss and text_loss.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="c1"># we typically compute zero-shot logits for monitoring the val perf.</span>
+            <span class="c1"># Therefore, we return 0 for loss during validation.</span>
+
+            <span class="c1"># Note: In future, we may compute validation loss (depending on use case)</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s2">&quot;total_loss&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="p">}</span>
+
+        <span class="n">clip_loss_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward_clip</span><span class="p">(</span><span class="n">prediction</span><span class="o">=</span><span class="n">prediction</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">clip_loss_dict</span></div></div>
+
+
+<div class="viewcode-block" id="gather_features"><a class="viewcode-back" href="../../../autogen/loss_fn.multi_modal_img_text.html#loss_fn.multi_modal_img_text.contrastive_loss_clip.gather_features">[docs]</a><span class="k">def</span> <span class="nf">gather_features</span><span class="p">(</span>
+    <span class="n">image_features</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">text_features</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">use_distributed</span><span class="p">:</span> <span class="nb">bool</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Helper function that allows us to gather image and text features from all DDP ranks in a differentiable manner</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        image_features: Image features</span>
+<span class="sd">        text_features: Text features</span>
+<span class="sd">        use_distributed: DDP training or not</span>
+
+<span class="sd">    Shapes:</span>
+<span class="sd">        image_features: Shape is [N, d]</span>
+<span class="sd">        text_features: Shape is [N, d]</span>
+<span class="sd">        where N is the local batch size and d is the feature dimension.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A tuple of gathered image and text features across all GPUs. In case of a DDP task, each feature</span>
+<span class="sd">        tensor has a dimension of [G, d] where G=NW is the effective batch size and W is world</span>
+<span class="sd">        size (or total number of GPUs).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">use_distributed</span><span class="p">:</span>
+        <span class="c1"># gather features from all ranks</span>
+        <span class="c1"># [N, d] x W --&gt; [G, d] where N and G=NW are the local and global batch sizes and W is the world size</span>
+        <span class="n">gathered_image_features</span> <span class="o">=</span> <span class="n">gather_all_features</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="n">image_features</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># [N d] x W --&gt; [G, d]</span>
+        <span class="n">gathered_text_features</span> <span class="o">=</span> <span class="n">gather_all_features</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="n">text_features</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">gathered_image_features</span><span class="p">,</span> <span class="n">gathered_text_features</span>
+    <span class="k">return</span> <span class="n">image_features</span><span class="p">,</span> <span class="n">text_features</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

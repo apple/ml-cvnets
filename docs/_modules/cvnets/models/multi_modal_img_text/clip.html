@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cvnets.models.multi_modal_img_text.clip &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../../cvnets.html">cvnets</a></li>
+          <li class="breadcrumb-item"><a href="../../models.html">cvnets.models</a></li>
+      <li class="breadcrumb-item active">cvnets.models.multi_modal_img_text.clip</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cvnets.models.multi_modal_img_text.clip</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">nn</span>
+
+<span class="kn">from</span> <span class="nn">cvnets.image_projection_layers</span> <span class="kn">import</span> <span class="n">build_image_projection_head</span>
+<span class="kn">from</span> <span class="nn">cvnets.image_projection_layers.base_image_projection</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">get_in_feature_dimension</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">cvnets.models</span> <span class="kn">import</span> <span class="n">MODEL_REGISTRY</span><span class="p">,</span> <span class="n">BaseAnyNNModel</span><span class="p">,</span> <span class="n">get_model</span>
+<span class="kn">from</span> <span class="nn">cvnets.models.classification.base_image_encoder</span> <span class="kn">import</span> <span class="n">BaseImageEncoder</span>
+<span class="kn">from</span> <span class="nn">cvnets.models.multi_modal_img_text.base_multi_modal_img_text</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BaseMultiModalImageText</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">cvnets.text_encoders</span> <span class="kn">import</span> <span class="n">BaseTextEncoder</span><span class="p">,</span> <span class="n">build_text_encoder</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+
+
+<div class="viewcode-block" id="CLIP"><a class="viewcode-back" href="../../../../autogen/cvnets.models.multi_modal_img_text.html#cvnets.models.multi_modal_img_text.clip.CLIP">[docs]</a><span class="nd">@MODEL_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;clip&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;multi_modal_image_text&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">CLIP</span><span class="p">(</span><span class="n">BaseMultiModalImageText</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for multi-modal image-text data&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="CLIP.__init__"><a class="viewcode-back" href="../../../../autogen/cvnets.models.multi_modal_img_text.html#cvnets.models.multi_modal_img_text.clip.CLIP.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
+        <span class="n">image_encoder</span><span class="p">:</span> <span class="n">BaseImageEncoder</span><span class="p">,</span>
+        <span class="n">text_encoder</span><span class="p">:</span> <span class="n">BaseTextEncoder</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image_encoder</span><span class="p">:</span> <span class="n">BaseImageEncoder</span> <span class="o">=</span> <span class="n">image_encoder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text_encoder</span><span class="p">:</span> <span class="n">BaseTextEncoder</span> <span class="o">=</span> <span class="n">text_encoder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logit_scale</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">([])</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mf">0.07</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_distributed</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;ddp.use_distributed&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_text_features_zero_shot</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span>
+            <span class="s2">&quot;model.multi_modal_image_text.clip.cache_text_features_zero_shot&quot;</span><span class="p">,</span>
+            <span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cached_text_features</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_parameters</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="CLIP.add_arguments"><a class="viewcode-back" href="../../../../autogen/cvnets.models.multi_modal_img_text.html#cvnets.models.multi_modal_img_text.clip.CLIP.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add model specific arguments&quot;&quot;&quot;</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.multi-modal-image-text.clip.projection-dim&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Project image and text features to this dimensionality&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--model.multi-modal-image-text.clip.cache-text-features-zero-shot&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Cache text features for zero-shot during inference&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="CLIP.reset_parameters"><a class="viewcode-back" href="../../../../autogen/cvnets.models.multi_modal_img_text.html#cvnets.models.multi_modal_img_text.clip.CLIP.reset_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">reset_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset weights image and text models&quot;&quot;&quot;</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">constant_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">logit_scale</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mf">0.07</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="CLIP.get_trainable_parameters"><a class="viewcode-back" href="../../../../autogen/cvnets.models.multi_modal_img_text.html#cvnets.models.multi_modal_img_text.clip.CLIP.get_trainable_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">get_trainable_parameters</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">weight_decay</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">no_decay_bn_filter_bias</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+        <span class="n">image_param_list</span><span class="p">,</span> <span class="n">image_lr_mult</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_encoder</span><span class="o">.</span><span class="n">get_trainable_parameters</span><span class="p">(</span>
+            <span class="n">weight_decay</span><span class="o">=</span><span class="n">weight_decay</span><span class="p">,</span>
+            <span class="n">no_decay_bn_filter_bias</span><span class="o">=</span><span class="n">no_decay_bn_filter_bias</span><span class="p">,</span>
+            <span class="n">module_name</span><span class="o">=</span><span class="s2">&quot;image_encoder.&quot;</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+        <span class="c1"># The learning rate list from image encoder returns 1.0 as a LR multiplier.</span>
+        <span class="c1"># Update the learning rate to the specified value.</span>
+        <span class="n">image_lr_mult</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">lr_multiplier_img_encoder</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">image_lr_mult</span><span class="p">)</span>
+
+        <span class="n">text_param_list</span><span class="p">,</span> <span class="n">text_lr_mult</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_encoder</span><span class="o">.</span><span class="n">get_trainable_parameters</span><span class="p">(</span>
+            <span class="n">weight_decay</span><span class="o">=</span><span class="n">weight_decay</span><span class="p">,</span>
+            <span class="n">no_decay_bn_filter_bias</span><span class="o">=</span><span class="n">no_decay_bn_filter_bias</span><span class="p">,</span>
+            <span class="n">module_name</span><span class="o">=</span><span class="s2">&quot;text_encoder.&quot;</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+        <span class="c1"># The learning rate list from text encoder returns 1.0 as a LR multiplier.</span>
+        <span class="c1"># Update the learning rate to the specified value.</span>
+        <span class="n">text_lr_mult</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">lr_multiplier_text_encoder</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">text_lr_mult</span><span class="p">)</span>
+
+        <span class="c1"># We need to add the logit scale</span>
+        <span class="n">logit_scale_param_list</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;params&quot;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">logit_scale</span><span class="p">],</span>
+                <span class="s2">&quot;weight_decay&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+                <span class="s2">&quot;param_names&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;logit_scale&quot;</span><span class="p">],</span>
+            <span class="p">}</span>
+        <span class="p">]</span>
+        <span class="n">logit_scale_lr_mult</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">logit_scale_param_list</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">image_param_list</span> <span class="o">+</span> <span class="n">text_param_list</span> <span class="o">+</span> <span class="n">logit_scale_param_list</span><span class="p">,</span>
+            <span class="n">image_lr_mult</span> <span class="o">+</span> <span class="n">text_lr_mult</span> <span class="o">+</span> <span class="n">logit_scale_lr_mult</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="CLIP.dummy_input_and_label"><a class="viewcode-back" href="../../../../autogen/cvnets.models.multi_modal_img_text.html#cvnets.models.multi_modal_img_text.clip.CLIP.dummy_input_and_label">[docs]</a>    <span class="k">def</span> <span class="nf">dummy_input_and_label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create dummy input and labels for CI/CD purposes. Child classes must override it</span>
+<span class="sd">        if functionality is different.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">img_channels</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="n">height</span> <span class="o">=</span> <span class="mi">224</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="mi">224</span>
+        <span class="n">vocab_size</span> <span class="o">=</span> <span class="mi">10</span>
+        <span class="n">seq_length</span> <span class="o">=</span> <span class="mi">5</span>
+        <span class="n">img_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span>
+            <span class="n">batch_size</span><span class="p">,</span> <span class="n">img_channels</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span>
+        <span class="p">)</span>
+
+        <span class="n">text_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
+            <span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">seq_length</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;samples&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">img_tensor</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="n">text_tensor</span><span class="p">},</span>
+            <span class="s2">&quot;targets&quot;</span><span class="p">:</span> <span class="n">text_tensor</span><span class="p">,</span>
+        <span class="p">}</span></div>
+
+    <span class="k">def</span> <span class="nf">_exponentiate_and_clip_logits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">100.0</span><span class="p">):</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logit_scale</span><span class="o">.</span><span class="n">exp</span><span class="p">()</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">max_scale</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">scale</span>
+
+<div class="viewcode-block" id="CLIP.forward"><a class="viewcode-back" href="../../../../autogen/cvnets.models.multi_modal_img_text.html#cvnets.models.multi_modal_img_text.clip.CLIP.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+
+        <span class="n">images</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">text_tokens</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">padding_mask</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;padding_mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="c1"># [B, C, H, W] --&gt; [B, d]</span>
+        <span class="c1"># where B is the batch size, C is number of image channels, H is height and W is Width</span>
+        <span class="n">image_encoder_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_encoder</span><span class="p">(</span><span class="n">images</span><span class="p">)</span>
+        <span class="n">augmented_tensor</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">image_encoder_out</span><span class="p">,</span> <span class="n">Dict</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">{</span><span class="s2">&quot;augmented_tensor&quot;</span><span class="p">,</span> <span class="s2">&quot;logits&quot;</span><span class="p">}</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">image_encoder_out</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s2">&quot;Output of image classifier must contain logits and augmented_tensor&quot;</span>
+                    <span class="s2">&quot; as keys. Got keys: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">image_encoder_out</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                <span class="p">)</span>
+            <span class="n">image_embeddings</span> <span class="o">=</span> <span class="n">image_encoder_out</span><span class="p">[</span><span class="s2">&quot;logits&quot;</span><span class="p">]</span>
+            <span class="n">augmented_tensor</span> <span class="o">=</span> <span class="n">image_encoder_out</span><span class="p">[</span><span class="s2">&quot;augmented_tensor&quot;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">image_encoder_out</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">):</span>
+            <span class="n">image_embeddings</span> <span class="o">=</span> <span class="n">image_encoder_out</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;The output of image encoder should be either Dict or Tensor&quot;</span><span class="p">)</span>
+
+        <span class="c1"># [B, N] --&gt; [B, d] (for single-caption per image)</span>
+        <span class="c1"># or [B, Cl, M, N] --&gt; [d, Cl] (for zero-shot)</span>
+        <span class="c1"># where N in caption len, M is number of captions per image, and Cl is number of classes per image</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_text_features_zero_shot</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="c1"># For zero-shot image classification, we can cache text features as they are the same for all images</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cached_text_features</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">text_embeddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_encoder</span><span class="p">(</span>
+                    <span class="n">text_tokens</span><span class="o">=</span><span class="n">text_tokens</span><span class="p">,</span> <span class="n">key_padding_mask</span><span class="o">=</span><span class="n">padding_mask</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cached_text_features</span> <span class="o">=</span> <span class="n">text_embeddings</span>
+            <span class="n">text_embeddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cached_text_features</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">text_embeddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_encoder</span><span class="p">(</span>
+                <span class="n">text_tokens</span><span class="o">=</span><span class="n">text_tokens</span><span class="p">,</span> <span class="n">key_padding_mask</span><span class="o">=</span><span class="n">padding_mask</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span>
+            <span class="ow">and</span> <span class="p">(</span>
+                <span class="n">text_embeddings</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">image_embeddings</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">)</span>  <span class="c1"># d_text == d_image</span>
+            <span class="ow">and</span> <span class="p">(</span>
+                <span class="n">text_embeddings</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">image_embeddings</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">)</span>  <span class="c1"># N_classes != Batch_image</span>
+        <span class="p">):</span>
+            <span class="c1"># This means that we are running a zero-shot set-up.</span>
+            <span class="c1"># [B x d] x [d x N] --&gt; [B, N]</span>
+            <span class="n">zero_shot_image_logits</span> <span class="o">=</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">image_embeddings</span> <span class="o">@</span> <span class="n">text_embeddings</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;logit_scale&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exponentiate_and_clip_logits</span><span class="p">(),</span>
+                <span class="s2">&quot;zero_shot_image_logits&quot;</span><span class="p">:</span> <span class="n">zero_shot_image_logits</span><span class="p">,</span>
+                <span class="s2">&quot;augmented_tensor&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">image_embeddings</span><span class="p">,</span>
+                <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="n">text_embeddings</span><span class="p">,</span>
+                <span class="s2">&quot;logit_scale&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exponentiate_and_clip_logits</span><span class="p">(),</span>
+                <span class="s2">&quot;zero_shot_image_logits&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;augmented_tensor&quot;</span><span class="p">:</span> <span class="n">augmented_tensor</span><span class="p">,</span>
+            <span class="p">}</span></div>
+
+<div class="viewcode-block" id="CLIP.build_model"><a class="viewcode-back" href="../../../../autogen/cvnets.models.multi_modal_img_text.html#cvnets.models.multi_modal_img_text.clip.CLIP.build_model">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">build_model</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseAnyNNModel</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper function to build the multi-modal image-text model&quot;&quot;&quot;</span>
+        <span class="n">projection_dim</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.multi_modal_image_text.clip.projection_dim&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">projection_dim</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Projection dimension should be &gt; 1. Got: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">image_encoder</span><span class="p">:</span> <span class="n">BaseImageEncoder</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="s2">&quot;classification&quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+        <span class="n">text_encoder</span><span class="p">:</span> <span class="n">BaseTextEncoder</span> <span class="o">=</span> <span class="n">build_text_encoder</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="n">projection_dim</span><span class="o">=</span><span class="n">projection_dim</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+
+        <span class="c1"># replace the classifier in image encoder with the task specific classifier</span>
+        <span class="n">image_encoder</span><span class="o">.</span><span class="n">classifier</span> <span class="o">=</span> <span class="n">update_image_classifier</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span>
+            <span class="n">image_classifier</span><span class="o">=</span><span class="n">image_encoder</span><span class="o">.</span><span class="n">classifier</span><span class="p">,</span>
+            <span class="n">projection_dim</span><span class="o">=</span><span class="n">projection_dim</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">model</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span>
+            <span class="n">image_encoder</span><span class="o">=</span><span class="n">image_encoder</span><span class="p">,</span>
+            <span class="n">text_encoder</span><span class="o">=</span><span class="n">text_encoder</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.multi_modal_image_text.freeze_batch_norm&quot;</span><span class="p">):</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">freeze_norm_layers</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">model</span></div></div>
+
+
+<div class="viewcode-block" id="update_image_classifier"><a class="viewcode-back" href="../../../../autogen/cvnets.models.multi_modal_img_text.html#cvnets.models.multi_modal_img_text.clip.update_image_classifier">[docs]</a><span class="k">def</span> <span class="nf">update_image_classifier</span><span class="p">(</span>
+    <span class="n">opts</span><span class="p">,</span> <span class="n">image_classifier</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">projection_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
+    <span class="n">in_features</span> <span class="o">=</span> <span class="n">get_in_feature_dimension</span><span class="p">(</span><span class="n">image_classifier</span><span class="p">)</span>
+    <span class="n">new_img_classifier</span> <span class="o">=</span> <span class="n">build_image_projection_head</span><span class="p">(</span>
+        <span class="n">opts</span><span class="p">,</span> <span class="n">in_dim</span><span class="o">=</span><span class="n">in_features</span><span class="p">,</span> <span class="n">out_dim</span><span class="o">=</span><span class="n">projection_dim</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">new_img_classifier</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,45 @@
+data.datasets.multi\_modal\_img\_text package
+=============================================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   data.datasets.multi_modal_img_text.zero_shot
+
+Submodules
+----------
+
+data.datasets.multi\_modal\_img\_text.base\_multi\_modal\_img\_text module
+--------------------------------------------------------------------------
+
+.. automodule:: data.datasets.multi_modal_img_text.base_multi_modal_img_text
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+data.datasets.multi\_modal\_img\_text.flickr module
+---------------------------------------------------
+
+.. automodule:: data.datasets.multi_modal_img_text.flickr
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+data.datasets.multi\_modal\_img\_text.img\_text\_tar\_dataset module
+--------------------------------------------------------------------
+
+.. automodule:: data.datasets.multi_modal_img_text.img_text_tar_dataset
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: data.datasets.multi_modal_img_text
+   :members:
+   :undoc-members:
+   :show-inheritance:

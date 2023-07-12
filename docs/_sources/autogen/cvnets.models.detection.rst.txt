@@ -1,0 +1,45 @@
+cvnets.models.detection package
+===============================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   cvnets.models.detection.utils
+
+Submodules
+----------
+
+cvnets.models.detection.base\_detection module
+----------------------------------------------
+
+.. automodule:: cvnets.models.detection.base_detection
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.detection.mask\_rcnn module
+-----------------------------------------
+
+.. automodule:: cvnets.models.detection.mask_rcnn
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.detection.ssd module
+----------------------------------
+
+.. automodule:: cvnets.models.detection.ssd
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cvnets.models.detection
+   :members:
+   :undoc-members:
+   :show-inheritance:

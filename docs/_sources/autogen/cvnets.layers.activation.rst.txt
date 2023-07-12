@@ -1,0 +1,93 @@
+cvnets.layers.activation package
+================================
+
+Submodules
+----------
+
+cvnets.layers.activation.gelu module
+------------------------------------
+
+.. automodule:: cvnets.layers.activation.gelu
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.activation.hard\_sigmoid module
+---------------------------------------------
+
+.. automodule:: cvnets.layers.activation.hard_sigmoid
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.activation.hard\_swish module
+-------------------------------------------
+
+.. automodule:: cvnets.layers.activation.hard_swish
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.activation.leaky\_relu module
+-------------------------------------------
+
+.. automodule:: cvnets.layers.activation.leaky_relu
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.activation.prelu module
+-------------------------------------
+
+.. automodule:: cvnets.layers.activation.prelu
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.activation.relu module
+------------------------------------
+
+.. automodule:: cvnets.layers.activation.relu
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.activation.relu6 module
+-------------------------------------
+
+.. automodule:: cvnets.layers.activation.relu6
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.activation.sigmoid module
+---------------------------------------
+
+.. automodule:: cvnets.layers.activation.sigmoid
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.activation.swish module
+-------------------------------------
+
+.. automodule:: cvnets.layers.activation.swish
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.activation.tanh module
+------------------------------------
+
+.. automodule:: cvnets.layers.activation.tanh
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cvnets.layers.activation
+   :members:
+   :undoc-members:
+   :show-inheritance:

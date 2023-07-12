@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cvnets.modules.mobilevit_block &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../cvnets.html">cvnets</a></li>
+      <li class="breadcrumb-item active">cvnets.modules.mobilevit_block</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cvnets.modules.mobilevit_block</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">nn</span>
+<span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">F</span>
+
+<span class="kn">from</span> <span class="nn">cvnets.layers</span> <span class="kn">import</span> <span class="n">ConvLayer2d</span><span class="p">,</span> <span class="n">get_normalization_layer</span>
+<span class="kn">from</span> <span class="nn">cvnets.modules.base_module</span> <span class="kn">import</span> <span class="n">BaseModule</span>
+<span class="kn">from</span> <span class="nn">cvnets.modules.transformer</span> <span class="kn">import</span> <span class="n">LinearAttnFFN</span><span class="p">,</span> <span class="n">TransformerEncoder</span>
+
+
+<div class="viewcode-block" id="MobileViTBlock"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlock">[docs]</a><span class="k">class</span> <span class="nc">MobileViTBlock</span><span class="p">(</span><span class="n">BaseModule</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class defines the `MobileViT block &lt;https://arxiv.org/abs/2110.02178?context=cs.LG&gt;`_</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: command line arguments</span>
+<span class="sd">        in_channels (int): :math:`C_{in}` from an expected input of size :math:`(N, C_{in}, H, W)`</span>
+<span class="sd">        transformer_dim (int): Input dimension to the transformer unit</span>
+<span class="sd">        ffn_dim (int): Dimension of the FFN block</span>
+<span class="sd">        n_transformer_blocks (Optional[int]): Number of transformer blocks. Default: 2</span>
+<span class="sd">        head_dim (Optional[int]): Head dimension in the multi-head attention. Default: 32</span>
+<span class="sd">        attn_dropout (Optional[float]): Dropout in multi-head attention. Default: 0.0</span>
+<span class="sd">        dropout (Optional[float]): Dropout rate. Default: 0.0</span>
+<span class="sd">        ffn_dropout (Optional[float]): Dropout between FFN layers in transformer. Default: 0.0</span>
+<span class="sd">        patch_h (Optional[int]): Patch height for unfolding operation. Default: 8</span>
+<span class="sd">        patch_w (Optional[int]): Patch width for unfolding operation. Default: 8</span>
+<span class="sd">        transformer_norm_layer (Optional[str]): Normalization layer in the transformer block. Default: layer_norm</span>
+<span class="sd">        conv_ksize (Optional[int]): Kernel size to learn local representations in MobileViT block. Default: 3</span>
+<span class="sd">        dilation (Optional[int]): Dilation rate in convolutions. Default: 1</span>
+<span class="sd">        no_fusion (Optional[bool]): Do not combine the input and output feature maps. Default: False</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MobileViTBlock.__init__"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlock.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">opts</span><span class="p">,</span>
+        <span class="n">in_channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">transformer_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">ffn_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">n_transformer_blocks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">head_dim</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
+        <span class="n">attn_dropout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">dropout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">ffn_dropout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">patch_h</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+        <span class="n">patch_w</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+        <span class="n">transformer_norm_layer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;layer_norm&quot;</span><span class="p">,</span>
+        <span class="n">conv_ksize</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">dilation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">no_fusion</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">conv_3x3_in</span> <span class="o">=</span> <span class="n">ConvLayer2d</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">in_channels</span><span class="o">=</span><span class="n">in_channels</span><span class="p">,</span>
+            <span class="n">out_channels</span><span class="o">=</span><span class="n">in_channels</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="n">conv_ksize</span><span class="p">,</span>
+            <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">use_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">use_act</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">dilation</span><span class="o">=</span><span class="n">dilation</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">conv_1x1_in</span> <span class="o">=</span> <span class="n">ConvLayer2d</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">in_channels</span><span class="o">=</span><span class="n">in_channels</span><span class="p">,</span>
+            <span class="n">out_channels</span><span class="o">=</span><span class="n">transformer_dim</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">use_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">use_act</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">conv_1x1_out</span> <span class="o">=</span> <span class="n">ConvLayer2d</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">in_channels</span><span class="o">=</span><span class="n">transformer_dim</span><span class="p">,</span>
+            <span class="n">out_channels</span><span class="o">=</span><span class="n">in_channels</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">use_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">use_act</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">conv_3x3_out</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">no_fusion</span><span class="p">:</span>
+            <span class="n">conv_3x3_out</span> <span class="o">=</span> <span class="n">ConvLayer2d</span><span class="p">(</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                <span class="n">in_channels</span><span class="o">=</span><span class="mi">2</span> <span class="o">*</span> <span class="n">in_channels</span><span class="p">,</span>
+                <span class="n">out_channels</span><span class="o">=</span><span class="n">in_channels</span><span class="p">,</span>
+                <span class="n">kernel_size</span><span class="o">=</span><span class="n">conv_ksize</span><span class="p">,</span>
+                <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">use_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">use_act</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_rep</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_rep</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;conv_3x3&quot;</span><span class="p">,</span> <span class="n">module</span><span class="o">=</span><span class="n">conv_3x3_in</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_rep</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;conv_1x1&quot;</span><span class="p">,</span> <span class="n">module</span><span class="o">=</span><span class="n">conv_1x1_in</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">transformer_dim</span> <span class="o">%</span> <span class="n">head_dim</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="n">num_heads</span> <span class="o">=</span> <span class="n">transformer_dim</span> <span class="o">//</span> <span class="n">head_dim</span>
+
+        <span class="n">global_rep</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">TransformerEncoder</span><span class="p">(</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                <span class="n">embed_dim</span><span class="o">=</span><span class="n">transformer_dim</span><span class="p">,</span>
+                <span class="n">ffn_latent_dim</span><span class="o">=</span><span class="n">ffn_dim</span><span class="p">,</span>
+                <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+                <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
+                <span class="n">dropout</span><span class="o">=</span><span class="n">dropout</span><span class="p">,</span>
+                <span class="n">ffn_dropout</span><span class="o">=</span><span class="n">ffn_dropout</span><span class="p">,</span>
+                <span class="n">transformer_norm_layer</span><span class="o">=</span><span class="n">transformer_norm_layer</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_transformer_blocks</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">global_rep</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">get_normalization_layer</span><span class="p">(</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                <span class="n">norm_type</span><span class="o">=</span><span class="n">transformer_norm_layer</span><span class="p">,</span>
+                <span class="n">num_features</span><span class="o">=</span><span class="n">transformer_dim</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">global_rep</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">global_rep</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_proj</span> <span class="o">=</span> <span class="n">conv_1x1_out</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span> <span class="o">=</span> <span class="n">conv_3x3_out</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span> <span class="o">=</span> <span class="n">patch_h</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span> <span class="o">=</span> <span class="n">patch_w</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">patch_area</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cnn_in_dim</span> <span class="o">=</span> <span class="n">in_channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cnn_out_dim</span> <span class="o">=</span> <span class="n">transformer_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span> <span class="o">=</span> <span class="n">num_heads</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ffn_dim</span> <span class="o">=</span> <span class="n">ffn_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">dropout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attn_dropout</span> <span class="o">=</span> <span class="n">attn_dropout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ffn_dropout</span> <span class="o">=</span> <span class="n">ffn_dropout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dilation</span> <span class="o">=</span> <span class="n">dilation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_blocks</span> <span class="o">=</span> <span class="n">n_transformer_blocks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_ksize</span> <span class="o">=</span> <span class="n">conv_ksize</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">repr_str</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">(&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+
+        <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> Local representations&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_rep</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_rep</span><span class="p">:</span>
+                <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t\t</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t\t</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_rep</span><span class="p">)</span>
+
+        <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> Global representations with patch size of </span><span class="si">{}</span><span class="s2">x</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_rep</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_rep</span><span class="p">:</span>
+                <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t\t</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t\t</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_rep</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv_proj</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_proj</span><span class="p">:</span>
+                <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t\t</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t\t</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv_proj</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> Feature fusion&quot;</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fusion</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span><span class="p">:</span>
+                    <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t\t</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t\t</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fusion</span><span class="p">)</span>
+
+        <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">)&quot;</span>
+        <span class="k">return</span> <span class="n">repr_str</span>
+
+<div class="viewcode-block" id="MobileViTBlock.unfolding"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlock.unfolding">[docs]</a>    <span class="k">def</span> <span class="nf">unfolding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature_map</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">]:</span>
+        <span class="n">patch_w</span><span class="p">,</span> <span class="n">patch_h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span>
+        <span class="n">patch_area</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">patch_w</span> <span class="o">*</span> <span class="n">patch_h</span><span class="p">)</span>
+        <span class="n">batch_size</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">,</span> <span class="n">orig_h</span><span class="p">,</span> <span class="n">orig_w</span> <span class="o">=</span> <span class="n">feature_map</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="n">new_h</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">orig_h</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span><span class="p">)</span>
+        <span class="n">new_w</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">orig_w</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span><span class="p">)</span>
+
+        <span class="n">interpolate</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">new_w</span> <span class="o">!=</span> <span class="n">orig_w</span> <span class="ow">or</span> <span class="n">new_h</span> <span class="o">!=</span> <span class="n">orig_h</span><span class="p">:</span>
+            <span class="c1"># Note: Padding can be done, but then it needs to be handled in attention function.</span>
+            <span class="n">feature_map</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span>
+                <span class="n">feature_map</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">new_h</span><span class="p">,</span> <span class="n">new_w</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;bilinear&quot;</span><span class="p">,</span> <span class="n">align_corners</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+            <span class="n">interpolate</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># number of patches along width and height</span>
+        <span class="n">num_patch_w</span> <span class="o">=</span> <span class="n">new_w</span> <span class="o">//</span> <span class="n">patch_w</span>  <span class="c1"># n_w</span>
+        <span class="n">num_patch_h</span> <span class="o">=</span> <span class="n">new_h</span> <span class="o">//</span> <span class="n">patch_h</span>  <span class="c1"># n_h</span>
+        <span class="n">num_patches</span> <span class="o">=</span> <span class="n">num_patch_h</span> <span class="o">*</span> <span class="n">num_patch_w</span>  <span class="c1"># N</span>
+
+        <span class="c1"># [B, C, H, W] --&gt; [B * C * n_h, p_h, n_w, p_w]</span>
+        <span class="n">reshaped_fm</span> <span class="o">=</span> <span class="n">feature_map</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">batch_size</span> <span class="o">*</span> <span class="n">in_channels</span> <span class="o">*</span> <span class="n">num_patch_h</span><span class="p">,</span> <span class="n">patch_h</span><span class="p">,</span> <span class="n">num_patch_w</span><span class="p">,</span> <span class="n">patch_w</span>
+        <span class="p">)</span>
+        <span class="c1"># [B * C * n_h, p_h, n_w, p_w] --&gt; [B * C * n_h, n_w, p_h, p_w]</span>
+        <span class="n">transposed_fm</span> <span class="o">=</span> <span class="n">reshaped_fm</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="c1"># [B * C * n_h, n_w, p_h, p_w] --&gt; [B, C, N, P] where P = p_h * p_w and N = n_h * n_w</span>
+        <span class="n">reshaped_fm</span> <span class="o">=</span> <span class="n">transposed_fm</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">batch_size</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">,</span> <span class="n">num_patches</span><span class="p">,</span> <span class="n">patch_area</span>
+        <span class="p">)</span>
+        <span class="c1"># [B, C, N, P] --&gt; [B, P, N, C]</span>
+        <span class="n">transposed_fm</span> <span class="o">=</span> <span class="n">reshaped_fm</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="c1"># [B, P, N, C] --&gt; [BP, N, C]</span>
+        <span class="n">patches</span> <span class="o">=</span> <span class="n">transposed_fm</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">patch_area</span><span class="p">,</span> <span class="n">num_patches</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">info_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;orig_size&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">orig_h</span><span class="p">,</span> <span class="n">orig_w</span><span class="p">),</span>
+            <span class="s2">&quot;batch_size&quot;</span><span class="p">:</span> <span class="n">batch_size</span><span class="p">,</span>
+            <span class="s2">&quot;interpolate&quot;</span><span class="p">:</span> <span class="n">interpolate</span><span class="p">,</span>
+            <span class="s2">&quot;total_patches&quot;</span><span class="p">:</span> <span class="n">num_patches</span><span class="p">,</span>
+            <span class="s2">&quot;num_patches_w&quot;</span><span class="p">:</span> <span class="n">num_patch_w</span><span class="p">,</span>
+            <span class="s2">&quot;num_patches_h&quot;</span><span class="p">:</span> <span class="n">num_patch_h</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">patches</span><span class="p">,</span> <span class="n">info_dict</span></div>
+
+<div class="viewcode-block" id="MobileViTBlock.folding"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlock.folding">[docs]</a>    <span class="k">def</span> <span class="nf">folding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">patches</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">info_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">n_dim</span> <span class="o">=</span> <span class="n">patches</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="n">n_dim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;Tensor should be of shape BPxNxC. Got: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">patches</span><span class="o">.</span><span class="n">shape</span>
+        <span class="p">)</span>
+        <span class="c1"># [BP, N, C] --&gt; [B, P, N, C]</span>
+        <span class="n">patches</span> <span class="o">=</span> <span class="n">patches</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+            <span class="n">info_dict</span><span class="p">[</span><span class="s2">&quot;batch_size&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_area</span><span class="p">,</span> <span class="n">info_dict</span><span class="p">[</span><span class="s2">&quot;total_patches&quot;</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="p">)</span>
+
+        <span class="n">batch_size</span><span class="p">,</span> <span class="n">pixels</span><span class="p">,</span> <span class="n">num_patches</span><span class="p">,</span> <span class="n">channels</span> <span class="o">=</span> <span class="n">patches</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+        <span class="n">num_patch_h</span> <span class="o">=</span> <span class="n">info_dict</span><span class="p">[</span><span class="s2">&quot;num_patches_h&quot;</span><span class="p">]</span>
+        <span class="n">num_patch_w</span> <span class="o">=</span> <span class="n">info_dict</span><span class="p">[</span><span class="s2">&quot;num_patches_w&quot;</span><span class="p">]</span>
+
+        <span class="c1"># [B, P, N, C] --&gt; [B, C, N, P]</span>
+        <span class="n">patches</span> <span class="o">=</span> <span class="n">patches</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+        <span class="c1"># [B, C, N, P] --&gt; [B*C*n_h, n_w, p_h, p_w]</span>
+        <span class="n">feature_map</span> <span class="o">=</span> <span class="n">patches</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">batch_size</span> <span class="o">*</span> <span class="n">channels</span> <span class="o">*</span> <span class="n">num_patch_h</span><span class="p">,</span> <span class="n">num_patch_w</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span>
+        <span class="p">)</span>
+        <span class="c1"># [B*C*n_h, n_w, p_h, p_w] --&gt; [B*C*n_h, p_h, n_w, p_w]</span>
+        <span class="n">feature_map</span> <span class="o">=</span> <span class="n">feature_map</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="c1"># [B*C*n_h, p_h, n_w, p_w] --&gt; [B, C, H, W]</span>
+        <span class="n">feature_map</span> <span class="o">=</span> <span class="n">feature_map</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">batch_size</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="n">num_patch_h</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span><span class="p">,</span> <span class="n">num_patch_w</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">info_dict</span><span class="p">[</span><span class="s2">&quot;interpolate&quot;</span><span class="p">]:</span>
+            <span class="n">feature_map</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span>
+                <span class="n">feature_map</span><span class="p">,</span>
+                <span class="n">size</span><span class="o">=</span><span class="n">info_dict</span><span class="p">[</span><span class="s2">&quot;orig_size&quot;</span><span class="p">],</span>
+                <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;bilinear&quot;</span><span class="p">,</span>
+                <span class="n">align_corners</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">feature_map</span></div>
+
+<div class="viewcode-block" id="MobileViTBlock.forward_spatial"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlock.forward_spatial">[docs]</a>    <span class="k">def</span> <span class="nf">forward_spatial</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">x</span>
+
+        <span class="n">fm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_rep</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># convert feature map to patches</span>
+        <span class="n">patches</span><span class="p">,</span> <span class="n">info_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unfolding</span><span class="p">(</span><span class="n">fm</span><span class="p">)</span>
+
+        <span class="c1"># learn global representations</span>
+        <span class="k">for</span> <span class="n">transformer_layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_rep</span><span class="p">:</span>
+            <span class="n">patches</span> <span class="o">=</span> <span class="n">transformer_layer</span><span class="p">(</span><span class="n">patches</span><span class="p">)</span>
+
+        <span class="c1"># [B x Patch x Patches x C] --&gt; [B x C x Patches x Patch]</span>
+        <span class="n">fm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">folding</span><span class="p">(</span><span class="n">patches</span><span class="o">=</span><span class="n">patches</span><span class="p">,</span> <span class="n">info_dict</span><span class="o">=</span><span class="n">info_dict</span><span class="p">)</span>
+
+        <span class="n">fm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_proj</span><span class="p">(</span><span class="n">fm</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">res</span><span class="p">,</span> <span class="n">fm</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">fm</span></div>
+
+<div class="viewcode-block" id="MobileViTBlock.forward_temporal"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlock.forward_temporal">[docs]</a>    <span class="k">def</span> <span class="nf">forward_temporal</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">x_prev</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]]:</span>
+
+        <span class="n">res</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="n">fm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_rep</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># convert feature map to patches</span>
+        <span class="n">patches</span><span class="p">,</span> <span class="n">info_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unfolding</span><span class="p">(</span><span class="n">fm</span><span class="p">)</span>
+
+        <span class="c1"># learn global representations</span>
+        <span class="k">for</span> <span class="n">global_layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_rep</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">global_layer</span><span class="p">,</span> <span class="n">TransformerEncoder</span><span class="p">):</span>
+                <span class="n">patches</span> <span class="o">=</span> <span class="n">global_layer</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">patches</span><span class="p">,</span> <span class="n">x_prev</span><span class="o">=</span><span class="n">x_prev</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">patches</span> <span class="o">=</span> <span class="n">global_layer</span><span class="p">(</span><span class="n">patches</span><span class="p">)</span>
+
+        <span class="c1"># [B x Patch x Patches x C] --&gt; [B x C x Patches x Patch]</span>
+        <span class="n">fm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">folding</span><span class="p">(</span><span class="n">patches</span><span class="o">=</span><span class="n">patches</span><span class="p">,</span> <span class="n">info_dict</span><span class="o">=</span><span class="n">info_dict</span><span class="p">)</span>
+
+        <span class="n">fm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_proj</span><span class="p">(</span><span class="n">fm</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">res</span><span class="p">,</span> <span class="n">fm</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">fm</span><span class="p">,</span> <span class="n">patches</span></div>
+
+<div class="viewcode-block" id="MobileViTBlock.forward"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlock.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]]:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="c1"># for spatio-temporal MobileViT</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_temporal</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x_prev</span><span class="o">=</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">):</span>
+            <span class="c1"># For image data</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_spatial</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
+
+
+<div class="viewcode-block" id="MobileViTBlockv2"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlockv2">[docs]</a><span class="k">class</span> <span class="nc">MobileViTBlockv2</span><span class="p">(</span><span class="n">BaseModule</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class defines the `MobileViTv2 &lt;https://arxiv.org/abs/2206.02680&gt;`_ block</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: command line arguments</span>
+<span class="sd">        in_channels (int): :math:`C_{in}` from an expected input of size :math:`(N, C_{in}, H, W)`</span>
+<span class="sd">        attn_unit_dim (int): Input dimension to the attention unit</span>
+<span class="sd">        ffn_multiplier (int): Expand the input dimensions by this factor in FFN. Default is 2.</span>
+<span class="sd">        n_attn_blocks (Optional[int]): Number of attention units. Default: 2</span>
+<span class="sd">        attn_dropout (Optional[float]): Dropout in multi-head attention. Default: 0.0</span>
+<span class="sd">        dropout (Optional[float]): Dropout rate. Default: 0.0</span>
+<span class="sd">        ffn_dropout (Optional[float]): Dropout between FFN layers in transformer. Default: 0.0</span>
+<span class="sd">        patch_h (Optional[int]): Patch height for unfolding operation. Default: 8</span>
+<span class="sd">        patch_w (Optional[int]): Patch width for unfolding operation. Default: 8</span>
+<span class="sd">        conv_ksize (Optional[int]): Kernel size to learn local representations in MobileViT block. Default: 3</span>
+<span class="sd">        dilation (Optional[int]): Dilation rate in convolutions. Default: 1</span>
+<span class="sd">        attn_norm_layer (Optional[str]): Normalization layer in the attention block. Default: layer_norm_2d</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MobileViTBlockv2.__init__"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlockv2.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">opts</span><span class="p">,</span>
+        <span class="n">in_channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">attn_unit_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">ffn_multiplier</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+        <span class="n">n_attn_blocks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">attn_dropout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">dropout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">ffn_dropout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">patch_h</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+        <span class="n">patch_w</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+        <span class="n">conv_ksize</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">dilation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">attn_norm_layer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;layer_norm_2d&quot;</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cnn_out_dim</span> <span class="o">=</span> <span class="n">attn_unit_dim</span>
+
+        <span class="n">conv_3x3_in</span> <span class="o">=</span> <span class="n">ConvLayer2d</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">in_channels</span><span class="o">=</span><span class="n">in_channels</span><span class="p">,</span>
+            <span class="n">out_channels</span><span class="o">=</span><span class="n">in_channels</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="n">conv_ksize</span><span class="p">,</span>
+            <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">use_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">use_act</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">dilation</span><span class="o">=</span><span class="n">dilation</span><span class="p">,</span>
+            <span class="n">groups</span><span class="o">=</span><span class="n">in_channels</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">conv_1x1_in</span> <span class="o">=</span> <span class="n">ConvLayer2d</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">in_channels</span><span class="o">=</span><span class="n">in_channels</span><span class="p">,</span>
+            <span class="n">out_channels</span><span class="o">=</span><span class="n">cnn_out_dim</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">use_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">use_act</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">MobileViTBlockv2</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_rep</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">conv_3x3_in</span><span class="p">,</span> <span class="n">conv_1x1_in</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">global_rep</span><span class="p">,</span> <span class="n">attn_unit_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_attn_layer</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">d_model</span><span class="o">=</span><span class="n">attn_unit_dim</span><span class="p">,</span>
+            <span class="n">ffn_mult</span><span class="o">=</span><span class="n">ffn_multiplier</span><span class="p">,</span>
+            <span class="n">n_layers</span><span class="o">=</span><span class="n">n_attn_blocks</span><span class="p">,</span>
+            <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
+            <span class="n">dropout</span><span class="o">=</span><span class="n">dropout</span><span class="p">,</span>
+            <span class="n">ffn_dropout</span><span class="o">=</span><span class="n">ffn_dropout</span><span class="p">,</span>
+            <span class="n">attn_norm_layer</span><span class="o">=</span><span class="n">attn_norm_layer</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_proj</span> <span class="o">=</span> <span class="n">ConvLayer2d</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">in_channels</span><span class="o">=</span><span class="n">cnn_out_dim</span><span class="p">,</span>
+            <span class="n">out_channels</span><span class="o">=</span><span class="n">in_channels</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">use_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">use_act</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span> <span class="o">=</span> <span class="n">patch_h</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span> <span class="o">=</span> <span class="n">patch_w</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">patch_area</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cnn_in_dim</span> <span class="o">=</span> <span class="n">in_channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cnn_out_dim</span> <span class="o">=</span> <span class="n">cnn_out_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transformer_in_dim</span> <span class="o">=</span> <span class="n">attn_unit_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">dropout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attn_dropout</span> <span class="o">=</span> <span class="n">attn_dropout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ffn_dropout</span> <span class="o">=</span> <span class="n">ffn_dropout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_blocks</span> <span class="o">=</span> <span class="n">n_attn_blocks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_ksize</span> <span class="o">=</span> <span class="n">conv_ksize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enable_coreml_compatible_fn</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.enable_coreml_compatible_module&quot;</span><span class="p">,</span> <span class="kc">False</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_coreml_compatible_fn</span><span class="p">:</span>
+            <span class="c1"># we set persistent to false so that these weights are not part of model&#39;s state_dict</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;unfolding_weights&quot;</span><span class="p">,</span>
+                <span class="n">tensor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_compute_unfolding_weights</span><span class="p">(),</span>
+                <span class="n">persistent</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_compute_unfolding_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+        <span class="c1"># [P_h * P_w, P_h * P_w]</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+        <span class="c1"># [P_h * P_w, P_h * P_w] --&gt; [P_h * P_w, 1, P_h, P_w]</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="c1"># [P_h * P_w, 1, P_h, P_w] --&gt; [P_h * P_w * C, 1, P_h, P_w]</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cnn_out_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">weights</span>
+
+    <span class="k">def</span> <span class="nf">_build_attn_layer</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">opts</span><span class="p">,</span>
+        <span class="n">d_model</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">ffn_mult</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Sequence</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+        <span class="n">n_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">attn_dropout</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">ffn_dropout</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">attn_norm_layer</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ffn_mult</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">ffn_mult</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">ffn_dims</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">ffn_mult</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ffn_mult</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">n_layers</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">*</span> <span class="n">d_model</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ffn_mult</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">ffn_mult</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">ffn_dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">ffn_mult</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">d_model</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_layers</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ffn_mult</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+            <span class="n">ffn_dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">ffn_mult</span> <span class="o">*</span> <span class="n">d_model</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_layers</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+        <span class="c1"># ensure that dims are multiple of 16</span>
+        <span class="n">ffn_dims</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">((</span><span class="n">d</span> <span class="o">//</span> <span class="mi">16</span><span class="p">)</span> <span class="o">*</span> <span class="mi">16</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">ffn_dims</span><span class="p">]</span>
+
+        <span class="n">global_rep</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">LinearAttnFFN</span><span class="p">(</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                <span class="n">embed_dim</span><span class="o">=</span><span class="n">d_model</span><span class="p">,</span>
+                <span class="n">ffn_latent_dim</span><span class="o">=</span><span class="n">ffn_dims</span><span class="p">[</span><span class="n">block_idx</span><span class="p">],</span>
+                <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
+                <span class="n">dropout</span><span class="o">=</span><span class="n">dropout</span><span class="p">,</span>
+                <span class="n">ffn_dropout</span><span class="o">=</span><span class="n">ffn_dropout</span><span class="p">,</span>
+                <span class="n">norm_layer</span><span class="o">=</span><span class="n">attn_norm_layer</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">block_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_layers</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">global_rep</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">get_normalization_layer</span><span class="p">(</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="n">norm_type</span><span class="o">=</span><span class="n">attn_norm_layer</span><span class="p">,</span> <span class="n">num_features</span><span class="o">=</span><span class="n">d_model</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">global_rep</span><span class="p">),</span> <span class="n">d_model</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">repr_str</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">(&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+
+        <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> Local representations&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_rep</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_rep</span><span class="p">:</span>
+                <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t\t</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t\t</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_rep</span><span class="p">)</span>
+
+        <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> Global representations with patch size of </span><span class="si">{}</span><span class="s2">x</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_rep</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_rep</span><span class="p">:</span>
+                <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t\t</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t\t</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_rep</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv_proj</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_proj</span><span class="p">:</span>
+                <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t\t</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t\t</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv_proj</span><span class="p">)</span>
+
+        <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">)&quot;</span>
+        <span class="k">return</span> <span class="n">repr_str</span>
+
+<div class="viewcode-block" id="MobileViTBlockv2.unfolding_pytorch"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlockv2.unfolding_pytorch">[docs]</a>    <span class="k">def</span> <span class="nf">unfolding_pytorch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature_map</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+
+        <span class="n">batch_size</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">,</span> <span class="n">img_h</span><span class="p">,</span> <span class="n">img_w</span> <span class="o">=</span> <span class="n">feature_map</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="c1"># [B, C, H, W] --&gt; [B, C, P, N]</span>
+        <span class="n">patches</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">unfold</span><span class="p">(</span>
+            <span class="n">feature_map</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span><span class="p">),</span>
+            <span class="n">stride</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">patches</span> <span class="o">=</span> <span class="n">patches</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">batch_size</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">patches</span><span class="p">,</span> <span class="p">(</span><span class="n">img_h</span><span class="p">,</span> <span class="n">img_w</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MobileViTBlockv2.folding_pytorch"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlockv2.folding_pytorch">[docs]</a>    <span class="k">def</span> <span class="nf">folding_pytorch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">patches</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">output_size</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">batch_size</span><span class="p">,</span> <span class="n">in_dim</span><span class="p">,</span> <span class="n">patch_size</span><span class="p">,</span> <span class="n">n_patches</span> <span class="o">=</span> <span class="n">patches</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="c1"># [B, C, P, N]</span>
+        <span class="n">patches</span> <span class="o">=</span> <span class="n">patches</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">in_dim</span> <span class="o">*</span> <span class="n">patch_size</span><span class="p">,</span> <span class="n">n_patches</span><span class="p">)</span>
+
+        <span class="n">feature_map</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">fold</span><span class="p">(</span>
+            <span class="n">patches</span><span class="p">,</span>
+            <span class="n">output_size</span><span class="o">=</span><span class="n">output_size</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span><span class="p">),</span>
+            <span class="n">stride</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">feature_map</span></div>
+
+<div class="viewcode-block" id="MobileViTBlockv2.unfolding_coreml"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlockv2.unfolding_coreml">[docs]</a>    <span class="k">def</span> <span class="nf">unfolding_coreml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature_map</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+        <span class="c1"># im2col is not implemented in Coreml, so here we hack its implementation using conv2d</span>
+        <span class="c1"># we compute the weights</span>
+
+        <span class="c1"># [B, C, H, W] --&gt; [B, C, P, N]</span>
+        <span class="n">batch_size</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">,</span> <span class="n">img_h</span><span class="p">,</span> <span class="n">img_w</span> <span class="o">=</span> <span class="n">feature_map</span><span class="o">.</span><span class="n">shape</span>
+        <span class="c1">#</span>
+        <span class="n">patches</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span>
+            <span class="n">feature_map</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unfolding_weights</span><span class="p">,</span>
+            <span class="n">bias</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">stride</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span><span class="p">),</span>
+            <span class="n">padding</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">dilation</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">groups</span><span class="o">=</span><span class="n">in_channels</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">patches</span> <span class="o">=</span> <span class="n">patches</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">batch_size</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">patches</span><span class="p">,</span> <span class="p">(</span><span class="n">img_h</span><span class="p">,</span> <span class="n">img_w</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MobileViTBlockv2.folding_coreml"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlockv2.folding_coreml">[docs]</a>    <span class="k">def</span> <span class="nf">folding_coreml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">patches</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">output_size</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+        <span class="c1"># col2im is not supported on coreml, so tracing fails</span>
+        <span class="c1"># We hack folding function via pixel_shuffle to enable coreml tracing</span>
+        <span class="n">batch_size</span><span class="p">,</span> <span class="n">in_dim</span><span class="p">,</span> <span class="n">patch_size</span><span class="p">,</span> <span class="n">n_patches</span> <span class="o">=</span> <span class="n">patches</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="n">n_patches_h</span> <span class="o">=</span> <span class="n">output_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span>
+        <span class="n">n_patches_w</span> <span class="o">=</span> <span class="n">output_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span>
+
+        <span class="n">feature_map</span> <span class="o">=</span> <span class="n">patches</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">batch_size</span><span class="p">,</span> <span class="n">in_dim</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span><span class="p">,</span> <span class="n">n_patches_h</span><span class="p">,</span> <span class="n">n_patches_w</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span>
+        <span class="p">),</span> <span class="s2">&quot;For Coreml, we need patch_h and patch_w are the same&quot;</span>
+        <span class="n">feature_map</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pixel_shuffle</span><span class="p">(</span><span class="n">feature_map</span><span class="p">,</span> <span class="n">upscale_factor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">feature_map</span></div>
+
+<div class="viewcode-block" id="MobileViTBlockv2.resize_input_if_needed"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlockv2.resize_input_if_needed">[docs]</a>    <span class="k">def</span> <span class="nf">resize_input_if_needed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">batch_size</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">,</span> <span class="n">orig_h</span><span class="p">,</span> <span class="n">orig_w</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">if</span> <span class="n">orig_h</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">orig_w</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">new_h</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">orig_h</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_h</span><span class="p">)</span>
+            <span class="n">new_w</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">orig_w</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">patch_w</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">new_h</span><span class="p">,</span> <span class="n">new_w</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;bilinear&quot;</span><span class="p">,</span> <span class="n">align_corners</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span></div>
+
+<div class="viewcode-block" id="MobileViTBlockv2.forward_spatial"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlockv2.forward_spatial">[docs]</a>    <span class="k">def</span> <span class="nf">forward_spatial</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resize_input_if_needed</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">fm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_rep</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># convert feature map to patches</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_coreml_compatible_fn</span><span class="p">:</span>
+            <span class="n">patches</span><span class="p">,</span> <span class="n">output_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unfolding_coreml</span><span class="p">(</span><span class="n">fm</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">patches</span><span class="p">,</span> <span class="n">output_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unfolding_pytorch</span><span class="p">(</span><span class="n">fm</span><span class="p">)</span>
+
+        <span class="c1"># learn global representations on all patches</span>
+        <span class="n">patches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_rep</span><span class="p">(</span><span class="n">patches</span><span class="p">)</span>
+
+        <span class="c1"># [B x Patch x Patches x C] --&gt; [B x C x Patches x Patch]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_coreml_compatible_fn</span><span class="p">:</span>
+            <span class="n">fm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">folding_coreml</span><span class="p">(</span><span class="n">patches</span><span class="o">=</span><span class="n">patches</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="n">output_size</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">folding_pytorch</span><span class="p">(</span><span class="n">patches</span><span class="o">=</span><span class="n">patches</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="n">output_size</span><span class="p">)</span>
+        <span class="n">fm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_proj</span><span class="p">(</span><span class="n">fm</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">fm</span></div>
+
+<div class="viewcode-block" id="MobileViTBlockv2.forward_temporal"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlockv2.forward_temporal">[docs]</a>    <span class="k">def</span> <span class="nf">forward_temporal</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">x_prev</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]]:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resize_input_if_needed</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">fm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_rep</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># convert feature map to patches</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_coreml_compatible_fn</span><span class="p">:</span>
+            <span class="n">patches</span><span class="p">,</span> <span class="n">output_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unfolding_coreml</span><span class="p">(</span><span class="n">fm</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">patches</span><span class="p">,</span> <span class="n">output_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unfolding_pytorch</span><span class="p">(</span><span class="n">fm</span><span class="p">)</span>
+
+        <span class="c1"># learn global representations</span>
+        <span class="k">for</span> <span class="n">global_layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_rep</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">global_layer</span><span class="p">,</span> <span class="n">LinearAttnFFN</span><span class="p">):</span>
+                <span class="n">patches</span> <span class="o">=</span> <span class="n">global_layer</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">patches</span><span class="p">,</span> <span class="n">x_prev</span><span class="o">=</span><span class="n">x_prev</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">patches</span> <span class="o">=</span> <span class="n">global_layer</span><span class="p">(</span><span class="n">patches</span><span class="p">)</span>
+
+        <span class="c1"># [B x Patch x Patches x C] --&gt; [B x C x Patches x Patch]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_coreml_compatible_fn</span><span class="p">:</span>
+            <span class="n">fm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">folding_coreml</span><span class="p">(</span><span class="n">patches</span><span class="o">=</span><span class="n">patches</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="n">output_size</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">folding_pytorch</span><span class="p">(</span><span class="n">patches</span><span class="o">=</span><span class="n">patches</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="n">output_size</span><span class="p">)</span>
+        <span class="n">fm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_proj</span><span class="p">(</span><span class="n">fm</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">fm</span><span class="p">,</span> <span class="n">patches</span></div>
+
+<div class="viewcode-block" id="MobileViTBlockv2.forward"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlockv2.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]]:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="c1"># for spatio-temporal data (e.g., videos)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_temporal</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x_prev</span><span class="o">=</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">):</span>
+            <span class="c1"># for image data</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_spatial</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

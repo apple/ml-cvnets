@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>metrics.stats &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../metrics.html">metrics</a></li>
+      <li class="breadcrumb-item active">metrics.stats</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for metrics.stats</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+<span class="kn">from</span> <span class="nn">numbers</span> <span class="kn">import</span> <span class="n">Number</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
+
+<span class="kn">from</span> <span class="nn">metrics</span> <span class="kn">import</span> <span class="n">METRICS_REGISTRY</span>
+<span class="kn">from</span> <span class="nn">metrics.metric_base</span> <span class="kn">import</span> <span class="n">BaseMetric</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">from</span> <span class="nn">utils.object_utils</span> <span class="kn">import</span> <span class="n">apply_recursively</span><span class="p">,</span> <span class="n">flatten_to_dict</span>
+
+
+<div class="viewcode-block" id="Statistics"><a class="viewcode-back" href="../../autogen/metrics.html#metrics.stats.Statistics">[docs]</a><span class="k">class</span> <span class="nc">Statistics</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="Statistics.__init__"><a class="viewcode-back" href="../../autogen/metrics.html#metrics.stats.Statistics.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
+        <span class="n">metric_names</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">],</span>
+        <span class="n">is_master_node</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">is_distributed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">log_writers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">metric_names</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Metric names list cannot be empty&quot;</span><span class="p">)</span>
+
+        <span class="c1"># key is the metric name and value is the value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metric_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">BaseMetric</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">m_name</span> <span class="ow">in</span> <span class="n">metric_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">m_name</span> <span class="ow">in</span> <span class="n">METRICS_REGISTRY</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">metric_dict</span><span class="p">[</span><span class="n">m_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">METRICS_REGISTRY</span><span class="p">[</span><span class="n">m_name</span><span class="p">](</span>
+                    <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="n">is_distributed</span><span class="o">=</span><span class="n">is_distributed</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">is_master_node</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> statistics not supported. Supported: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">m_name</span><span class="p">,</span> <span class="n">METRICS_REGISTRY</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">round_places</span> <span class="o">=</span> <span class="mi">4</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_master_node</span> <span class="o">=</span> <span class="n">is_master_node</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_writers</span> <span class="o">=</span> <span class="n">log_writers</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_time</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_counter</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="Statistics.update"><a class="viewcode-back" href="../../autogen/metrics.html#metrics.stats.Statistics.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">pred_label</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">],</span>
+        <span class="n">target_label</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">],</span>
+        <span class="n">extras</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">batch_time</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Updates all the metrics after a batch.</span>
+
+<span class="sd">        :param pred_label: predictions coming from a model (must be a Tensor or a Dict of Tensors)</span>
+<span class="sd">        :param target_label: GT labels (Tensor or a Dict of Tensors)</span>
+<span class="sd">        :param extras: Optional Dict containing extra info, usually Loss and GradNorm</span>
+<span class="sd">                       e.g. {&quot;loss&quot;: loss_value, &quot;grad_norm&quot;: gradient_norm}</span>
+<span class="sd">        :param batch_time: Optional time it took to run through the batch</span>
+<span class="sd">        :param n: batch size (to be used in averaging the numbers correctly)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">metric_name</span><span class="p">,</span> <span class="n">metric</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">metric</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                    <span class="n">prediction</span><span class="o">=</span><span class="n">pred_label</span><span class="p">,</span>
+                    <span class="n">target</span><span class="o">=</span><span class="n">target_label</span><span class="p">,</span>
+                    <span class="n">extras</span><span class="o">=</span><span class="n">extras</span><span class="p">,</span>
+                    <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s2">&quot;Caught an error while updating metric </span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">metric_name</span><span class="p">,</span> <span class="n">e</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_time</span> <span class="o">+=</span> <span class="n">batch_time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_counter</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+    <span class="k">def</span> <span class="nf">_avg_statistics_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;: &quot;</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function computes average statistics of all metrics and returns them as a list of strings.</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">         loss: 12.9152</span>
+<span class="sd">         loss: {&#39;total_loss&#39;: 12.9152, &#39;reg_loss&#39;: 2.8199, &#39;cls_loss&#39;: 10.0953}</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">metrics</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_avg_statistics_all</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="s2">&quot;</span><span class="si">{:&lt;}{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">sep</span><span class="p">,</span> <span class="n">avg</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">avg</span> <span class="ow">in</span> <span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avg</span><span class="p">,</span> <span class="n">Number</span><span class="p">)</span> <span class="ow">or</span> <span class="n">avg</span>
+        <span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_compute_avg_statistics_all</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">Dict</span><span class="p">]]:</span>
+        <span class="n">metric_stats</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">metric_name</span><span class="p">,</span> <span class="n">metric</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">metric</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
+            <span class="c1"># metric_stats.update(self._flatten_metric(value, metric_name))</span>
+            <span class="n">metric_stats</span><span class="p">[</span><span class="n">metric_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">apply_recursively</span><span class="p">(</span>
+                <span class="n">value</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="mf">1.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">round_places</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">metric_stats</span>
+
+    <span class="c1"># TODO: change name: avg is presumptuous</span>
+<div class="viewcode-block" id="Statistics.avg_statistics"><a class="viewcode-back" href="../../autogen/metrics.html#metrics.stats.Statistics.avg_statistics">[docs]</a>    <span class="k">def</span> <span class="nf">avg_statistics</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">metric_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sub_metric_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function computes the average statistics of a given metric.</span>
+
+<span class="sd">        .. note::</span>
+<span class="sd">        The statistics are stored in form of a dictionary and each key-value pair can be of string and number</span>
+<span class="sd">        OR string and dictionary of string and number.</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">             {&#39;loss&#39;: 10.0, &#39;top-1&#39;: 50.0}</span>
+<span class="sd">             {&#39;loss&#39;: {&#39;total_loss&#39;: 10.0, &#39;cls_loss&#39;: 2.0, &#39;reg_loss&#39;: 8.0}, &#39;mAP&#39;: 5.0}</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">metric_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric_dict</span><span class="p">:</span>
+            <span class="n">computed_metric</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric_dict</span><span class="p">[</span><span class="n">metric_name</span><span class="p">]</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
+            <span class="n">computed_metric</span> <span class="o">=</span> <span class="n">apply_recursively</span><span class="p">(</span>
+                <span class="n">computed_metric</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="mf">1.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">round_places</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">computed_metric</span><span class="p">,</span> <span class="n">Dict</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">sub_metric_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">sub_metric_name</span> <span class="ow">in</span> <span class="n">computed_metric</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="n">computed_metric</span><span class="p">[</span><span class="n">sub_metric_name</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> not present in the dictionary. Available keys are: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                <span class="n">sub_metric_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">computed_metric</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">None</span>
+
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">computed_metric</span><span class="p">,</span> <span class="n">Number</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">computed_metric</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="Statistics.iter_summary"><a class="viewcode-back" href="../../autogen/metrics.html#metrics.stats.Statistics.iter_summary">[docs]</a>    <span class="k">def</span> <span class="nf">iter_summary</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">n_processed_samples</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">total_samples</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">elapsed_time</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">learning_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="ow">or</span> <span class="nb">list</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_master_node</span><span class="p">:</span>
+            <span class="n">metric_stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_avg_statistics_all</span><span class="p">()</span>
+            <span class="n">el_time_str</span> <span class="o">=</span> <span class="s2">&quot;Elapsed time: </span><span class="si">{:5.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">elapsed_time</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">learning_rate</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+                <span class="n">lr_str</span> <span class="o">=</span> <span class="s2">&quot;LR: </span><span class="si">{:1.6f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">learning_rate</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">learning_rate</span> <span class="o">=</span> <span class="p">[</span><span class="nb">round</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span> <span class="k">for</span> <span class="n">lr</span> <span class="ow">in</span> <span class="n">learning_rate</span><span class="p">]</span>
+                <span class="n">lr_str</span> <span class="o">=</span> <span class="s2">&quot;LR: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">learning_rate</span><span class="p">)</span>
+            <span class="n">epoch_str</span> <span class="o">=</span> <span class="s2">&quot;Epoch: </span><span class="si">{:3d}</span><span class="s2"> [</span><span class="si">{:8d}</span><span class="s2">/</span><span class="si">{:8d}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">epoch</span><span class="p">,</span> <span class="n">n_processed_samples</span><span class="p">,</span> <span class="n">total_samples</span>
+            <span class="p">)</span>
+            <span class="n">batch_str</span> <span class="o">=</span> <span class="s2">&quot;Avg. batch load time: </span><span class="si">{:1.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">batch_time</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_counter</span>
+            <span class="p">)</span>
+
+            <span class="n">stats_summary</span> <span class="o">=</span> <span class="p">[</span><span class="n">epoch_str</span><span class="p">]</span>
+            <span class="n">stats_summary</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">metric_stats</span><span class="p">)</span>
+            <span class="n">stats_summary</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lr_str</span><span class="p">)</span>
+            <span class="n">stats_summary</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_str</span><span class="p">)</span>
+            <span class="n">stats_summary</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">el_time_str</span><span class="p">)</span>
+
+            <span class="n">summary_str</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">stats_summary</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">summary_str</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Statistics.epoch_summary"><a class="viewcode-back" href="../../autogen/metrics.html#metrics.stats.Statistics.epoch_summary">[docs]</a>    <span class="k">def</span> <span class="nf">epoch_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">stage</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Training&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_master_node</span><span class="p">:</span>
+            <span class="n">metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_avg_statistics_all</span><span class="p">()</span>
+            <span class="n">metric_stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_avg_statistics_all</span><span class="p">(</span><span class="n">sep</span><span class="o">=</span><span class="s2">&quot;=&quot;</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">)</span>
+            <span class="n">metric_stats_str</span> <span class="o">=</span> <span class="s2">&quot; || &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">metric_stats</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;*** </span><span class="si">{}</span><span class="s2"> summary for epoch </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">stage</span><span class="o">.</span><span class="n">title</span><span class="p">(),</span> <span class="n">epoch</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">metric_stats_str</span><span class="p">))</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+            <span class="c1"># TODO: this step is only here for backward-compatibility. We can remove it as well</span>
+            <span class="n">shortened_stage_map</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;training&quot;</span><span class="p">:</span> <span class="s2">&quot;Train&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;validation&quot;</span><span class="p">:</span> <span class="s2">&quot;Val&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;evaluation&quot;</span><span class="p">:</span> <span class="s2">&quot;Eval&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;validation (EMA)&quot;</span><span class="p">:</span> <span class="s2">&quot;Val_EMA&quot;</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="n">s_stage</span> <span class="o">=</span> <span class="n">shortened_stage_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="n">stage</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">scalar_name</span><span class="p">,</span> <span class="n">scalar_value</span> <span class="ow">in</span> <span class="n">flatten_to_dict</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">for</span> <span class="n">log_writer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_writers</span><span class="p">:</span>
+                        <span class="n">log_writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span>
+                            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s_stage</span><span class="p">,</span> <span class="n">scalar_name</span><span class="o">.</span><span class="n">title</span><span class="p">()),</span>
+                            <span class="n">scalar_value</span><span class="p">,</span>
+                            <span class="n">epoch</span><span class="p">,</span>
+                        <span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

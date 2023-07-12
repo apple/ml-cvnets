@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Converting models trained using CVNets to CoreML &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="How to Create a New Dataset Type" href="README-new-dataset.html" />
+    <link rel="prev" title="How To" href="../../how_to.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../how_to.html">How To</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Converting models trained using CVNets to CoreML</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#classification-networks">Classification networks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection-networks">Detection networks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#segmentation-networks">Segmentation networks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-to-convert-mobilevitv2-model">Example to convert MobileViTv2 model</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="README-new-dataset.html">How to Create a New Dataset Type</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../how_to.html">How To</a></li>
+      <li class="breadcrumb-item active">Converting models trained using CVNets to CoreML</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/en/general/README-pytorch-to-coreml.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="converting-models-trained-using-cvnets-to-coreml">
+<h1>Converting models trained using CVNets to CoreML<a class="headerlink" href="#converting-models-trained-using-cvnets-to-coreml" title="Permalink to this heading"></a></h1>
+<p>For conversion, we assume that you are using <code class="docutils literal notranslate"><span class="pre">MAC</span> <span class="pre">OS</span></code> machine. We follow <a class="reference external" href="https://coremltools.readme.io/docs/pytorch-conversion">CoreML</a> tutorial, i.e.,
+first convert the PyTorch model to JIT, and then convert to CoreML model.</p>
+<section id="classification-networks">
+<h2>Classification networks<a class="headerlink" href="#classification-networks" title="Permalink to this heading"></a></h2>
+<p>We can convert the classification models using the following command</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>export CONFIG_FILE=&quot;LOCATION_OF_CONFIG_FILE&quot;
+export MODEL_WEIGHTS=&quot;LOCATION_OF_MODEL_WEIGHT_FILE&quot;
+cvnets-convert --common.config-file $CONFIG_FILE --common.results-loc coreml_models_cls --model.classification.pretrained $MODEL_WEIGHTS  --conversion.coreml-extn mlmodel
+</pre></div>
+</div>
+</section>
+<section id="detection-networks">
+<h2>Detection networks<a class="headerlink" href="#detection-networks" title="Permalink to this heading"></a></h2>
+<p>We can convert the detection models trained on MS-COCO (81 classes, including background) using the following command</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>export CONFIG_FILE=&quot;LOCATION_OF_CONFIG_FILE&quot;
+export MODEL_WEIGHTS=&quot;LOCATION_OF_MODEL_WEIGHT_FILE&quot;
+export N_CLASSES=&quot;NUMBER_OF_CLASSES&quot;
+cvnets-convert --common.config-file $CONFIG_FILE --common.results-loc coreml_models_det --model.detection.pretrained $MODEL_WEIGHTS --conversion.coreml-extn mlmodel --model.detection.n-classes $N_CLASSES
+</pre></div>
+</div>
+</section>
+<section id="segmentation-networks">
+<h2>Segmentation networks<a class="headerlink" href="#segmentation-networks" title="Permalink to this heading"></a></h2>
+<p>We can convert the segmentation models using the following command</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>export CONFIG_FILE=&quot;LOCATION_OF_CONFIG_FILE&quot;
+export MODEL_WEIGHTS=&quot;LOCATION_OF_MODEL_WEIGHT_FILE&quot;
+export N_CLASSES=&quot;NUMBER_OF_CLASSES&quot;
+cvnets-convert --common.config-file $CONFIG_FILE --common.results-loc coreml_models_res --model.segmentation.pretrained $MODEL_WEIGHTS --conversion.coreml-extn mlmodel --model.segmentation.n-classes $N_CLASSES
+</pre></div>
+</div>
+</section>
+<section id="example-to-convert-mobilevitv2-model">
+<h2>Example to convert MobileViTv2 model<a class="headerlink" href="#example-to-convert-mobilevitv2-model" title="Permalink to this heading"></a></h2>
+<p>We can convert <code class="docutils literal notranslate"><span class="pre">MobileViTv2-1.0</span></code> classification model trained on ImageNet-1k dataset using below commands:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>export CONFIG_FILE=&quot;https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-1.0.yaml&quot;
+export MODEL_WEIGHTS=&quot;https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-1.0.pt&quot;
+cvnets-convert --common.config-file $CONFIG_FILE --common.results-loc coreml_models_cls --model.classification.pretrained $MODEL_WEIGHTS  --conversion.coreml-extn mlmodel
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../../how_to.html" class="btn btn-neutral float-left" title="How To" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="README-new-dataset.html" class="btn btn-neutral float-right" title="How to Create a New Dataset Type" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

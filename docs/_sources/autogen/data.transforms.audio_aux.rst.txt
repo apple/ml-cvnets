@@ -1,0 +1,21 @@
+data.transforms.audio\_aux package
+==================================
+
+Submodules
+----------
+
+data.transforms.audio\_aux.mfccs module
+---------------------------------------
+
+.. automodule:: data.transforms.audio_aux.mfccs
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: data.transforms.audio_aux
+   :members:
+   :undoc-members:
+   :show-inheritance:

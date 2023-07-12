@@ -1,0 +1,29 @@
+cvnets.matcher\_det package
+===========================
+
+Submodules
+----------
+
+cvnets.matcher\_det.base\_matcher module
+----------------------------------------
+
+.. automodule:: cvnets.matcher_det.base_matcher
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.matcher\_det.ssd\_matcher module
+---------------------------------------
+
+.. automodule:: cvnets.matcher_det.ssd_matcher
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cvnets.matcher_det
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>loss_fn.detection.ssd_multibox_loss &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../loss_fn.html">loss_fn</a></li>
+      <li class="breadcrumb-item active">loss_fn.detection.ssd_multibox_loss</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for loss_fn.detection.ssd_multibox_loss</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">F</span>
+
+<span class="kn">from</span> <span class="nn">cvnets.misc.third_party.ssd_utils</span> <span class="kn">import</span> <span class="n">hard_negative_mining</span>
+<span class="kn">from</span> <span class="nn">loss_fn</span> <span class="kn">import</span> <span class="n">LOSS_REGISTRY</span>
+<span class="kn">from</span> <span class="nn">loss_fn.detection.base_detection_criteria</span> <span class="kn">import</span> <span class="n">BaseDetectionCriteria</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">from</span> <span class="nn">utils.ddp_utils</span> <span class="kn">import</span> <span class="n">is_master</span>
+<span class="kn">from</span> <span class="nn">utils.tensor_utils</span> <span class="kn">import</span> <span class="n">tensor_to_python_float</span>
+
+
+<div class="viewcode-block" id="SSDLoss"><a class="viewcode-back" href="../../../autogen/loss_fn.detection.html#loss_fn.detection.ssd_multibox_loss.SSDLoss">[docs]</a><span class="nd">@LOSS_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;ssd_multibox_loss&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;detection&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">SSDLoss</span><span class="p">(</span><span class="n">BaseDetectionCriteria</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Loss for single shot multi-box object detection</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: command-line arguments</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SSDLoss.__init__"><a class="viewcode-back" href="../../../autogen/loss_fn.detection.html#loss_fn.detection.ssd_multibox_loss.SSDLoss.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unscaled_reg_loss</span> <span class="o">=</span> <span class="mf">1e-7</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unscaled_conf_loss</span> <span class="o">=</span> <span class="mf">1e-7</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">neg_pos_ratio</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;loss.detection.ssd_multibox_loss.neg_pos_ratio&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wt_loc</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">curr_iter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;loss.detection.ssd_multibox_loss.max_monitor_iter&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_inter</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;loss.detection.ssd_multibox_loss.update_wt_freq&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_master</span> <span class="o">=</span> <span class="n">is_master</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label_smoothing</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;loss.detection.ssd_multibox_loss.label_smoothing&quot;</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_smoothing</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;The value of --loss.detection.ssd-multibox-loss.label-smoothing should be between 0 and 1. &quot;</span>
+                <span class="s2">&quot;Got: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label_smoothing</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Add default value to run CI/CD smoothly</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_distributed</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;ddp.use_distributed&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_unscaled_loss_values</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="SSDLoss.reset_unscaled_loss_values"><a class="viewcode-back" href="../../../autogen/loss_fn.detection.html#loss_fn.detection.ssd_multibox_loss.SSDLoss.reset_unscaled_loss_values">[docs]</a>    <span class="k">def</span> <span class="nf">reset_unscaled_loss_values</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the unscaled coefficients for confidence and regression losses to small values&quot;&quot;&quot;</span>
+        <span class="c1"># initialize with very small float values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unscaled_conf_loss</span> <span class="o">=</span> <span class="mf">1e-7</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unscaled_reg_loss</span> <span class="o">=</span> <span class="mf">1e-7</span></div>
+
+<div class="viewcode-block" id="SSDLoss.add_arguments"><a class="viewcode-back" href="../../../autogen/loss_fn.detection.html#loss_fn.detection.ssd_multibox_loss.SSDLoss.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">cls</span> <span class="o">!=</span> <span class="n">SSDLoss</span><span class="p">:</span>
+            <span class="c1"># Don&#39;t re-register arguments in subclasses that don&#39;t override `add_arguments()`.</span>
+            <span class="k">return</span> <span class="n">parser</span>
+
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--loss.detection.ssd-multibox-loss.neg-pos-ratio&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Negative positive ratio in </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">. Defaults to 3.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--loss.detection.ssd-multibox-loss.max-monitor-iter&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Number of iterations for monitoring location and &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;classification loss in </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">. -1 means do not monitor. &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Defaults to -1.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--loss.detection.ssd-multibox-loss.update-wt-freq&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Update the weights after N number of iterations in </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">. &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Defaults to 200 iterations.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--loss.detection.ssd-multibox-loss.label-smoothing&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Specifies the amount of smoothing when computing the classification loss in </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;where 0.0 means no smoothing. Defaults to 0.0.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="SSDLoss.forward"><a class="viewcode-back" href="../../../autogen/loss_fn.detection.html#loss_fn.detection.ssd_multibox_loss.SSDLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">input_sample</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="n">prediction</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">target</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">],</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the SSD Loss</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            input_sample: Input image tensor to the model.</span>
+<span class="sd">            prediction: Model output. It is a mapping of the form (string: Tensor) containing two</span>
+<span class="sd">                mandatory keys, i.e., scores and boxes</span>
+<span class="sd">            target: Ground truth labels. It is a mapping of the form (string: Tensor) containing two</span>
+<span class="sd">                mandatory keys, i.e., box_labels and box_coordinates.</span>
+<span class="sd">        Shape:</span>
+<span class="sd">            input_sample: This loss function does not care about input to the model.</span>
+<span class="sd">            prediction[&quot;scores&quot;]: Shape is [Batch size, number of anchors, number of classes]</span>
+<span class="sd">            prediction[&quot;boxes&quot;]: Shape is [Batch size, number of anchors, 4] where 4 is the number of box coordinates</span>
+
+<span class="sd">            target[&quot;box_labels&quot;]: Shape is [Batch size, number of anchors]</span>
+<span class="sd">            target[&quot;box_coordinates&quot;]: Shape is [Batch size, number of anchors, 4]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A mapping of (string: scalar) is returned. Output contains following keys: (total_loss, reg_loss, cls_loss).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">{</span><span class="s2">&quot;scores&quot;</span><span class="p">,</span> <span class="s2">&quot;boxes&quot;</span><span class="p">}</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;scores and boxes are mandatory keys for model&#39;s output in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">{</span><span class="s2">&quot;box_labels&quot;</span><span class="p">,</span> <span class="s2">&quot;box_coordinates&quot;</span><span class="p">}</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;box_labels and box_coordinates are mandatory keys for ground truth in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">confidence</span> <span class="o">=</span> <span class="n">prediction</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]</span>
+        <span class="n">predicted_locations</span> <span class="o">=</span> <span class="n">prediction</span><span class="p">[</span><span class="s2">&quot;boxes&quot;</span><span class="p">]</span>
+
+        <span class="n">gt_labels</span> <span class="o">=</span> <span class="n">target</span><span class="p">[</span><span class="s2">&quot;box_labels&quot;</span><span class="p">]</span>
+        <span class="n">gt_locations</span> <span class="o">=</span> <span class="n">target</span><span class="p">[</span><span class="s2">&quot;box_coordinates&quot;</span><span class="p">]</span>
+
+        <span class="n">num_classes</span> <span class="o">=</span> <span class="n">confidence</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">num_coordinates</span> <span class="o">=</span> <span class="n">predicted_locations</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">pos_mask</span> <span class="o">=</span> <span class="n">gt_labels</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="n">predicted_locations</span> <span class="o">=</span> <span class="n">predicted_locations</span><span class="p">[</span><span class="n">pos_mask</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_coordinates</span><span class="p">)</span>
+        <span class="n">gt_locations</span> <span class="o">=</span> <span class="n">gt_locations</span><span class="p">[</span><span class="n">pos_mask</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_coordinates</span><span class="p">)</span>
+        <span class="n">num_pos</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">gt_locations</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">smooth_l1_loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">smooth_l1_loss</span><span class="p">(</span>
+            <span class="n">predicted_locations</span><span class="p">,</span> <span class="n">gt_locations</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;sum&quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">confidence</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">hard_negative_mining</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">gt_labels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">neg_pos_ratio</span><span class="p">)</span>
+
+        <span class="n">confidence</span> <span class="o">=</span> <span class="n">confidence</span><span class="p">[</span><span class="n">mask</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">label_smoothing</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_smoothing</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="k">else</span> <span class="mf">0.0</span>
+        <span class="n">classification_loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span>
+            <span class="nb">input</span><span class="o">=</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">),</span>
+            <span class="n">target</span><span class="o">=</span><span class="n">gt_labels</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span>
+            <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;sum&quot;</span><span class="p">,</span>
+            <span class="n">label_smoothing</span><span class="o">=</span><span class="n">label_smoothing</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">curr_iter</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="c1"># classification loss may dominate localization loss or vice-versa</span>
+            <span class="c1"># Therefore, to ensure that their contributions are equal towards total loss, we scale regression loss.</span>
+            <span class="c1"># If classification loss contribution is less (or more), then scaling factor will be &lt; 1 (or &gt; 1)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unscaled_conf_loss</span> <span class="o">+=</span> <span class="n">tensor_to_python_float</span><span class="p">(</span>
+                <span class="n">classification_loss</span><span class="p">,</span> <span class="n">is_distributed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">is_distributed</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unscaled_reg_loss</span> <span class="o">+=</span> <span class="n">tensor_to_python_float</span><span class="p">(</span>
+                <span class="n">smooth_l1_loss</span><span class="p">,</span> <span class="n">is_distributed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">is_distributed</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">curr_iter</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_inter</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">curr_iter</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">:</span>
+                <span class="c1"># weight value before update</span>
+                <span class="n">before_update</span> <span class="o">=</span> <span class="n">tensor_to_python_float</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">wt_loc</span><span class="p">,</span> <span class="n">is_distributed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">is_distributed</span>
+                <span class="p">)</span>
+                <span class="n">before_update</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">before_update</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+                <span class="c1"># update the weight value</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">wt_loc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unscaled_conf_loss</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">unscaled_reg_loss</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">reset_unscaled_loss_values</span><span class="p">()</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_master</span><span class="p">:</span>
+                    <span class="c1"># weight value after update</span>
+                    <span class="n">after_update</span> <span class="o">=</span> <span class="n">tensor_to_python_float</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">wt_loc</span><span class="p">,</span> <span class="n">is_distributed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">is_distributed</span>
+                    <span class="p">)</span>
+                    <span class="n">after_update</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">after_update</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Updating localization loss multiplier from </span><span class="si">{</span><span class="n">before_update</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">after_update</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">curr_iter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">wt_loc</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">smooth_l1_loss</span> <span class="o">=</span> <span class="n">smooth_l1_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">wt_loc</span>
+
+        <span class="n">ssd_loss</span> <span class="o">=</span> <span class="p">(</span><span class="n">smooth_l1_loss</span> <span class="o">+</span> <span class="n">classification_loss</span><span class="p">)</span> <span class="o">/</span> <span class="n">num_pos</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;total_loss&quot;</span><span class="p">:</span> <span class="n">ssd_loss</span><span class="p">,</span>
+            <span class="s2">&quot;reg_loss&quot;</span><span class="p">:</span> <span class="n">smooth_l1_loss</span> <span class="o">/</span> <span class="n">num_pos</span><span class="p">,</span>
+            <span class="s2">&quot;cls_loss&quot;</span><span class="p">:</span> <span class="n">classification_loss</span> <span class="o">/</span> <span class="n">num_pos</span><span class="p">,</span>
+        <span class="p">}</span></div>
+
+<div class="viewcode-block" id="SSDLoss.extra_repr"><a class="viewcode-back" href="../../../autogen/loss_fn.detection.html#loss_fn.detection.ssd_multibox_loss.SSDLoss.extra_repr">[docs]</a>    <span class="k">def</span> <span class="nf">extra_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> neg_pos_ratio=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">neg_pos_ratio</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> box_loss=SmoothL1&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> class_loss=CrossEntropy&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> self_weighting=</span><span class="si">{</span><span class="kc">True</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="kc">False</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

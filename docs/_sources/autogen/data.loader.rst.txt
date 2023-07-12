@@ -1,0 +1,21 @@
+data.loader package
+===================
+
+Submodules
+----------
+
+data.loader.dataloader module
+-----------------------------
+
+.. automodule:: data.loader.dataloader
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: data.loader
+   :members:
+   :undoc-members:
+   :show-inheritance:

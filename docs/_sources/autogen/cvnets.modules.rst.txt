@@ -1,0 +1,141 @@
+cvnets.modules package
+======================
+
+Submodules
+----------
+
+cvnets.modules.aspp\_block module
+---------------------------------
+
+.. automodule:: cvnets.modules.aspp_block
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.modules.base\_module module
+----------------------------------
+
+.. automodule:: cvnets.modules.base_module
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.modules.efficientnet module
+----------------------------------
+
+.. automodule:: cvnets.modules.efficientnet
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.modules.fastvit module
+-----------------------------
+
+.. automodule:: cvnets.modules.fastvit
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.modules.feature\_pyramid module
+--------------------------------------
+
+.. automodule:: cvnets.modules.feature_pyramid
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.modules.mobilenetv2 module
+---------------------------------
+
+.. automodule:: cvnets.modules.mobilenetv2
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.modules.mobileone\_block module
+--------------------------------------
+
+.. automodule:: cvnets.modules.mobileone_block
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.modules.mobilevit\_block module
+--------------------------------------
+
+.. automodule:: cvnets.modules.mobilevit_block
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.modules.pspnet\_module module
+------------------------------------
+
+.. automodule:: cvnets.modules.pspnet_module
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.modules.regnet\_modules module
+-------------------------------------
+
+.. automodule:: cvnets.modules.regnet_modules
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.modules.resnet\_modules module
+-------------------------------------
+
+.. automodule:: cvnets.modules.resnet_modules
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.modules.squeeze\_excitation module
+-----------------------------------------
+
+.. automodule:: cvnets.modules.squeeze_excitation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.modules.ssd\_heads module
+--------------------------------
+
+.. automodule:: cvnets.modules.ssd_heads
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.modules.swin\_transformer\_block module
+----------------------------------------------
+
+.. automodule:: cvnets.modules.swin_transformer_block
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.modules.transformer module
+---------------------------------
+
+.. automodule:: cvnets.modules.transformer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.modules.windowed\_transformer module
+-------------------------------------------
+
+.. automodule:: cvnets.modules.windowed_transformer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cvnets.modules
+   :members:
+   :undoc-members:
+   :show-inheritance:

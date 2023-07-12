@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>data.sampler.base_sampler &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../sampler.html">data.sampler</a></li>
+      <li class="breadcrumb-item active">data.sampler.base_sampler</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for data.sampler.base_sampler</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.distributed</span> <span class="k">as</span> <span class="nn">dist</span>
+<span class="kn">from</span> <span class="nn">torch.utils.data.sampler</span> <span class="kn">import</span> <span class="n">Sampler</span>
+
+
+<div class="viewcode-block" id="BaseSampler"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.base_sampler.BaseSampler">[docs]</a><span class="k">class</span> <span class="nc">BaseSampler</span><span class="p">(</span><span class="n">Sampler</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for standard and DataParallel Sampler.</span>
+
+<span class="sd">    Every subclass should implement `__iter__` method, providing a way to iterate</span>
+<span class="sd">    over indices of dataset elements.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: command line argument</span>
+<span class="sd">        n_data_samples: Number of samples in the dataset</span>
+<span class="sd">        is_training: Training mode or not. Default: False</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BaseSampler.__init__"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.base_sampler.BaseSampler.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
+        <span class="n">n_data_samples</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">is_training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># max between 1 and number of available GPUs. 1 because for supporting CPUs</span>
+        <span class="n">n_gpus</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device_count</span><span class="p">())</span>
+        <span class="n">batch_size_gpu0</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">get_batch_size_from_opts</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">is_training</span><span class="o">=</span><span class="n">is_training</span><span class="p">)</span>
+
+        <span class="n">n_samples_per_gpu</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">n_data_samples</span> <span class="o">*</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">n_gpus</span><span class="p">))</span>
+        <span class="n">total_size</span> <span class="o">=</span> <span class="n">n_samples_per_gpu</span> <span class="o">*</span> <span class="n">n_gpus</span>
+
+        <span class="n">indexes</span> <span class="o">=</span> <span class="p">[</span><span class="n">idx</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_data_samples</span><span class="p">)]</span>
+        <span class="c1"># This ensures that we can divide the batches evenly across GPUs</span>
+        <span class="n">indexes</span> <span class="o">+=</span> <span class="n">indexes</span><span class="p">[:</span> <span class="p">(</span><span class="n">total_size</span> <span class="o">-</span> <span class="n">n_data_samples</span><span class="p">)]</span>
+        <span class="k">assert</span> <span class="n">total_size</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">indexes</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_indices</span> <span class="o">=</span> <span class="n">indexes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span> <span class="o">=</span> <span class="n">total_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size_gpu0</span> <span class="o">=</span> <span class="n">batch_size_gpu0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_gpus</span> <span class="o">=</span> <span class="n">n_gpus</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shuffle</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">is_training</span> <span class="k">else</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_repeats</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trunc_rep_aug</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">is_training</span><span class="p">:</span>
+            <span class="c1"># enable these arguments for repeated data augmentation</span>
+            <span class="c1"># https://openaccess.thecvf.com/content_CVPR_2020/papers/Hoffer_Augment_Your_Batch_Improving_Generalization_Through_Instance_Repetition_CVPR_2020_paper.pdf</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_repeats</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;sampler.num_repeats&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trunc_rep_aug</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;sampler.truncated_repeat_aug_sampler&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseSampler.add_arguments"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.base_sampler.BaseSampler.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">cls</span> <span class="o">!=</span> <span class="n">BaseSampler</span><span class="p">:</span>
+            <span class="c1"># Don&#39;t re-register arguments in subclasses that don&#39;t override `add_arguments()`.</span>
+            <span class="k">return</span> <span class="n">parser</span>
+
+        <span class="c1"># add sampler-specific arguments</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--sampler.name&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;batch_sampler&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of the sampler. Defaults to batch sampler.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--sampler.num-repeats&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Repeat the training dataset samples by this factor in each epoch (aka repeated augmentation). &quot;</span>
+            <span class="s2">&quot;This effectively increases samples per epoch. As an example, if dataset has 10000 samples &quot;</span>
+            <span class="s2">&quot;and sampler.num_repeats is set to 2, then total samples in each epoch would be 20000. &quot;</span>
+            <span class="s2">&quot;Defaults to 1.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--sampler.truncated-repeat-aug-sampler&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;When enabled, it restricts the sampler to load a subset of the training dataset such that&quot;</span>
+            <span class="s2">&quot;number of samples obtained after repetition are the same as the original dataset.&quot;</span>
+            <span class="s2">&quot;As an example, if dataset has 10000 samples, sampler.num_repeats is set to 2, and &quot;</span>
+            <span class="s2">&quot;sampler.truncated_repeat_aug_sampler is enabled, then the sampler would sample &quot;</span>
+            <span class="s2">&quot;10000 samples in each epoch. Defaults to False.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="BaseSampler.get_indices"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.base_sampler.BaseSampler.get_indices">[docs]</a>    <span class="k">def</span> <span class="nf">get_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a list of indices of dataset elements to iterate over.</span>
+
+<span class="sd">        ...note:</span>
+<span class="sd">            If repeated augmentation is enabled, then indices will be repeated.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">img_indices</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_indices</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shuffle</span><span class="p">:</span>
+            <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">epoch</span><span class="p">)</span>
+            <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">img_indices</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_repeats</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># Apply repeated augmentation</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;Assume that we have [0, 1, 2, 3] samples. With repeated augmentation,</span>
+<span class="sd">                we first repeat the samples [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3] and then select 4</span>
+<span class="sd">                samples [0, 0, 0, 1]. Note that we do shuffle at the beginning, so samples are not the</span>
+<span class="sd">                same at every iteration.</span>
+<span class="sd">                &quot;&quot;&quot;</span>
+                <span class="n">n_samples_before_repeat</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">img_indices</span><span class="p">)</span>
+                <span class="n">img_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">img_indices</span><span class="p">,</span> <span class="n">repeats</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_repeats</span><span class="p">)</span>
+                <span class="n">img_indices</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">img_indices</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_rep_aug</span><span class="p">:</span>
+                    <span class="n">img_indices</span> <span class="o">=</span> <span class="n">img_indices</span><span class="p">[:</span><span class="n">n_samples_before_repeat</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">img_indices</span></div>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">]]:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_indices</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_rep_aug</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_repeats</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BaseSampler.set_epoch"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.base_sampler.BaseSampler.set_epoch">[docs]</a>    <span class="k">def</span> <span class="nf">set_epoch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper function to set epoch in each sampler.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="o">=</span> <span class="n">epoch</span></div>
+
+<div class="viewcode-block" id="BaseSampler.update_scales"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.base_sampler.BaseSampler.update_scales">[docs]</a>    <span class="k">def</span> <span class="nf">update_scales</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">is_master_node</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper function to update scales in each sampler. This is typically useful in variable-batch sampler.</span>
+
+<span class="sd">        Subclass is expected to implement this function. By default, we do not do anything</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="BaseSampler.update_indices"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.base_sampler.BaseSampler.update_indices">[docs]</a>    <span class="k">def</span> <span class="nf">update_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_indices</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update indices to new indices. This function might be useful for sample-efficient training.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_indices</span> <span class="o">=</span> <span class="n">new_indices</span></div>
+
+<div class="viewcode-block" id="BaseSampler.extra_repr"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.base_sampler.BaseSampler.extra_repr">[docs]</a>    <span class="k">def</span> <span class="nf">extra_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">extra_repr_str</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> num_repeat=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_repeats</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> trunc_rep_aug=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">trunc_rep_aug</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">extra_repr_str</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">(</span><span class="si">{}</span><span class="se">\n</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra_repr</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="BaseSamplerDDP"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.base_sampler.BaseSamplerDDP">[docs]</a><span class="k">class</span> <span class="nc">BaseSamplerDDP</span><span class="p">(</span><span class="n">Sampler</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for DistributedDataParallel Sampler.</span>
+
+<span class="sd">    Every subclass should implement `__iter__` method, providing a way to iterate</span>
+<span class="sd">    over indices of dataset elements.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: command line argument</span>
+<span class="sd">        n_data_samples: Number of samples in the dataset</span>
+<span class="sd">        is_training: Training or validation mode. Default: False</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BaseSamplerDDP.__init__"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.base_sampler.BaseSamplerDDP.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
+        <span class="n">n_data_samples</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">is_training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">batch_size_gpu0</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">get_batch_size_from_opts</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">is_training</span><span class="o">=</span><span class="n">is_training</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">dist</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Requires distributed package to be available&quot;</span><span class="p">)</span>
+
+        <span class="n">num_replicas</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">()</span>
+        <span class="n">rank</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_rank</span><span class="p">()</span>
+        <span class="n">gpus_node_i</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device_count</span><span class="p">())</span>
+
+        <span class="n">num_samples_per_replica</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">n_data_samples</span> <span class="o">*</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">num_replicas</span><span class="p">))</span>
+        <span class="n">total_size</span> <span class="o">=</span> <span class="n">num_samples_per_replica</span> <span class="o">*</span> <span class="n">num_replicas</span>
+
+        <span class="n">img_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">idx</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_data_samples</span><span class="p">)]</span>
+        <span class="n">img_indices</span> <span class="o">+=</span> <span class="n">img_indices</span><span class="p">[:</span> <span class="p">(</span><span class="n">total_size</span> <span class="o">-</span> <span class="n">n_data_samples</span><span class="p">)]</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">img_indices</span><span class="p">)</span> <span class="o">==</span> <span class="n">total_size</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_indices</span> <span class="o">=</span> <span class="n">img_indices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_samples_per_replica</span> <span class="o">=</span> <span class="n">num_samples_per_replica</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shuffle</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">is_training</span> <span class="k">else</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="n">rank</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size_gpu0</span> <span class="o">=</span> <span class="n">batch_size_gpu0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_replicas</span> <span class="o">=</span> <span class="n">num_replicas</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skip_sample_indices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_id</span> <span class="o">=</span> <span class="n">rank</span> <span class="o">//</span> <span class="n">gpus_node_i</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_nodes</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_replicas</span> <span class="o">//</span> <span class="n">gpus_node_i</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_rank</span> <span class="o">=</span> <span class="n">rank</span> <span class="o">%</span> <span class="n">gpus_node_i</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_gpus_node_i</span> <span class="o">=</span> <span class="n">gpus_node_i</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sharding</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_repeats</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trunc_rep_aug</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disable_shuffle_sharding</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">is_training</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sharding</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;sampler.use_shards&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_repeats</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;sampler.num_repeats&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trunc_rep_aug</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;sampler.truncated_repeat_aug_sampler&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">disable_shuffle_sharding</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+                <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;sampler.disable_shuffle_sharding&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">sample_multiplier</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_rep_aug</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_repeats</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_samples_per_replica</span> <span class="o">=</span> <span class="n">num_samples_per_replica</span> <span class="o">*</span> <span class="n">sample_multiplier</span></div>
+
+<div class="viewcode-block" id="BaseSamplerDDP.get_indices_rank_i"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.base_sampler.BaseSamplerDDP.get_indices_rank_i">[docs]</a>    <span class="k">def</span> <span class="nf">get_indices_rank_i</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a list of indices of dataset elements for each rank to iterate over.</span>
+
+<span class="sd">        ...note:</span>
+<span class="sd">            1. If repeated augmentation is enabled, then indices will be repeated.</span>
+<span class="sd">            2. If sharding is enabled, then each rank will process a subset of the dataset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">img_indices</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_indices</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shuffle</span><span class="p">:</span>
+            <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">epoch</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sharding</span><span class="p">:</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;If we have 8 samples, say [0, 1, 2, 3, 4, 5, 6, 7], and we have two nodes,</span>
+<span class="sd">                then node 0 will receive first 4 samples and node 1 will receive last 4 samples.</span>
+
+<span class="sd">                note:</span>
+<span class="sd">                    This strategy is useful when dataset is large and we want to process subset of dataset on each node.</span>
+<span class="sd">                &quot;&quot;&quot;</span>
+
+                <span class="c1"># compute number pf samples per node.</span>
+                <span class="c1"># Each node may have multiple GPUs</span>
+                <span class="c1"># Node id = rank // num_gpus_per_rank</span>
+                <span class="n">samples_per_node</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">img_indices</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_nodes</span><span class="p">))</span>
+                <span class="n">indices_node_i</span> <span class="o">=</span> <span class="n">img_indices</span><span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">node_id</span>
+                    <span class="o">*</span> <span class="n">samples_per_node</span> <span class="p">:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_id</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="o">*</span> <span class="n">samples_per_node</span>
+                <span class="p">]</span>
+
+                <span class="c1"># Ensure that each node has equal number of samples</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices_node_i</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">samples_per_node</span><span class="p">:</span>
+                    <span class="n">indices_node_i</span> <span class="o">+=</span> <span class="n">indices_node_i</span><span class="p">[</span>
+                        <span class="p">:</span> <span class="p">(</span><span class="n">samples_per_node</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices_node_i</span><span class="p">))</span>
+                    <span class="p">]</span>
+
+                <span class="c1"># Note: For extremely large datasets, we may want to disable shuffling for efficient data loading</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">disable_shuffle_sharding</span><span class="p">:</span>
+                    <span class="c1"># shuffle the indices within a node.</span>
+                    <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">indices_node_i</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_repeats</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+<span class="w">                    </span><span class="sd">&quot;&quot;&quot;Assume that we have [0, 1, 2, 3] samples in rank_i. With repeated augmentation,</span>
+<span class="sd">                    we first repeat the samples [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3] and then select 4</span>
+<span class="sd">                    samples [0, 0, 0, 1]. Note shuffling at the beginning</span>
+<span class="sd">                    &quot;&quot;&quot;</span>
+                    <span class="c1"># Apply repeated augmentation</span>
+                    <span class="n">n_samples_before_repeat</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices_node_i</span><span class="p">)</span>
+                    <span class="n">indices_node_i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">indices_node_i</span><span class="p">,</span> <span class="n">repeats</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_repeats</span><span class="p">)</span>
+                    <span class="n">indices_node_i</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">indices_node_i</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_rep_aug</span><span class="p">:</span>
+                        <span class="n">indices_node_i</span> <span class="o">=</span> <span class="n">indices_node_i</span><span class="p">[:</span><span class="n">n_samples_before_repeat</span><span class="p">]</span>
+
+                <span class="c1"># divide the samples among each GPU in a node</span>
+                <span class="n">indices_rank_i</span> <span class="o">=</span> <span class="n">indices_node_i</span><span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">local_rank</span> <span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices_node_i</span><span class="p">)</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_gpus_node_i</span>
+                <span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;If we have 8 samples, say [0, 1, 2, 3, 4, 5, 6, 7], and we have two nodes,</span>
+<span class="sd">                then node 0 will receive [0, 2, 4, 6] and node 1 will receive [1, 3, 4, 7].</span>
+
+<span class="sd">                note:</span>
+<span class="sd">                    This strategy is useful when each data sample is stored independently, and is</span>
+<span class="sd">                    default in many frameworks</span>
+<span class="sd">                &quot;&quot;&quot;</span>
+                <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">img_indices</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_repeats</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="c1"># Apply repeated augmentation</span>
+                    <span class="n">n_samples_before_repeat</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">img_indices</span><span class="p">)</span>
+                    <span class="n">img_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">img_indices</span><span class="p">,</span> <span class="n">repeats</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_repeats</span><span class="p">)</span>
+                    <span class="n">img_indices</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">img_indices</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_rep_aug</span><span class="p">:</span>
+                        <span class="n">img_indices</span> <span class="o">=</span> <span class="n">img_indices</span><span class="p">[:</span><span class="n">n_samples_before_repeat</span><span class="p">]</span>
+
+                <span class="c1"># divide the samples among each GPU in a node</span>
+                <span class="n">indices_rank_i</span> <span class="o">=</span> <span class="n">img_indices</span><span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">img_indices</span><span class="p">)</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_replicas</span>
+                <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">indices_rank_i</span> <span class="o">=</span> <span class="n">img_indices</span><span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_indices</span><span class="p">)</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_replicas</span>
+            <span class="p">]</span>
+        <span class="k">return</span> <span class="n">indices_rank_i</span></div>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">]]:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_indices</span><span class="p">)</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_replicas</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span>
+            <span class="mi">1</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trunc_rep_aug</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_repeats</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="BaseSamplerDDP.add_arguments"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.base_sampler.BaseSamplerDDP.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">cls</span> <span class="o">!=</span> <span class="n">BaseSamplerDDP</span><span class="p">:</span>
+            <span class="c1"># Don&#39;t re-register arguments in subclasses that don&#39;t override `add_arguments()`.</span>
+            <span class="k">return</span> <span class="n">parser</span>
+
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--sampler.use-shards&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Use data sharding. Only applicable to DDP. Defaults to False.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--sampler.disable-shuffle-sharding&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable shuffling while sharding for extremely large datasets. Defaults to False.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="BaseSamplerDDP.set_epoch"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.base_sampler.BaseSamplerDDP.set_epoch">[docs]</a>    <span class="k">def</span> <span class="nf">set_epoch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper function to set epoch in each sampler.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="o">=</span> <span class="n">epoch</span></div>
+
+<div class="viewcode-block" id="BaseSamplerDDP.update_scales"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.base_sampler.BaseSamplerDDP.update_scales">[docs]</a>    <span class="k">def</span> <span class="nf">update_scales</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">is_master_node</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper function to update scales in each sampler. This is typically useful in variable-batch sampler</span>
+
+<span class="sd">        Subclass is expected to implement this function. By default, we do not do anything</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="BaseSamplerDDP.update_indices"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.base_sampler.BaseSamplerDDP.update_indices">[docs]</a>    <span class="k">def</span> <span class="nf">update_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_indices</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update indices to new indices. This function might be useful for sample-efficient training.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_indices</span> <span class="o">=</span> <span class="n">new_indices</span></div>
+
+<div class="viewcode-block" id="BaseSamplerDDP.extra_repr"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.base_sampler.BaseSamplerDDP.extra_repr">[docs]</a>    <span class="k">def</span> <span class="nf">extra_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">extra_repr_str</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> num_repeat=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_repeats</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> trunc_rep_aug=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">trunc_rep_aug</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> sharding=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">sharding</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> disable_shuffle_sharding=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">disable_shuffle_sharding</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">extra_repr_str</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">(</span><span class="si">{}</span><span class="se">\n</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra_repr</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="get_batch_size_from_opts"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.base_sampler.get_batch_size_from_opts">[docs]</a><span class="k">def</span> <span class="nf">get_batch_size_from_opts</span><span class="p">(</span>
+    <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">is_training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Helper function to extract batch size for training or validation/test</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: command line argument</span>
+<span class="sd">        is_training: Training or validation mode. Default: False</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Returns an integer</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">batch_size_gpu0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+        <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.train_batch_size0&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">is_training</span>
+        <span class="k">else</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.val_batch_size0&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">batch_size_gpu0</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

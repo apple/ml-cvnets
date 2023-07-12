@@ -1,0 +1,21 @@
+utils.third\_party package
+==========================
+
+Submodules
+----------
+
+utils.third\_party.ddp\_functional\_utils module
+------------------------------------------------
+
+.. automodule:: utils.third_party.ddp_functional_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: utils.third_party
+   :members:
+   :undoc-members:
+   :show-inheritance:

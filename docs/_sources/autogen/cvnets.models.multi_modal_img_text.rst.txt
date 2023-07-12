@@ -1,0 +1,29 @@
+cvnets.models.multi\_modal\_img\_text package
+=============================================
+
+Submodules
+----------
+
+cvnets.models.multi\_modal\_img\_text.base\_multi\_modal\_img\_text module
+--------------------------------------------------------------------------
+
+.. automodule:: cvnets.models.multi_modal_img_text.base_multi_modal_img_text
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.multi\_modal\_img\_text.clip module
+-------------------------------------------------
+
+.. automodule:: cvnets.models.multi_modal_img_text.clip
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cvnets.models.multi_modal_img_text
+   :members:
+   :undoc-members:
+   :show-inheritance:

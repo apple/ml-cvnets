@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>data.datasets.utils.common &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../datasets.html">data.datasets</a></li>
+      <li class="breadcrumb-item active">data.datasets.utils.common</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for data.datasets.utils.common</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="n">IMG_EXTENSIONS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;.jpg&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;.jpeg&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;.png&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;.ppm&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;.bmp&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;.pgm&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;.tif&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;.tiff&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;.webp&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="file_has_valid_image_extension"><a class="viewcode-back" href="../../../../autogen/data.datasets.utils.html#data.datasets.utils.common.file_has_valid_image_extension">[docs]</a><span class="k">def</span> <span class="nf">file_has_valid_image_extension</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">file_has_allowed_extension</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">IMG_EXTENSIONS</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="file_has_allowed_extension"><a class="viewcode-back" href="../../../../autogen/data.datasets.utils.html#data.datasets.utils.common.file_has_allowed_extension">[docs]</a><span class="k">def</span> <span class="nf">file_has_allowed_extension</span><span class="p">(</span>
+    <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">extensions</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Checks if a file has an allowed extension.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        filename: Path to a file.</span>
+<span class="sd">        extensions: A string or a tuple of strings specifying the file extensions.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        True if the filename ends with one of given extensions, else False</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">filename</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">extensions</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_image_paths"><a class="viewcode-back" href="../../../../autogen/data.datasets.utils.html#data.datasets.utils.common.get_image_paths">[docs]</a><span class="k">def</span> <span class="nf">get_image_paths</span><span class="p">(</span><span class="n">directory</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns a list of paths to all image files in the input directory and its subdirectories.&quot;&quot;&quot;</span>
+    <span class="n">image_paths</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">fnames</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">topdown</span><span class="o">=</span><span class="kc">False</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">fnames</span><span class="p">):</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">file_has_valid_image_extension</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+                <span class="n">image_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">image_paths</span></div>
+
+
+<div class="viewcode-block" id="select_random_subset"><a class="viewcode-back" href="../../../../autogen/data.datasets.utils.html#data.datasets.utils.common.select_random_subset">[docs]</a><span class="k">def</span> <span class="nf">select_random_subset</span><span class="p">(</span>
+    <span class="n">random_seed</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">num_total_samples</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">num_samples_to_select</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">percentage_of_samples_to_select</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Randomly selects a subset of samples.</span>
+
+<span class="sd">    Only one of `num_samples_to_select` and `percentage_of_samples_to_select` should be provided.</span>
+<span class="sd">    Selects all the samples if neither of them are provided.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        random_seed: An integer seed to use for random selection.</span>
+<span class="sd">        num_total_samples: Total number of samples in the set that is being subsampled.</span>
+<span class="sd">        num_samples_to_select: An optional integer indicating the number of samples to select.</span>
+<span class="sd">        percentage_of_samples_to_select: An optional float in the range (0,100] indicating the percentage of</span>
+<span class="sd">            samples to select.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A list of (integer) indices of the selected samples.</span>
+
+<span class="sd">     Raises:</span>
+<span class="sd">        ValueError if both `num_samples_to_select` and `percentage_of_samples_to_select` are provided.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">num_samples_to_select</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="ow">and</span> <span class="n">percentage_of_samples_to_select</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Only one of `num_samples_to_select` and `percentage_of_samples_to_select` should be provided.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">num_samples_to_select</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">num_samples_to_select</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;`num_samples_to_select` should be greater than 0.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">percentage_of_samples_to_select</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">percentage_of_samples_to_select</span> <span class="o">&lt;=</span> <span class="mi">100</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;`percentage_of_samples_to_select` should be in the range (0, 100].&quot;</span>
+            <span class="p">)</span>
+
+    <span class="n">sample_indices</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">num_total_samples</span><span class="p">))</span>
+    <span class="n">rng</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">Random</span><span class="p">(</span><span class="n">random_seed</span><span class="p">)</span>
+    <span class="n">rng</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">sample_indices</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">num_samples_to_select</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">percentage_of_samples_to_select</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">sample_indices</span>
+
+    <span class="k">if</span> <span class="n">num_samples_to_select</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">num_samples_to_select</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="n">percentage_of_samples_to_select</span> <span class="o">*</span> <span class="n">num_total_samples</span> <span class="o">/</span> <span class="mi">100</span>
+        <span class="p">)</span>
+
+    <span class="n">num_samples_to_select</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">num_samples_to_select</span><span class="p">,</span> <span class="n">num_total_samples</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">sample_indices</span><span class="p">[:</span><span class="n">num_samples_to_select</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="select_samples_by_category"><a class="viewcode-back" href="../../../../autogen/data.datasets.utils.html#data.datasets.utils.common.select_samples_by_category">[docs]</a><span class="k">def</span> <span class="nf">select_samples_by_category</span><span class="p">(</span>
+    <span class="n">sample_category_labels</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">random_seed</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">num_samples_per_category</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">percentage_of_samples_per_category</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Randomly selects a specified number/percentage of samples from each category.</span>
+
+<span class="sd">    Only one of `num_samples_per_category` and `percentage_of_samples_per_category` should be provided.</span>
+<span class="sd">    Selects all the samples if neither of them are provided.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sample_category_labels: A list of category labels.</span>
+<span class="sd">        random_seed: An integer seed to use for random selection.</span>
+<span class="sd">        num_samples_per_category: An optional integer indicating the number of samples to select from each category.</span>
+<span class="sd">        percentage_of_samples_per_category: An optional float in the range (0, 100] indicating the percentage of</span>
+<span class="sd">            samples to select from each category.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A list of (integer) indices of the selected samples.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError if both `num_samples_per_category` and `percentage_of_samples_per_category` are provided.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">num_samples_per_category</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="ow">and</span> <span class="n">percentage_of_samples_per_category</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Only one of `num_samples_per_category` and `percentage_of_samples_per_category` should be provided.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">num_samples_per_category</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">percentage_of_samples_per_category</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sample_category_labels</span><span class="p">)))</span>
+
+    <span class="k">if</span> <span class="n">num_samples_per_category</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">num_samples_per_category</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;`num_samples_per_category` should be greater than 0.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">percentage_of_samples_per_category</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">percentage_of_samples_per_category</span> <span class="o">&lt;=</span> <span class="mi">100</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;`percentage_of_samples_per_category` should be in the range (0, 100].&quot;</span>
+            <span class="p">)</span>
+
+    <span class="n">category_specific_samples</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ind</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sample_category_labels</span><span class="p">):</span>
+        <span class="n">category_specific_samples</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span>
+
+    <span class="n">rng</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">Random</span><span class="p">(</span><span class="n">random_seed</span><span class="p">)</span>
+    <span class="n">selected_sample_indices</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">sample_indices</span> <span class="ow">in</span> <span class="n">category_specific_samples</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">rng</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">sample_indices</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">num_samples_per_category</span><span class="p">:</span>
+            <span class="n">num_samples</span> <span class="o">=</span> <span class="n">num_samples_per_category</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">num_samples</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+                <span class="n">percentage_of_samples_per_category</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">sample_indices</span><span class="p">)</span> <span class="o">/</span> <span class="mi">100</span>
+            <span class="p">)</span>
+        <span class="n">num_samples</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">num_samples</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">sample_indices</span><span class="p">))</span>
+        <span class="n">selected_sample_indices</span> <span class="o">+=</span> <span class="n">sample_indices</span><span class="p">[:</span><span class="n">num_samples</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">selected_sample_indices</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

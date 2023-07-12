@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cvnets package &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">cvnets package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/autogen/cvnets.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="cvnets-package">
+<h1>cvnets package<a class="headerlink" href="#cvnets-package" title="Permalink to this heading"></a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="cvnets.anchor_generator.html">cvnets.anchor_generator package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.anchor_generator.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.anchor_generator.html#module-cvnets.anchor_generator.base_anchor_generator">cvnets.anchor_generator.base_anchor_generator module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.anchor_generator.html#cvnets.anchor_generator.base_anchor_generator.BaseAnchorGenerator"><code class="docutils literal notranslate"><span class="pre">BaseAnchorGenerator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.anchor_generator.html#cvnets.anchor_generator.base_anchor_generator.BaseAnchorGenerator.__init__"><code class="docutils literal notranslate"><span class="pre">BaseAnchorGenerator.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.anchor_generator.html#cvnets.anchor_generator.base_anchor_generator.BaseAnchorGenerator.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseAnchorGenerator.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.anchor_generator.html#cvnets.anchor_generator.base_anchor_generator.BaseAnchorGenerator.num_anchors_per_os"><code class="docutils literal notranslate"><span class="pre">BaseAnchorGenerator.num_anchors_per_os()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.anchor_generator.html#cvnets.anchor_generator.base_anchor_generator.BaseAnchorGenerator.forward"><code class="docutils literal notranslate"><span class="pre">BaseAnchorGenerator.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.anchor_generator.html#module-cvnets.anchor_generator.ssd_anchor_generator">cvnets.anchor_generator.ssd_anchor_generator module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.anchor_generator.html#cvnets.anchor_generator.ssd_anchor_generator.SSDAnchorGenerator"><code class="docutils literal notranslate"><span class="pre">SSDAnchorGenerator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.anchor_generator.html#cvnets.anchor_generator.ssd_anchor_generator.SSDAnchorGenerator.__init__"><code class="docutils literal notranslate"><span class="pre">SSDAnchorGenerator.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.anchor_generator.html#cvnets.anchor_generator.ssd_anchor_generator.SSDAnchorGenerator.add_arguments"><code class="docutils literal notranslate"><span class="pre">SSDAnchorGenerator.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.anchor_generator.html#cvnets.anchor_generator.ssd_anchor_generator.SSDAnchorGenerator.num_anchors_per_os"><code class="docutils literal notranslate"><span class="pre">SSDAnchorGenerator.num_anchors_per_os()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.anchor_generator.html#module-cvnets.anchor_generator">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.anchor_generator.html#cvnets.anchor_generator.arguments_anchor_gen"><code class="docutils literal notranslate"><span class="pre">arguments_anchor_gen()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.anchor_generator.html#cvnets.anchor_generator.build_anchor_generator"><code class="docutils literal notranslate"><span class="pre">build_anchor_generator()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cvnets.image_projection_layers.html">cvnets.image_projection_layers package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.image_projection_layers.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.image_projection_layers.html#module-cvnets.image_projection_layers.attention_pool_2d">cvnets.image_projection_layers.attention_pool_2d module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.attention_pool_2d.AttentionPool2dHead"><code class="docutils literal notranslate"><span class="pre">AttentionPool2dHead</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.attention_pool_2d.AttentionPool2dHead.__init__"><code class="docutils literal notranslate"><span class="pre">AttentionPool2dHead.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.attention_pool_2d.AttentionPool2dHead.add_arguments"><code class="docutils literal notranslate"><span class="pre">AttentionPool2dHead.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.attention_pool_2d.AttentionPool2dHead.reset_parameters"><code class="docutils literal notranslate"><span class="pre">AttentionPool2dHead.reset_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.attention_pool_2d.AttentionPool2dHead.forward"><code class="docutils literal notranslate"><span class="pre">AttentionPool2dHead.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.image_projection_layers.html#module-cvnets.image_projection_layers.base_image_projection">cvnets.image_projection_layers.base_image_projection module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.base_image_projection.BaseImageProjectionHead"><code class="docutils literal notranslate"><span class="pre">BaseImageProjectionHead</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.base_image_projection.BaseImageProjectionHead.__init__"><code class="docutils literal notranslate"><span class="pre">BaseImageProjectionHead.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.base_image_projection.BaseImageProjectionHead.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseImageProjectionHead.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.base_image_projection.BaseImageProjectionHead.reset_parameters"><code class="docutils literal notranslate"><span class="pre">BaseImageProjectionHead.reset_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.base_image_projection.BaseImageProjectionHead.get_trainable_parameters"><code class="docutils literal notranslate"><span class="pre">BaseImageProjectionHead.get_trainable_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.base_image_projection.BaseImageProjectionHead.forward"><code class="docutils literal notranslate"><span class="pre">BaseImageProjectionHead.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.base_image_projection.get_in_feature_dimension"><code class="docutils literal notranslate"><span class="pre">get_in_feature_dimension()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.image_projection_layers.html#module-cvnets.image_projection_layers.global_pool_2d">cvnets.image_projection_layers.global_pool_2d module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.global_pool_2d.GlobalPool2D"><code class="docutils literal notranslate"><span class="pre">GlobalPool2D</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.global_pool_2d.GlobalPool2D.__init__"><code class="docutils literal notranslate"><span class="pre">GlobalPool2D.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.global_pool_2d.GlobalPool2D.add_arguments"><code class="docutils literal notranslate"><span class="pre">GlobalPool2D.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.global_pool_2d.GlobalPool2D.reset_parameters"><code class="docutils literal notranslate"><span class="pre">GlobalPool2D.reset_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.global_pool_2d.GlobalPool2D.forward"><code class="docutils literal notranslate"><span class="pre">GlobalPool2D.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.image_projection_layers.html#module-cvnets.image_projection_layers.simple_projection_head">cvnets.image_projection_layers.simple_projection_head module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.simple_projection_head.SimpleImageProjectionHead"><code class="docutils literal notranslate"><span class="pre">SimpleImageProjectionHead</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.simple_projection_head.SimpleImageProjectionHead.__init__"><code class="docutils literal notranslate"><span class="pre">SimpleImageProjectionHead.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.simple_projection_head.SimpleImageProjectionHead.add_arguments"><code class="docutils literal notranslate"><span class="pre">SimpleImageProjectionHead.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.simple_projection_head.SimpleImageProjectionHead.reset_parameters"><code class="docutils literal notranslate"><span class="pre">SimpleImageProjectionHead.reset_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.simple_projection_head.SimpleImageProjectionHead.forward"><code class="docutils literal notranslate"><span class="pre">SimpleImageProjectionHead.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.image_projection_layers.html#module-cvnets.image_projection_layers">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.arguments_image_projection_head"><code class="docutils literal notranslate"><span class="pre">arguments_image_projection_head()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.image_projection_layers.html#cvnets.image_projection_layers.build_image_projection_head"><code class="docutils literal notranslate"><span class="pre">build_image_projection_head()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cvnets.layers.html">cvnets.layers package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.activation.html">cvnets.layers.activation package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.activation.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.activation.html#module-cvnets.layers.activation.gelu">cvnets.layers.activation.gelu module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.activation.html#module-cvnets.layers.activation.hard_sigmoid">cvnets.layers.activation.hard_sigmoid module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.activation.html#module-cvnets.layers.activation.hard_swish">cvnets.layers.activation.hard_swish module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.activation.html#module-cvnets.layers.activation.leaky_relu">cvnets.layers.activation.leaky_relu module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.activation.html#module-cvnets.layers.activation.prelu">cvnets.layers.activation.prelu module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.activation.html#module-cvnets.layers.activation.relu">cvnets.layers.activation.relu module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.activation.html#module-cvnets.layers.activation.relu6">cvnets.layers.activation.relu6 module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.activation.html#module-cvnets.layers.activation.sigmoid">cvnets.layers.activation.sigmoid module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.activation.html#module-cvnets.layers.activation.swish">cvnets.layers.activation.swish module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.activation.html#module-cvnets.layers.activation.tanh">cvnets.layers.activation.tanh module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.activation.html#module-cvnets.layers.activation">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.normalization.html">cvnets.layers.normalization package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.normalization.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.normalization.html#module-cvnets.layers.normalization.batch_norm">cvnets.layers.normalization.batch_norm module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.normalization.html#module-cvnets.layers.normalization.group_norm">cvnets.layers.normalization.group_norm module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.normalization.html#module-cvnets.layers.normalization.instance_norm">cvnets.layers.normalization.instance_norm module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.normalization.html#module-cvnets.layers.normalization.layer_norm">cvnets.layers.normalization.layer_norm module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.normalization.html#module-cvnets.layers.normalization.sync_batch_norm">cvnets.layers.normalization.sync_batch_norm module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.normalization.html#module-cvnets.layers.normalization">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.adaptive_pool">cvnets.layers.adaptive_pool module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.adaptive_pool.AdaptiveAvgPool2d"><code class="docutils literal notranslate"><span class="pre">AdaptiveAvgPool2d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.adaptive_pool.AdaptiveAvgPool2d.__init__"><code class="docutils literal notranslate"><span class="pre">AdaptiveAvgPool2d.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.base_layer">cvnets.layers.base_layer module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.base_layer.BaseLayer"><code class="docutils literal notranslate"><span class="pre">BaseLayer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.base_layer.BaseLayer.__init__"><code class="docutils literal notranslate"><span class="pre">BaseLayer.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.base_layer.BaseLayer.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseLayer.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.base_layer.BaseLayer.get_trainable_parameters"><code class="docutils literal notranslate"><span class="pre">BaseLayer.get_trainable_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.base_layer.BaseLayer.forward"><code class="docutils literal notranslate"><span class="pre">BaseLayer.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.conv_layer">cvnets.layers.conv_layer module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.Conv2d"><code class="docutils literal notranslate"><span class="pre">Conv2d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.Conv2d.__init__"><code class="docutils literal notranslate"><span class="pre">Conv2d.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.ConvLayer1d"><code class="docutils literal notranslate"><span class="pre">ConvLayer1d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.ConvLayer1d.ndim"><code class="docutils literal notranslate"><span class="pre">ConvLayer1d.ndim</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.ConvLayer1d.module_cls"><code class="docutils literal notranslate"><span class="pre">ConvLayer1d.module_cls</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.ConvLayer2d"><code class="docutils literal notranslate"><span class="pre">ConvLayer2d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.ConvLayer2d.ndim"><code class="docutils literal notranslate"><span class="pre">ConvLayer2d.ndim</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.ConvLayer2d.module_cls"><code class="docutils literal notranslate"><span class="pre">ConvLayer2d.module_cls</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.ConvLayer3d"><code class="docutils literal notranslate"><span class="pre">ConvLayer3d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.ConvLayer3d.ndim"><code class="docutils literal notranslate"><span class="pre">ConvLayer3d.ndim</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.ConvLayer3d.module_cls"><code class="docutils literal notranslate"><span class="pre">ConvLayer3d.module_cls</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.TransposeConvLayer2d"><code class="docutils literal notranslate"><span class="pre">TransposeConvLayer2d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.TransposeConvLayer2d.__init__"><code class="docutils literal notranslate"><span class="pre">TransposeConvLayer2d.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.TransposeConvLayer2d.forward"><code class="docutils literal notranslate"><span class="pre">TransposeConvLayer2d.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.NormActLayer"><code class="docutils literal notranslate"><span class="pre">NormActLayer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.NormActLayer.__init__"><code class="docutils literal notranslate"><span class="pre">NormActLayer.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.NormActLayer.forward"><code class="docutils literal notranslate"><span class="pre">NormActLayer.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.SeparableConv1d"><code class="docutils literal notranslate"><span class="pre">SeparableConv1d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.SeparableConv1d.conv_layer_cls"><code class="docutils literal notranslate"><span class="pre">SeparableConv1d.conv_layer_cls</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.SeparableConv2d"><code class="docutils literal notranslate"><span class="pre">SeparableConv2d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.SeparableConv2d.conv_layer_cls"><code class="docutils literal notranslate"><span class="pre">SeparableConv2d.conv_layer_cls</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.SeparableConv3d"><code class="docutils literal notranslate"><span class="pre">SeparableConv3d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.conv_layer.SeparableConv3d.conv_layer_cls"><code class="docutils literal notranslate"><span class="pre">SeparableConv3d.conv_layer_cls</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.dropout">cvnets.layers.dropout module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.dropout.Dropout"><code class="docutils literal notranslate"><span class="pre">Dropout</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.dropout.Dropout.__init__"><code class="docutils literal notranslate"><span class="pre">Dropout.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.dropout.Dropout2d"><code class="docutils literal notranslate"><span class="pre">Dropout2d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.dropout.Dropout2d.__init__"><code class="docutils literal notranslate"><span class="pre">Dropout2d.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.embedding">cvnets.layers.embedding module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.embedding.Embedding"><code class="docutils literal notranslate"><span class="pre">Embedding</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.embedding.Embedding.__init__"><code class="docutils literal notranslate"><span class="pre">Embedding.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.embedding.Embedding.reset_parameters"><code class="docutils literal notranslate"><span class="pre">Embedding.reset_parameters()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.flatten">cvnets.layers.flatten module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.flatten.Flatten"><code class="docutils literal notranslate"><span class="pre">Flatten</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.flatten.Flatten.__init__"><code class="docutils literal notranslate"><span class="pre">Flatten.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.global_pool">cvnets.layers.global_pool module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.global_pool.GlobalPool"><code class="docutils literal notranslate"><span class="pre">GlobalPool</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.global_pool.GlobalPool.pool_types"><code class="docutils literal notranslate"><span class="pre">GlobalPool.pool_types</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.global_pool.GlobalPool.__init__"><code class="docutils literal notranslate"><span class="pre">GlobalPool.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.global_pool.GlobalPool.add_arguments"><code class="docutils literal notranslate"><span class="pre">GlobalPool.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.global_pool.GlobalPool.forward"><code class="docutils literal notranslate"><span class="pre">GlobalPool.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.identity">cvnets.layers.identity module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.identity.Identity"><code class="docutils literal notranslate"><span class="pre">Identity</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.identity.Identity.__init__"><code class="docutils literal notranslate"><span class="pre">Identity.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.identity.Identity.forward"><code class="docutils literal notranslate"><span class="pre">Identity.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.linear_attention">cvnets.layers.linear_attention module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.linear_attention.LinearSelfAttention"><code class="docutils literal notranslate"><span class="pre">LinearSelfAttention</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.linear_attention.LinearSelfAttention.__init__"><code class="docutils literal notranslate"><span class="pre">LinearSelfAttention.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.linear_attention.LinearSelfAttention.visualize_context_scores"><code class="docutils literal notranslate"><span class="pre">LinearSelfAttention.visualize_context_scores()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.linear_attention.LinearSelfAttention.forward"><code class="docutils literal notranslate"><span class="pre">LinearSelfAttention.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.linear_layer">cvnets.layers.linear_layer module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.linear_layer.LinearLayer"><code class="docutils literal notranslate"><span class="pre">LinearLayer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.linear_layer.LinearLayer.__init__"><code class="docutils literal notranslate"><span class="pre">LinearLayer.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.linear_layer.LinearLayer.add_arguments"><code class="docutils literal notranslate"><span class="pre">LinearLayer.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.linear_layer.LinearLayer.reset_params"><code class="docutils literal notranslate"><span class="pre">LinearLayer.reset_params()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.linear_layer.LinearLayer.forward"><code class="docutils literal notranslate"><span class="pre">LinearLayer.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.linear_layer.GroupLinear"><code class="docutils literal notranslate"><span class="pre">GroupLinear</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.linear_layer.GroupLinear.__init__"><code class="docutils literal notranslate"><span class="pre">GroupLinear.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.linear_layer.GroupLinear.add_arguments"><code class="docutils literal notranslate"><span class="pre">GroupLinear.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.linear_layer.GroupLinear.reset_params"><code class="docutils literal notranslate"><span class="pre">GroupLinear.reset_params()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.linear_layer.GroupLinear.forward"><code class="docutils literal notranslate"><span class="pre">GroupLinear.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.multi_head_attention">cvnets.layers.multi_head_attention module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.multi_head_attention.MultiHeadAttention"><code class="docutils literal notranslate"><span class="pre">MultiHeadAttention</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.multi_head_attention.MultiHeadAttention.__init__"><code class="docutils literal notranslate"><span class="pre">MultiHeadAttention.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.multi_head_attention.MultiHeadAttention.forward_tracing"><code class="docutils literal notranslate"><span class="pre">MultiHeadAttention.forward_tracing()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.multi_head_attention.MultiHeadAttention.forward_default"><code class="docutils literal notranslate"><span class="pre">MultiHeadAttention.forward_default()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.multi_head_attention.MultiHeadAttention.forward_pytorch"><code class="docutils literal notranslate"><span class="pre">MultiHeadAttention.forward_pytorch()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.multi_head_attention.MultiHeadAttention.forward"><code class="docutils literal notranslate"><span class="pre">MultiHeadAttention.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.normalization_layers">cvnets.layers.normalization_layers module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.normalization_layers.AdjustBatchNormMomentum"><code class="docutils literal notranslate"><span class="pre">AdjustBatchNormMomentum</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.normalization_layers.AdjustBatchNormMomentum.round_places"><code class="docutils literal notranslate"><span class="pre">AdjustBatchNormMomentum.round_places</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.normalization_layers.AdjustBatchNormMomentum.__init__"><code class="docutils literal notranslate"><span class="pre">AdjustBatchNormMomentum.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.normalization_layers.AdjustBatchNormMomentum.adjust_momentum"><code class="docutils literal notranslate"><span class="pre">AdjustBatchNormMomentum.adjust_momentum()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.pixel_shuffle">cvnets.layers.pixel_shuffle module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.pixel_shuffle.PixelShuffle"><code class="docutils literal notranslate"><span class="pre">PixelShuffle</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.pixel_shuffle.PixelShuffle.__init__"><code class="docutils literal notranslate"><span class="pre">PixelShuffle.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.pooling">cvnets.layers.pooling module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.pooling.MaxPool2d"><code class="docutils literal notranslate"><span class="pre">MaxPool2d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.pooling.MaxPool2d.__init__"><code class="docutils literal notranslate"><span class="pre">MaxPool2d.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.pooling.AvgPool2d"><code class="docutils literal notranslate"><span class="pre">AvgPool2d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.pooling.AvgPool2d.__init__"><code class="docutils literal notranslate"><span class="pre">AvgPool2d.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.positional_embedding">cvnets.layers.positional_embedding module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.positional_embedding.PositionalEmbedding"><code class="docutils literal notranslate"><span class="pre">PositionalEmbedding</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.positional_embedding.PositionalEmbedding.__init__"><code class="docutils literal notranslate"><span class="pre">PositionalEmbedding.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.positional_embedding.PositionalEmbedding.forward"><code class="docutils literal notranslate"><span class="pre">PositionalEmbedding.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.positional_embedding.LearnablePositionalEmbedding"><code class="docutils literal notranslate"><span class="pre">LearnablePositionalEmbedding</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.positional_embedding.LearnablePositionalEmbedding.__init__"><code class="docutils literal notranslate"><span class="pre">LearnablePositionalEmbedding.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.positional_embedding.LearnablePositionalEmbedding.reset_parameters"><code class="docutils literal notranslate"><span class="pre">LearnablePositionalEmbedding.reset_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.positional_embedding.LearnablePositionalEmbedding.forward"><code class="docutils literal notranslate"><span class="pre">LearnablePositionalEmbedding.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.positional_embedding.SinusoidalPositionalEmbedding"><code class="docutils literal notranslate"><span class="pre">SinusoidalPositionalEmbedding</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.positional_embedding.SinusoidalPositionalEmbedding.__init__"><code class="docutils literal notranslate"><span class="pre">SinusoidalPositionalEmbedding.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.positional_embedding.SinusoidalPositionalEmbedding.get_weights"><code class="docutils literal notranslate"><span class="pre">SinusoidalPositionalEmbedding.get_weights()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.positional_embedding.SinusoidalPositionalEmbedding.forward"><code class="docutils literal notranslate"><span class="pre">SinusoidalPositionalEmbedding.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.positional_encoding">cvnets.layers.positional_encoding module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.positional_encoding.SinusoidalPositionalEncoding"><code class="docutils literal notranslate"><span class="pre">SinusoidalPositionalEncoding</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.positional_encoding.SinusoidalPositionalEncoding.__init__"><code class="docutils literal notranslate"><span class="pre">SinusoidalPositionalEncoding.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.positional_encoding.SinusoidalPositionalEncoding.forward_patch_last"><code class="docutils literal notranslate"><span class="pre">SinusoidalPositionalEncoding.forward_patch_last()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.positional_encoding.SinusoidalPositionalEncoding.forward_others"><code class="docutils literal notranslate"><span class="pre">SinusoidalPositionalEncoding.forward_others()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.positional_encoding.SinusoidalPositionalEncoding.forward"><code class="docutils literal notranslate"><span class="pre">SinusoidalPositionalEncoding.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.positional_encoding.LearnablePositionEncoding"><code class="docutils literal notranslate"><span class="pre">LearnablePositionEncoding</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.positional_encoding.LearnablePositionEncoding.__init__"><code class="docutils literal notranslate"><span class="pre">LearnablePositionEncoding.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.positional_encoding.LearnablePositionEncoding.forward"><code class="docutils literal notranslate"><span class="pre">LearnablePositionEncoding.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.random_layers">cvnets.layers.random_layers module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.random_layers.RandomApply"><code class="docutils literal notranslate"><span class="pre">RandomApply</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.random_layers.RandomApply.__init__"><code class="docutils literal notranslate"><span class="pre">RandomApply.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.random_layers.RandomApply.forward"><code class="docutils literal notranslate"><span class="pre">RandomApply.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.single_head_attention">cvnets.layers.single_head_attention module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.single_head_attention.SingleHeadAttention"><code class="docutils literal notranslate"><span class="pre">SingleHeadAttention</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.single_head_attention.SingleHeadAttention.__init__"><code class="docutils literal notranslate"><span class="pre">SingleHeadAttention.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.single_head_attention.SingleHeadAttention.forward"><code class="docutils literal notranslate"><span class="pre">SingleHeadAttention.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.softmax">cvnets.layers.softmax module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.softmax.Softmax"><code class="docutils literal notranslate"><span class="pre">Softmax</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.softmax.Softmax.__init__"><code class="docutils literal notranslate"><span class="pre">Softmax.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.stochastic_depth">cvnets.layers.stochastic_depth module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.stochastic_depth.StochasticDepth"><code class="docutils literal notranslate"><span class="pre">StochasticDepth</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.stochastic_depth.StochasticDepth.__init__"><code class="docutils literal notranslate"><span class="pre">StochasticDepth.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.token_merging">cvnets.layers.token_merging module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.token_merging.TokenMerging"><code class="docutils literal notranslate"><span class="pre">TokenMerging</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.token_merging.TokenMerging.__init__"><code class="docutils literal notranslate"><span class="pre">TokenMerging.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.token_merging.TokenMerging.forward"><code class="docutils literal notranslate"><span class="pre">TokenMerging.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.token_merging.TokenMerging.extra_repr"><code class="docutils literal notranslate"><span class="pre">TokenMerging.extra_repr()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.token_merging.pad_x_and_mask"><code class="docutils literal notranslate"><span class="pre">pad_x_and_mask()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers.upsample">cvnets.layers.upsample module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.upsample.UpSample"><code class="docutils literal notranslate"><span class="pre">UpSample</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.upsample.UpSample.__init__"><code class="docutils literal notranslate"><span class="pre">UpSample.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.layers.html#module-cvnets.layers">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.ConvLayer1d"><code class="docutils literal notranslate"><span class="pre">ConvLayer1d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.ConvLayer1d.ndim"><code class="docutils literal notranslate"><span class="pre">ConvLayer1d.ndim</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.ConvLayer1d.module_cls"><code class="docutils literal notranslate"><span class="pre">ConvLayer1d.module_cls</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.ConvLayer1d.training"><code class="docutils literal notranslate"><span class="pre">ConvLayer1d.training</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.ConvLayer2d"><code class="docutils literal notranslate"><span class="pre">ConvLayer2d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.ConvLayer2d.ndim"><code class="docutils literal notranslate"><span class="pre">ConvLayer2d.ndim</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.ConvLayer2d.module_cls"><code class="docutils literal notranslate"><span class="pre">ConvLayer2d.module_cls</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.ConvLayer2d.training"><code class="docutils literal notranslate"><span class="pre">ConvLayer2d.training</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.ConvLayer3d"><code class="docutils literal notranslate"><span class="pre">ConvLayer3d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.ConvLayer3d.ndim"><code class="docutils literal notranslate"><span class="pre">ConvLayer3d.ndim</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.ConvLayer3d.module_cls"><code class="docutils literal notranslate"><span class="pre">ConvLayer3d.module_cls</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.ConvLayer3d.training"><code class="docutils literal notranslate"><span class="pre">ConvLayer3d.training</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.SeparableConv1d"><code class="docutils literal notranslate"><span class="pre">SeparableConv1d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.SeparableConv1d.conv_layer_cls"><code class="docutils literal notranslate"><span class="pre">SeparableConv1d.conv_layer_cls</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.SeparableConv2d"><code class="docutils literal notranslate"><span class="pre">SeparableConv2d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.SeparableConv2d.conv_layer_cls"><code class="docutils literal notranslate"><span class="pre">SeparableConv2d.conv_layer_cls</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.SeparableConv3d"><code class="docutils literal notranslate"><span class="pre">SeparableConv3d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.SeparableConv3d.conv_layer_cls"><code class="docutils literal notranslate"><span class="pre">SeparableConv3d.conv_layer_cls</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.NormActLayer"><code class="docutils literal notranslate"><span class="pre">NormActLayer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.NormActLayer.__init__"><code class="docutils literal notranslate"><span class="pre">NormActLayer.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.NormActLayer.forward"><code class="docutils literal notranslate"><span class="pre">NormActLayer.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.TransposeConvLayer2d"><code class="docutils literal notranslate"><span class="pre">TransposeConvLayer2d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.TransposeConvLayer2d.__init__"><code class="docutils literal notranslate"><span class="pre">TransposeConvLayer2d.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.TransposeConvLayer2d.forward"><code class="docutils literal notranslate"><span class="pre">TransposeConvLayer2d.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.LinearLayer"><code class="docutils literal notranslate"><span class="pre">LinearLayer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.LinearLayer.__init__"><code class="docutils literal notranslate"><span class="pre">LinearLayer.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.LinearLayer.add_arguments"><code class="docutils literal notranslate"><span class="pre">LinearLayer.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.LinearLayer.reset_params"><code class="docutils literal notranslate"><span class="pre">LinearLayer.reset_params()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.LinearLayer.forward"><code class="docutils literal notranslate"><span class="pre">LinearLayer.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.GroupLinear"><code class="docutils literal notranslate"><span class="pre">GroupLinear</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.GroupLinear.__init__"><code class="docutils literal notranslate"><span class="pre">GroupLinear.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.GroupLinear.add_arguments"><code class="docutils literal notranslate"><span class="pre">GroupLinear.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.GroupLinear.reset_params"><code class="docutils literal notranslate"><span class="pre">GroupLinear.reset_params()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.GroupLinear.forward"><code class="docutils literal notranslate"><span class="pre">GroupLinear.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.GlobalPool"><code class="docutils literal notranslate"><span class="pre">GlobalPool</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.GlobalPool.pool_types"><code class="docutils literal notranslate"><span class="pre">GlobalPool.pool_types</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.GlobalPool.__init__"><code class="docutils literal notranslate"><span class="pre">GlobalPool.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.GlobalPool.add_arguments"><code class="docutils literal notranslate"><span class="pre">GlobalPool.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.GlobalPool.forward"><code class="docutils literal notranslate"><span class="pre">GlobalPool.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.GlobalPool.training"><code class="docutils literal notranslate"><span class="pre">GlobalPool.training</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.Identity"><code class="docutils literal notranslate"><span class="pre">Identity</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.Identity.__init__"><code class="docutils literal notranslate"><span class="pre">Identity.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.Identity.forward"><code class="docutils literal notranslate"><span class="pre">Identity.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.PixelShuffle"><code class="docutils literal notranslate"><span class="pre">PixelShuffle</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.PixelShuffle.__init__"><code class="docutils literal notranslate"><span class="pre">PixelShuffle.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.UpSample"><code class="docutils literal notranslate"><span class="pre">UpSample</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.UpSample.__init__"><code class="docutils literal notranslate"><span class="pre">UpSample.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.MaxPool2d"><code class="docutils literal notranslate"><span class="pre">MaxPool2d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.MaxPool2d.__init__"><code class="docutils literal notranslate"><span class="pre">MaxPool2d.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.AvgPool2d"><code class="docutils literal notranslate"><span class="pre">AvgPool2d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.AvgPool2d.__init__"><code class="docutils literal notranslate"><span class="pre">AvgPool2d.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.Dropout"><code class="docutils literal notranslate"><span class="pre">Dropout</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.Dropout.__init__"><code class="docutils literal notranslate"><span class="pre">Dropout.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.Dropout2d"><code class="docutils literal notranslate"><span class="pre">Dropout2d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.Dropout2d.__init__"><code class="docutils literal notranslate"><span class="pre">Dropout2d.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.AdjustBatchNormMomentum"><code class="docutils literal notranslate"><span class="pre">AdjustBatchNormMomentum</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.AdjustBatchNormMomentum.round_places"><code class="docutils literal notranslate"><span class="pre">AdjustBatchNormMomentum.round_places</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.AdjustBatchNormMomentum.__init__"><code class="docutils literal notranslate"><span class="pre">AdjustBatchNormMomentum.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.AdjustBatchNormMomentum.adjust_momentum"><code class="docutils literal notranslate"><span class="pre">AdjustBatchNormMomentum.adjust_momentum()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.Flatten"><code class="docutils literal notranslate"><span class="pre">Flatten</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.Flatten.__init__"><code class="docutils literal notranslate"><span class="pre">Flatten.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.MultiHeadAttention"><code class="docutils literal notranslate"><span class="pre">MultiHeadAttention</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.MultiHeadAttention.__init__"><code class="docutils literal notranslate"><span class="pre">MultiHeadAttention.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.MultiHeadAttention.forward_tracing"><code class="docutils literal notranslate"><span class="pre">MultiHeadAttention.forward_tracing()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.MultiHeadAttention.forward_default"><code class="docutils literal notranslate"><span class="pre">MultiHeadAttention.forward_default()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.MultiHeadAttention.forward_pytorch"><code class="docutils literal notranslate"><span class="pre">MultiHeadAttention.forward_pytorch()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.MultiHeadAttention.forward"><code class="docutils literal notranslate"><span class="pre">MultiHeadAttention.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.SingleHeadAttention"><code class="docutils literal notranslate"><span class="pre">SingleHeadAttention</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.SingleHeadAttention.__init__"><code class="docutils literal notranslate"><span class="pre">SingleHeadAttention.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.SingleHeadAttention.forward"><code class="docutils literal notranslate"><span class="pre">SingleHeadAttention.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.Softmax"><code class="docutils literal notranslate"><span class="pre">Softmax</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.Softmax.__init__"><code class="docutils literal notranslate"><span class="pre">Softmax.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.LinearSelfAttention"><code class="docutils literal notranslate"><span class="pre">LinearSelfAttention</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.LinearSelfAttention.__init__"><code class="docutils literal notranslate"><span class="pre">LinearSelfAttention.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.LinearSelfAttention.visualize_context_scores"><code class="docutils literal notranslate"><span class="pre">LinearSelfAttention.visualize_context_scores()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.LinearSelfAttention.forward"><code class="docutils literal notranslate"><span class="pre">LinearSelfAttention.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.Embedding"><code class="docutils literal notranslate"><span class="pre">Embedding</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.Embedding.__init__"><code class="docutils literal notranslate"><span class="pre">Embedding.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.Embedding.reset_parameters"><code class="docutils literal notranslate"><span class="pre">Embedding.reset_parameters()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.PositionalEmbedding"><code class="docutils literal notranslate"><span class="pre">PositionalEmbedding</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.PositionalEmbedding.__init__"><code class="docutils literal notranslate"><span class="pre">PositionalEmbedding.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.PositionalEmbedding.forward"><code class="docutils literal notranslate"><span class="pre">PositionalEmbedding.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.StochasticDepth"><code class="docutils literal notranslate"><span class="pre">StochasticDepth</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.StochasticDepth.__init__"><code class="docutils literal notranslate"><span class="pre">StochasticDepth.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.layers.html#cvnets.layers.get_normalization_layer"><code class="docutils literal notranslate"><span class="pre">get_normalization_layer()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cvnets.matcher_det.html">cvnets.matcher_det package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.matcher_det.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.matcher_det.html#module-cvnets.matcher_det.base_matcher">cvnets.matcher_det.base_matcher module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.matcher_det.html#cvnets.matcher_det.base_matcher.BaseMatcher"><code class="docutils literal notranslate"><span class="pre">BaseMatcher</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.matcher_det.html#cvnets.matcher_det.base_matcher.BaseMatcher.__init__"><code class="docutils literal notranslate"><span class="pre">BaseMatcher.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.matcher_det.html#cvnets.matcher_det.base_matcher.BaseMatcher.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseMatcher.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.matcher_det.html#module-cvnets.matcher_det.ssd_matcher">cvnets.matcher_det.ssd_matcher module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.matcher_det.html#cvnets.matcher_det.ssd_matcher.SSDMatcher"><code class="docutils literal notranslate"><span class="pre">SSDMatcher</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.matcher_det.html#cvnets.matcher_det.ssd_matcher.SSDMatcher.__init__"><code class="docutils literal notranslate"><span class="pre">SSDMatcher.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.matcher_det.html#cvnets.matcher_det.ssd_matcher.SSDMatcher.add_arguments"><code class="docutils literal notranslate"><span class="pre">SSDMatcher.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.matcher_det.html#cvnets.matcher_det.ssd_matcher.SSDMatcher.convert_to_boxes"><code class="docutils literal notranslate"><span class="pre">SSDMatcher.convert_to_boxes()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.matcher_det.html#cvnets.matcher_det.ssd_matcher.check_variable"><code class="docutils literal notranslate"><span class="pre">check_variable()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.matcher_det.html#module-cvnets.matcher_det">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.matcher_det.html#cvnets.matcher_det.arguments_box_matcher"><code class="docutils literal notranslate"><span class="pre">arguments_box_matcher()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.matcher_det.html#cvnets.matcher_det.build_matcher"><code class="docutils literal notranslate"><span class="pre">build_matcher()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cvnets.misc.html">cvnets.misc package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.misc.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.misc.third_party.html">cvnets.misc.third_party package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.misc.third_party.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.misc.third_party.html#module-cvnets.misc.third_party.ssd_utils">cvnets.misc.third_party.ssd_utils module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.misc.third_party.html#module-cvnets.misc.third_party">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.misc.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.misc.html#module-cvnets.misc.averaging_utils">cvnets.misc.averaging_utils module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.misc.html#cvnets.misc.averaging_utils.EMA"><code class="docutils literal notranslate"><span class="pre">EMA</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.misc.html#cvnets.misc.averaging_utils.EMA.__init__"><code class="docutils literal notranslate"><span class="pre">EMA.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.misc.html#cvnets.misc.averaging_utils.EMA.update_parameters"><code class="docutils literal notranslate"><span class="pre">EMA.update_parameters()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.misc.html#cvnets.misc.averaging_utils.arguments_ema"><code class="docutils literal notranslate"><span class="pre">arguments_ema()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.misc.html#module-cvnets.misc.box_utils">cvnets.misc.box_utils module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.misc.html#cvnets.misc.box_utils.convert_locations_to_boxes"><code class="docutils literal notranslate"><span class="pre">convert_locations_to_boxes()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.misc.html#cvnets.misc.box_utils.convert_boxes_to_locations"><code class="docutils literal notranslate"><span class="pre">convert_boxes_to_locations()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.misc.html#cvnets.misc.box_utils.center_form_to_corner_form"><code class="docutils literal notranslate"><span class="pre">center_form_to_corner_form()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.misc.html#cvnets.misc.box_utils.corner_form_to_center_form"><code class="docutils literal notranslate"><span class="pre">corner_form_to_center_form()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.misc.html#module-cvnets.misc.common">cvnets.misc.common module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.misc.html#cvnets.misc.common.clean_strip"><code class="docutils literal notranslate"><span class="pre">clean_strip()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.misc.html#cvnets.misc.common.load_pretrained_model"><code class="docutils literal notranslate"><span class="pre">load_pretrained_model()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.misc.html#cvnets.misc.common.parameter_list"><code class="docutils literal notranslate"><span class="pre">parameter_list()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.misc.html#cvnets.misc.common.freeze_module"><code class="docutils literal notranslate"><span class="pre">freeze_module()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.misc.html#cvnets.misc.common.freeze_modules_based_on_opts"><code class="docutils literal notranslate"><span class="pre">freeze_modules_based_on_opts()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.misc.html#cvnets.misc.common.get_tensor_sizes"><code class="docutils literal notranslate"><span class="pre">get_tensor_sizes()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.misc.html#module-cvnets.misc.init_utils">cvnets.misc.init_utils module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.misc.html#cvnets.misc.init_utils.initialize_conv_layer"><code class="docutils literal notranslate"><span class="pre">initialize_conv_layer()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.misc.html#cvnets.misc.init_utils.initialize_fc_layer"><code class="docutils literal notranslate"><span class="pre">initialize_fc_layer()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.misc.html#cvnets.misc.init_utils.initialize_norm_layers"><code class="docutils literal notranslate"><span class="pre">initialize_norm_layers()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.misc.html#cvnets.misc.init_utils.initialize_weights"><code class="docutils literal notranslate"><span class="pre">initialize_weights()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.misc.html#module-cvnets.misc">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cvnets.models.html">cvnets.models package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.audio_classification.html">cvnets.models.audio_classification package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.audio_classification.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.audio_classification.html#module-cvnets.models.audio_classification.audio_byteformer">cvnets.models.audio_classification.audio_byteformer module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.audio_classification.html#module-cvnets.models.audio_classification.base_audio_classification">cvnets.models.audio_classification.base_audio_classification module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.audio_classification.html#module-cvnets.models.audio_classification">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.classification.html">cvnets.models.classification package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.base_image_encoder">cvnets.models.classification.base_image_encoder module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.byteformer">cvnets.models.classification.byteformer module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.efficientnet">cvnets.models.classification.efficientnet module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.fastvit">cvnets.models.classification.fastvit module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.mobilenetv1">cvnets.models.classification.mobilenetv1 module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.mobilenetv2">cvnets.models.classification.mobilenetv2 module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.mobilenetv3">cvnets.models.classification.mobilenetv3 module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.mobileone">cvnets.models.classification.mobileone module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.mobilevit">cvnets.models.classification.mobilevit module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.mobilevit_v2">cvnets.models.classification.mobilevit_v2 module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.regnet">cvnets.models.classification.regnet module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.resnet">cvnets.models.classification.resnet module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.swin_transformer">cvnets.models.classification.swin_transformer module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification.vit">cvnets.models.classification.vit module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.classification.html#module-cvnets.models.classification">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.detection.html">cvnets.models.detection package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#module-cvnets.models.detection.base_detection">cvnets.models.detection.base_detection module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#module-cvnets.models.detection.mask_rcnn">cvnets.models.detection.mask_rcnn module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#module-cvnets.models.detection.ssd">cvnets.models.detection.ssd module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.html#module-cvnets.models.detection">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html">cvnets.models.multi_modal_img_text package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html#module-cvnets.models.multi_modal_img_text.base_multi_modal_img_text">cvnets.models.multi_modal_img_text.base_multi_modal_img_text module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html#module-cvnets.models.multi_modal_img_text.clip">cvnets.models.multi_modal_img_text.clip module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.multi_modal_img_text.html#module-cvnets.models.multi_modal_img_text">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.segmentation.html">cvnets.models.segmentation package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.html#module-cvnets.models.segmentation.base_seg">cvnets.models.segmentation.base_seg module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.html#module-cvnets.models.segmentation.enc_dec">cvnets.models.segmentation.enc_dec module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.segmentation.html#module-cvnets.models.segmentation">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.html#module-cvnets.models.base_model">cvnets.models.base_model module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel"><code class="docutils literal notranslate"><span class="pre">BaseAnyNNModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel.__init__"><code class="docutils literal notranslate"><span class="pre">BaseAnyNNModel.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseAnyNNModel.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel.reset_parameters"><code class="docutils literal notranslate"><span class="pre">BaseAnyNNModel.reset_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel.forward"><code class="docutils literal notranslate"><span class="pre">BaseAnyNNModel.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel.get_trainable_parameters"><code class="docutils literal notranslate"><span class="pre">BaseAnyNNModel.get_trainable_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel.dummy_input_and_label"><code class="docutils literal notranslate"><span class="pre">BaseAnyNNModel.dummy_input_and_label()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel.get_exportable_model"><code class="docutils literal notranslate"><span class="pre">BaseAnyNNModel.get_exportable_model()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel.freeze_norm_layers"><code class="docutils literal notranslate"><span class="pre">BaseAnyNNModel.freeze_norm_layers()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel.build_model"><code class="docutils literal notranslate"><span class="pre">BaseAnyNNModel.build_model()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel.info"><code class="docutils literal notranslate"><span class="pre">BaseAnyNNModel.info()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.html#module-cvnets.models">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.html#cvnets.models.get_model"><code class="docutils literal notranslate"><span class="pre">get_model()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.html#cvnets.models.arguments_model"><code class="docutils literal notranslate"><span class="pre">arguments_model()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cvnets.modules.html">cvnets.modules package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.modules.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.modules.html#module-cvnets.modules.aspp_block">cvnets.modules.aspp_block module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.aspp_block.ASPP"><code class="docutils literal notranslate"><span class="pre">ASPP</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.aspp_block.ASPP.__init__"><code class="docutils literal notranslate"><span class="pre">ASPP.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.aspp_block.ASPP.forward"><code class="docutils literal notranslate"><span class="pre">ASPP.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.aspp_block.ASPPConv2d"><code class="docutils literal notranslate"><span class="pre">ASPPConv2d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.aspp_block.ASPPConv2d.__init__"><code class="docutils literal notranslate"><span class="pre">ASPPConv2d.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.aspp_block.ASPPConv2d.adjust_atrous_rate"><code class="docutils literal notranslate"><span class="pre">ASPPConv2d.adjust_atrous_rate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.aspp_block.ASPPSeparableConv2d"><code class="docutils literal notranslate"><span class="pre">ASPPSeparableConv2d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.aspp_block.ASPPSeparableConv2d.__init__"><code class="docutils literal notranslate"><span class="pre">ASPPSeparableConv2d.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.aspp_block.ASPPSeparableConv2d.adjust_atrous_rate"><code class="docutils literal notranslate"><span class="pre">ASPPSeparableConv2d.adjust_atrous_rate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.aspp_block.ASPPPooling"><code class="docutils literal notranslate"><span class="pre">ASPPPooling</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.aspp_block.ASPPPooling.__init__"><code class="docutils literal notranslate"><span class="pre">ASPPPooling.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.aspp_block.ASPPPooling.forward"><code class="docutils literal notranslate"><span class="pre">ASPPPooling.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.modules.html#module-cvnets.modules.base_module">cvnets.modules.base_module module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.base_module.BaseModule"><code class="docutils literal notranslate"><span class="pre">BaseModule</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.base_module.BaseModule.__init__"><code class="docutils literal notranslate"><span class="pre">BaseModule.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.base_module.BaseModule.forward"><code class="docutils literal notranslate"><span class="pre">BaseModule.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.modules.html#module-cvnets.modules.efficientnet">cvnets.modules.efficientnet module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.efficientnet.EfficientNetBlock"><code class="docutils literal notranslate"><span class="pre">EfficientNetBlock</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.efficientnet.EfficientNetBlock.__init__"><code class="docutils literal notranslate"><span class="pre">EfficientNetBlock.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.efficientnet.EfficientNetBlock.forward"><code class="docutils literal notranslate"><span class="pre">EfficientNetBlock.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.modules.html#module-cvnets.modules.fastvit">cvnets.modules.fastvit module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.fastvit.convolutional_stem"><code class="docutils literal notranslate"><span class="pre">convolutional_stem()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.fastvit.PatchEmbed"><code class="docutils literal notranslate"><span class="pre">PatchEmbed</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.fastvit.PatchEmbed.__init__"><code class="docutils literal notranslate"><span class="pre">PatchEmbed.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.fastvit.PatchEmbed.forward"><code class="docutils literal notranslate"><span class="pre">PatchEmbed.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.fastvit.RepMixer"><code class="docutils literal notranslate"><span class="pre">RepMixer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.fastvit.RepMixer.__init__"><code class="docutils literal notranslate"><span class="pre">RepMixer.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.fastvit.RepMixer.forward"><code class="docutils literal notranslate"><span class="pre">RepMixer.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.fastvit.RepMixer.reparameterize"><code class="docutils literal notranslate"><span class="pre">RepMixer.reparameterize()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.fastvit.ConvFFN"><code class="docutils literal notranslate"><span class="pre">ConvFFN</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.fastvit.ConvFFN.__init__"><code class="docutils literal notranslate"><span class="pre">ConvFFN.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.fastvit.ConvFFN.forward"><code class="docutils literal notranslate"><span class="pre">ConvFFN.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.fastvit.RepMixerBlock"><code class="docutils literal notranslate"><span class="pre">RepMixerBlock</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.fastvit.RepMixerBlock.__init__"><code class="docutils literal notranslate"><span class="pre">RepMixerBlock.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.fastvit.RepMixerBlock.forward"><code class="docutils literal notranslate"><span class="pre">RepMixerBlock.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.fastvit.AttentionBlock"><code class="docutils literal notranslate"><span class="pre">AttentionBlock</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.fastvit.AttentionBlock.__init__"><code class="docutils literal notranslate"><span class="pre">AttentionBlock.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.fastvit.AttentionBlock.forward"><code class="docutils literal notranslate"><span class="pre">AttentionBlock.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.fastvit.RepCPE"><code class="docutils literal notranslate"><span class="pre">RepCPE</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.fastvit.RepCPE.__init__"><code class="docutils literal notranslate"><span class="pre">RepCPE.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.fastvit.RepCPE.forward"><code class="docutils literal notranslate"><span class="pre">RepCPE.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.fastvit.RepCPE.reparameterize"><code class="docutils literal notranslate"><span class="pre">RepCPE.reparameterize()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.modules.html#module-cvnets.modules.feature_pyramid">cvnets.modules.feature_pyramid module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.feature_pyramid.FeaturePyramidNetwork"><code class="docutils literal notranslate"><span class="pre">FeaturePyramidNetwork</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.feature_pyramid.FeaturePyramidNetwork.__init__"><code class="docutils literal notranslate"><span class="pre">FeaturePyramidNetwork.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.feature_pyramid.FeaturePyramidNetwork.reset_weights"><code class="docutils literal notranslate"><span class="pre">FeaturePyramidNetwork.reset_weights()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.feature_pyramid.FeaturePyramidNetwork.forward"><code class="docutils literal notranslate"><span class="pre">FeaturePyramidNetwork.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.modules.html#module-cvnets.modules.mobilenetv2">cvnets.modules.mobilenetv2 module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilenetv2.InvertedResidualSE"><code class="docutils literal notranslate"><span class="pre">InvertedResidualSE</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilenetv2.InvertedResidualSE.__init__"><code class="docutils literal notranslate"><span class="pre">InvertedResidualSE.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilenetv2.InvertedResidualSE.forward"><code class="docutils literal notranslate"><span class="pre">InvertedResidualSE.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilenetv2.InvertedResidual"><code class="docutils literal notranslate"><span class="pre">InvertedResidual</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilenetv2.InvertedResidual.__init__"><code class="docutils literal notranslate"><span class="pre">InvertedResidual.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilenetv2.InvertedResidual.forward"><code class="docutils literal notranslate"><span class="pre">InvertedResidual.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.modules.html#module-cvnets.modules.mobileone_block">cvnets.modules.mobileone_block module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobileone_block.MobileOneBlock"><code class="docutils literal notranslate"><span class="pre">MobileOneBlock</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobileone_block.MobileOneBlock.__init__"><code class="docutils literal notranslate"><span class="pre">MobileOneBlock.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobileone_block.MobileOneBlock.forward"><code class="docutils literal notranslate"><span class="pre">MobileOneBlock.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobileone_block.MobileOneBlock.reparameterize"><code class="docutils literal notranslate"><span class="pre">MobileOneBlock.reparameterize()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobileone_block.RepLKBlock"><code class="docutils literal notranslate"><span class="pre">RepLKBlock</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobileone_block.RepLKBlock.__init__"><code class="docutils literal notranslate"><span class="pre">RepLKBlock.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobileone_block.RepLKBlock.forward"><code class="docutils literal notranslate"><span class="pre">RepLKBlock.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobileone_block.RepLKBlock.reparameterize"><code class="docutils literal notranslate"><span class="pre">RepLKBlock.reparameterize()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.modules.html#module-cvnets.modules.mobilevit_block">cvnets.modules.mobilevit_block module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlock"><code class="docutils literal notranslate"><span class="pre">MobileViTBlock</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlock.__init__"><code class="docutils literal notranslate"><span class="pre">MobileViTBlock.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlock.unfolding"><code class="docutils literal notranslate"><span class="pre">MobileViTBlock.unfolding()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlock.folding"><code class="docutils literal notranslate"><span class="pre">MobileViTBlock.folding()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlock.forward_spatial"><code class="docutils literal notranslate"><span class="pre">MobileViTBlock.forward_spatial()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlock.forward_temporal"><code class="docutils literal notranslate"><span class="pre">MobileViTBlock.forward_temporal()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlock.forward"><code class="docutils literal notranslate"><span class="pre">MobileViTBlock.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlockv2"><code class="docutils literal notranslate"><span class="pre">MobileViTBlockv2</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlockv2.__init__"><code class="docutils literal notranslate"><span class="pre">MobileViTBlockv2.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlockv2.unfolding_pytorch"><code class="docutils literal notranslate"><span class="pre">MobileViTBlockv2.unfolding_pytorch()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlockv2.folding_pytorch"><code class="docutils literal notranslate"><span class="pre">MobileViTBlockv2.folding_pytorch()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlockv2.unfolding_coreml"><code class="docutils literal notranslate"><span class="pre">MobileViTBlockv2.unfolding_coreml()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlockv2.folding_coreml"><code class="docutils literal notranslate"><span class="pre">MobileViTBlockv2.folding_coreml()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlockv2.resize_input_if_needed"><code class="docutils literal notranslate"><span class="pre">MobileViTBlockv2.resize_input_if_needed()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlockv2.forward_spatial"><code class="docutils literal notranslate"><span class="pre">MobileViTBlockv2.forward_spatial()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlockv2.forward_temporal"><code class="docutils literal notranslate"><span class="pre">MobileViTBlockv2.forward_temporal()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.mobilevit_block.MobileViTBlockv2.forward"><code class="docutils literal notranslate"><span class="pre">MobileViTBlockv2.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.modules.html#module-cvnets.modules.pspnet_module">cvnets.modules.pspnet_module module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.pspnet_module.PSP"><code class="docutils literal notranslate"><span class="pre">PSP</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.pspnet_module.PSP.__init__"><code class="docutils literal notranslate"><span class="pre">PSP.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.pspnet_module.PSP.forward"><code class="docutils literal notranslate"><span class="pre">PSP.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.modules.html#module-cvnets.modules.regnet_modules">cvnets.modules.regnet_modules module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.regnet_modules.XRegNetBlock"><code class="docutils literal notranslate"><span class="pre">XRegNetBlock</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.regnet_modules.XRegNetBlock.__init__"><code class="docutils literal notranslate"><span class="pre">XRegNetBlock.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.regnet_modules.XRegNetBlock.forward"><code class="docutils literal notranslate"><span class="pre">XRegNetBlock.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.regnet_modules.AnyRegNetStage"><code class="docutils literal notranslate"><span class="pre">AnyRegNetStage</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.regnet_modules.AnyRegNetStage.__init__"><code class="docutils literal notranslate"><span class="pre">AnyRegNetStage.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.regnet_modules.AnyRegNetStage.forward"><code class="docutils literal notranslate"><span class="pre">AnyRegNetStage.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.modules.html#module-cvnets.modules.resnet_modules">cvnets.modules.resnet_modules module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.resnet_modules.BasicResNetBlock"><code class="docutils literal notranslate"><span class="pre">BasicResNetBlock</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.resnet_modules.BasicResNetBlock.expansion"><code class="docutils literal notranslate"><span class="pre">BasicResNetBlock.expansion</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.resnet_modules.BasicResNetBlock.__init__"><code class="docutils literal notranslate"><span class="pre">BasicResNetBlock.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.resnet_modules.BasicResNetBlock.forward"><code class="docutils literal notranslate"><span class="pre">BasicResNetBlock.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.resnet_modules.BottleneckResNetBlock"><code class="docutils literal notranslate"><span class="pre">BottleneckResNetBlock</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.resnet_modules.BottleneckResNetBlock.expansion"><code class="docutils literal notranslate"><span class="pre">BottleneckResNetBlock.expansion</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.resnet_modules.BottleneckResNetBlock.__init__"><code class="docutils literal notranslate"><span class="pre">BottleneckResNetBlock.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.resnet_modules.BottleneckResNetBlock.forward"><code class="docutils literal notranslate"><span class="pre">BottleneckResNetBlock.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.modules.html#module-cvnets.modules.squeeze_excitation">cvnets.modules.squeeze_excitation module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.squeeze_excitation.SqueezeExcitation"><code class="docutils literal notranslate"><span class="pre">SqueezeExcitation</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.squeeze_excitation.SqueezeExcitation.__init__"><code class="docutils literal notranslate"><span class="pre">SqueezeExcitation.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.squeeze_excitation.SqueezeExcitation.forward"><code class="docutils literal notranslate"><span class="pre">SqueezeExcitation.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.modules.html#module-cvnets.modules.ssd_heads">cvnets.modules.ssd_heads module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.ssd_heads.SSDHead"><code class="docutils literal notranslate"><span class="pre">SSDHead</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.ssd_heads.SSDHead.__init__"><code class="docutils literal notranslate"><span class="pre">SSDHead.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.ssd_heads.SSDHead.reset_parameters"><code class="docutils literal notranslate"><span class="pre">SSDHead.reset_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.ssd_heads.SSDHead.forward"><code class="docutils literal notranslate"><span class="pre">SSDHead.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.ssd_heads.SSDInstanceHead"><code class="docutils literal notranslate"><span class="pre">SSDInstanceHead</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.ssd_heads.SSDInstanceHead.__init__"><code class="docutils literal notranslate"><span class="pre">SSDInstanceHead.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.ssd_heads.SSDInstanceHead.reset_parameters"><code class="docutils literal notranslate"><span class="pre">SSDInstanceHead.reset_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.ssd_heads.SSDInstanceHead.forward"><code class="docutils literal notranslate"><span class="pre">SSDInstanceHead.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.modules.html#module-cvnets.modules.swin_transformer_block">cvnets.modules.swin_transformer_block module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.swin_transformer_block.Permute"><code class="docutils literal notranslate"><span class="pre">Permute</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.swin_transformer_block.Permute.__init__"><code class="docutils literal notranslate"><span class="pre">Permute.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.swin_transformer_block.Permute.forward"><code class="docutils literal notranslate"><span class="pre">Permute.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.swin_transformer_block.PatchMerging"><code class="docutils literal notranslate"><span class="pre">PatchMerging</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.swin_transformer_block.PatchMerging.__init__"><code class="docutils literal notranslate"><span class="pre">PatchMerging.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.swin_transformer_block.PatchMerging.forward"><code class="docutils literal notranslate"><span class="pre">PatchMerging.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.swin_transformer_block.shifted_window_attention"><code class="docutils literal notranslate"><span class="pre">shifted_window_attention()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.swin_transformer_block.ShiftedWindowAttention"><code class="docutils literal notranslate"><span class="pre">ShiftedWindowAttention</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.swin_transformer_block.ShiftedWindowAttention.__init__"><code class="docutils literal notranslate"><span class="pre">ShiftedWindowAttention.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.swin_transformer_block.ShiftedWindowAttention.forward"><code class="docutils literal notranslate"><span class="pre">ShiftedWindowAttention.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.swin_transformer_block.SwinTransformerBlock"><code class="docutils literal notranslate"><span class="pre">SwinTransformerBlock</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.swin_transformer_block.SwinTransformerBlock.__init__"><code class="docutils literal notranslate"><span class="pre">SwinTransformerBlock.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.swin_transformer_block.SwinTransformerBlock.forward"><code class="docutils literal notranslate"><span class="pre">SwinTransformerBlock.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.modules.html#module-cvnets.modules.transformer">cvnets.modules.transformer module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.transformer.TransformerEncoder"><code class="docutils literal notranslate"><span class="pre">TransformerEncoder</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.transformer.TransformerEncoder.__init__"><code class="docutils literal notranslate"><span class="pre">TransformerEncoder.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.transformer.TransformerEncoder.forward"><code class="docutils literal notranslate"><span class="pre">TransformerEncoder.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.transformer.LinearAttnFFN"><code class="docutils literal notranslate"><span class="pre">LinearAttnFFN</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.transformer.LinearAttnFFN.__init__"><code class="docutils literal notranslate"><span class="pre">LinearAttnFFN.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.transformer.LinearAttnFFN.forward"><code class="docutils literal notranslate"><span class="pre">LinearAttnFFN.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.modules.html#module-cvnets.modules.windowed_transformer">cvnets.modules.windowed_transformer module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.windowed_transformer.window_partition"><code class="docutils literal notranslate"><span class="pre">window_partition()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.windowed_transformer.window_partition_reverse"><code class="docutils literal notranslate"><span class="pre">window_partition_reverse()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.windowed_transformer.get_windows_shift_mask"><code class="docutils literal notranslate"><span class="pre">get_windows_shift_mask()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.windowed_transformer.window_x_and_key_padding_mask"><code class="docutils literal notranslate"><span class="pre">window_x_and_key_padding_mask()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.windowed_transformer.unwindow_x"><code class="docutils literal notranslate"><span class="pre">unwindow_x()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.windowed_transformer.WindowedTransformerEncoder"><code class="docutils literal notranslate"><span class="pre">WindowedTransformerEncoder</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.windowed_transformer.WindowedTransformerEncoder.__init__"><code class="docutils literal notranslate"><span class="pre">WindowedTransformerEncoder.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.windowed_transformer.WindowedTransformerEncoder.forward"><code class="docutils literal notranslate"><span class="pre">WindowedTransformerEncoder.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.modules.html#module-cvnets.modules">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.InvertedResidual"><code class="docutils literal notranslate"><span class="pre">InvertedResidual</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.InvertedResidual.__init__"><code class="docutils literal notranslate"><span class="pre">InvertedResidual.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.InvertedResidual.forward"><code class="docutils literal notranslate"><span class="pre">InvertedResidual.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.InvertedResidualSE"><code class="docutils literal notranslate"><span class="pre">InvertedResidualSE</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.InvertedResidualSE.__init__"><code class="docutils literal notranslate"><span class="pre">InvertedResidualSE.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.InvertedResidualSE.forward"><code class="docutils literal notranslate"><span class="pre">InvertedResidualSE.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.BasicResNetBlock"><code class="docutils literal notranslate"><span class="pre">BasicResNetBlock</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.BasicResNetBlock.expansion"><code class="docutils literal notranslate"><span class="pre">BasicResNetBlock.expansion</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.BasicResNetBlock.__init__"><code class="docutils literal notranslate"><span class="pre">BasicResNetBlock.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.BasicResNetBlock.forward"><code class="docutils literal notranslate"><span class="pre">BasicResNetBlock.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.BasicResNetBlock.training"><code class="docutils literal notranslate"><span class="pre">BasicResNetBlock.training</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.BottleneckResNetBlock"><code class="docutils literal notranslate"><span class="pre">BottleneckResNetBlock</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.BottleneckResNetBlock.expansion"><code class="docutils literal notranslate"><span class="pre">BottleneckResNetBlock.expansion</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.BottleneckResNetBlock.__init__"><code class="docutils literal notranslate"><span class="pre">BottleneckResNetBlock.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.BottleneckResNetBlock.forward"><code class="docutils literal notranslate"><span class="pre">BottleneckResNetBlock.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.BottleneckResNetBlock.training"><code class="docutils literal notranslate"><span class="pre">BottleneckResNetBlock.training</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.ASPP"><code class="docutils literal notranslate"><span class="pre">ASPP</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.ASPP.__init__"><code class="docutils literal notranslate"><span class="pre">ASPP.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.ASPP.forward"><code class="docutils literal notranslate"><span class="pre">ASPP.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.TransformerEncoder"><code class="docutils literal notranslate"><span class="pre">TransformerEncoder</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.TransformerEncoder.__init__"><code class="docutils literal notranslate"><span class="pre">TransformerEncoder.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.TransformerEncoder.forward"><code class="docutils literal notranslate"><span class="pre">TransformerEncoder.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.WindowedTransformerEncoder"><code class="docutils literal notranslate"><span class="pre">WindowedTransformerEncoder</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.WindowedTransformerEncoder.__init__"><code class="docutils literal notranslate"><span class="pre">WindowedTransformerEncoder.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.WindowedTransformerEncoder.forward"><code class="docutils literal notranslate"><span class="pre">WindowedTransformerEncoder.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.SqueezeExcitation"><code class="docutils literal notranslate"><span class="pre">SqueezeExcitation</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.SqueezeExcitation.__init__"><code class="docutils literal notranslate"><span class="pre">SqueezeExcitation.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.SqueezeExcitation.forward"><code class="docutils literal notranslate"><span class="pre">SqueezeExcitation.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.PSP"><code class="docutils literal notranslate"><span class="pre">PSP</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.PSP.__init__"><code class="docutils literal notranslate"><span class="pre">PSP.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.PSP.forward"><code class="docutils literal notranslate"><span class="pre">PSP.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.MobileViTBlock"><code class="docutils literal notranslate"><span class="pre">MobileViTBlock</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.MobileViTBlock.__init__"><code class="docutils literal notranslate"><span class="pre">MobileViTBlock.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.MobileViTBlock.unfolding"><code class="docutils literal notranslate"><span class="pre">MobileViTBlock.unfolding()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.MobileViTBlock.folding"><code class="docutils literal notranslate"><span class="pre">MobileViTBlock.folding()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.MobileViTBlock.forward_spatial"><code class="docutils literal notranslate"><span class="pre">MobileViTBlock.forward_spatial()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.MobileViTBlock.forward_temporal"><code class="docutils literal notranslate"><span class="pre">MobileViTBlock.forward_temporal()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.MobileViTBlock.forward"><code class="docutils literal notranslate"><span class="pre">MobileViTBlock.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.MobileViTBlockv2"><code class="docutils literal notranslate"><span class="pre">MobileViTBlockv2</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.MobileViTBlockv2.__init__"><code class="docutils literal notranslate"><span class="pre">MobileViTBlockv2.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.MobileViTBlockv2.unfolding_pytorch"><code class="docutils literal notranslate"><span class="pre">MobileViTBlockv2.unfolding_pytorch()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.MobileViTBlockv2.folding_pytorch"><code class="docutils literal notranslate"><span class="pre">MobileViTBlockv2.folding_pytorch()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.MobileViTBlockv2.unfolding_coreml"><code class="docutils literal notranslate"><span class="pre">MobileViTBlockv2.unfolding_coreml()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.MobileViTBlockv2.folding_coreml"><code class="docutils literal notranslate"><span class="pre">MobileViTBlockv2.folding_coreml()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.MobileViTBlockv2.resize_input_if_needed"><code class="docutils literal notranslate"><span class="pre">MobileViTBlockv2.resize_input_if_needed()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.MobileViTBlockv2.forward_spatial"><code class="docutils literal notranslate"><span class="pre">MobileViTBlockv2.forward_spatial()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.MobileViTBlockv2.forward_temporal"><code class="docutils literal notranslate"><span class="pre">MobileViTBlockv2.forward_temporal()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.MobileViTBlockv2.forward"><code class="docutils literal notranslate"><span class="pre">MobileViTBlockv2.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.MobileOneBlock"><code class="docutils literal notranslate"><span class="pre">MobileOneBlock</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.MobileOneBlock.__init__"><code class="docutils literal notranslate"><span class="pre">MobileOneBlock.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.MobileOneBlock.forward"><code class="docutils literal notranslate"><span class="pre">MobileOneBlock.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.MobileOneBlock.reparameterize"><code class="docutils literal notranslate"><span class="pre">MobileOneBlock.reparameterize()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.RepLKBlock"><code class="docutils literal notranslate"><span class="pre">RepLKBlock</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.RepLKBlock.__init__"><code class="docutils literal notranslate"><span class="pre">RepLKBlock.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.RepLKBlock.forward"><code class="docutils literal notranslate"><span class="pre">RepLKBlock.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.RepLKBlock.reparameterize"><code class="docutils literal notranslate"><span class="pre">RepLKBlock.reparameterize()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.FeaturePyramidNetwork"><code class="docutils literal notranslate"><span class="pre">FeaturePyramidNetwork</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.FeaturePyramidNetwork.__init__"><code class="docutils literal notranslate"><span class="pre">FeaturePyramidNetwork.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.FeaturePyramidNetwork.reset_weights"><code class="docutils literal notranslate"><span class="pre">FeaturePyramidNetwork.reset_weights()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.FeaturePyramidNetwork.forward"><code class="docutils literal notranslate"><span class="pre">FeaturePyramidNetwork.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.SSDHead"><code class="docutils literal notranslate"><span class="pre">SSDHead</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.SSDHead.__init__"><code class="docutils literal notranslate"><span class="pre">SSDHead.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.SSDHead.reset_parameters"><code class="docutils literal notranslate"><span class="pre">SSDHead.reset_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.SSDHead.forward"><code class="docutils literal notranslate"><span class="pre">SSDHead.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.SSDInstanceHead"><code class="docutils literal notranslate"><span class="pre">SSDInstanceHead</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.SSDInstanceHead.__init__"><code class="docutils literal notranslate"><span class="pre">SSDInstanceHead.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.SSDInstanceHead.reset_parameters"><code class="docutils literal notranslate"><span class="pre">SSDInstanceHead.reset_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.SSDInstanceHead.forward"><code class="docutils literal notranslate"><span class="pre">SSDInstanceHead.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.EfficientNetBlock"><code class="docutils literal notranslate"><span class="pre">EfficientNetBlock</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.EfficientNetBlock.__init__"><code class="docutils literal notranslate"><span class="pre">EfficientNetBlock.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.EfficientNetBlock.forward"><code class="docutils literal notranslate"><span class="pre">EfficientNetBlock.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.SwinTransformerBlock"><code class="docutils literal notranslate"><span class="pre">SwinTransformerBlock</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.SwinTransformerBlock.__init__"><code class="docutils literal notranslate"><span class="pre">SwinTransformerBlock.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.SwinTransformerBlock.forward"><code class="docutils literal notranslate"><span class="pre">SwinTransformerBlock.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.PatchMerging"><code class="docutils literal notranslate"><span class="pre">PatchMerging</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.PatchMerging.__init__"><code class="docutils literal notranslate"><span class="pre">PatchMerging.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.PatchMerging.forward"><code class="docutils literal notranslate"><span class="pre">PatchMerging.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.Permute"><code class="docutils literal notranslate"><span class="pre">Permute</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.Permute.__init__"><code class="docutils literal notranslate"><span class="pre">Permute.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.Permute.forward"><code class="docutils literal notranslate"><span class="pre">Permute.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.XRegNetBlock"><code class="docutils literal notranslate"><span class="pre">XRegNetBlock</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.XRegNetBlock.__init__"><code class="docutils literal notranslate"><span class="pre">XRegNetBlock.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.XRegNetBlock.forward"><code class="docutils literal notranslate"><span class="pre">XRegNetBlock.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.AnyRegNetStage"><code class="docutils literal notranslate"><span class="pre">AnyRegNetStage</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.AnyRegNetStage.__init__"><code class="docutils literal notranslate"><span class="pre">AnyRegNetStage.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.modules.html#cvnets.modules.AnyRegNetStage.forward"><code class="docutils literal notranslate"><span class="pre">AnyRegNetStage.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cvnets.neural_augmentor.html">cvnets.neural_augmentor package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.neural_augmentor.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.neural_augmentor.utils.html">cvnets.neural_augmentor.utils package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.neural_augmentor.utils.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.neural_augmentor.utils.html#module-cvnets.neural_augmentor.utils.neural_aug_utils">cvnets.neural_augmentor.utils.neural_aug_utils module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.neural_augmentor.utils.html#module-cvnets.neural_augmentor.utils">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.neural_augmentor.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.neural_augmentor.html#module-cvnets.neural_augmentor.neural_aug">cvnets.neural_augmentor.neural_aug module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.neural_augmentor.html#cvnets.neural_augmentor.neural_aug.BaseNeuralAugmentor"><code class="docutils literal notranslate"><span class="pre">BaseNeuralAugmentor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.neural_augmentor.html#cvnets.neural_augmentor.neural_aug.BaseNeuralAugmentor.__init__"><code class="docutils literal notranslate"><span class="pre">BaseNeuralAugmentor.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.neural_augmentor.html#cvnets.neural_augmentor.neural_aug.BaseNeuralAugmentor.get_trainable_parameters"><code class="docutils literal notranslate"><span class="pre">BaseNeuralAugmentor.get_trainable_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.neural_augmentor.html#cvnets.neural_augmentor.neural_aug.BaseNeuralAugmentor.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseNeuralAugmentor.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.neural_augmentor.html#cvnets.neural_augmentor.neural_aug.BaseNeuralAugmentor.forward"><code class="docutils literal notranslate"><span class="pre">BaseNeuralAugmentor.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.neural_augmentor.html#cvnets.neural_augmentor.neural_aug.BasicNeuralAugmentor"><code class="docutils literal notranslate"><span class="pre">BasicNeuralAugmentor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.neural_augmentor.html#cvnets.neural_augmentor.neural_aug.BasicNeuralAugmentor.__init__"><code class="docutils literal notranslate"><span class="pre">BasicNeuralAugmentor.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.neural_augmentor.html#cvnets.neural_augmentor.neural_aug.DistributionNeuralAugmentor"><code class="docutils literal notranslate"><span class="pre">DistributionNeuralAugmentor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.neural_augmentor.html#cvnets.neural_augmentor.neural_aug.DistributionNeuralAugmentor.__init__"><code class="docutils literal notranslate"><span class="pre">DistributionNeuralAugmentor.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.neural_augmentor.html#cvnets.neural_augmentor.neural_aug.build_neural_augmentor"><code class="docutils literal notranslate"><span class="pre">build_neural_augmentor()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.neural_augmentor.html#module-cvnets.neural_augmentor">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.neural_augmentor.html#cvnets.neural_augmentor.arguments_neural_augmentor"><code class="docutils literal notranslate"><span class="pre">arguments_neural_augmentor()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cvnets.text_encoders.html">cvnets.text_encoders package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.text_encoders.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.text_encoders.html#module-cvnets.text_encoders.base_text_encoder">cvnets.text_encoders.base_text_encoder module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.text_encoders.html#cvnets.text_encoders.base_text_encoder.BaseTextEncoder"><code class="docutils literal notranslate"><span class="pre">BaseTextEncoder</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.text_encoders.html#cvnets.text_encoders.base_text_encoder.BaseTextEncoder.__init__"><code class="docutils literal notranslate"><span class="pre">BaseTextEncoder.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.text_encoders.html#cvnets.text_encoders.base_text_encoder.BaseTextEncoder.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseTextEncoder.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.text_encoders.html#cvnets.text_encoders.base_text_encoder.BaseTextEncoder.reset_parameters"><code class="docutils literal notranslate"><span class="pre">BaseTextEncoder.reset_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.text_encoders.html#cvnets.text_encoders.base_text_encoder.BaseTextEncoder.get_trainable_parameters"><code class="docutils literal notranslate"><span class="pre">BaseTextEncoder.get_trainable_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.text_encoders.html#cvnets.text_encoders.base_text_encoder.BaseTextEncoder.freeze_norm_layers"><code class="docutils literal notranslate"><span class="pre">BaseTextEncoder.freeze_norm_layers()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.text_encoders.html#cvnets.text_encoders.base_text_encoder.BaseTextEncoder.forward"><code class="docutils literal notranslate"><span class="pre">BaseTextEncoder.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.text_encoders.html#cvnets.text_encoders.base_text_encoder.BaseTextEncoder.dummy_input_and_label"><code class="docutils literal notranslate"><span class="pre">BaseTextEncoder.dummy_input_and_label()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.text_encoders.html#module-cvnets.text_encoders.transformer">cvnets.text_encoders.transformer module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.text_encoders.html#cvnets.text_encoders.transformer.TextTransformer"><code class="docutils literal notranslate"><span class="pre">TextTransformer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.text_encoders.html#cvnets.text_encoders.transformer.TextTransformer.__init__"><code class="docutils literal notranslate"><span class="pre">TextTransformer.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.text_encoders.html#cvnets.text_encoders.transformer.TextTransformer.reset_parameters_clip_style"><code class="docutils literal notranslate"><span class="pre">TextTransformer.reset_parameters_clip_style()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.text_encoders.html#cvnets.text_encoders.transformer.TextTransformer.add_arguments"><code class="docutils literal notranslate"><span class="pre">TextTransformer.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.text_encoders.html#cvnets.text_encoders.transformer.TextTransformer.forward_embedding"><code class="docutils literal notranslate"><span class="pre">TextTransformer.forward_embedding()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.text_encoders.html#cvnets.text_encoders.transformer.TextTransformer.build_attention_mask"><code class="docutils literal notranslate"><span class="pre">TextTransformer.build_attention_mask()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.text_encoders.html#cvnets.text_encoders.transformer.TextTransformer.encode_text"><code class="docutils literal notranslate"><span class="pre">TextTransformer.encode_text()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.text_encoders.html#cvnets.text_encoders.transformer.TextTransformer.forward_zero_shot"><code class="docutils literal notranslate"><span class="pre">TextTransformer.forward_zero_shot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.text_encoders.html#cvnets.text_encoders.transformer.TextTransformer.forward"><code class="docutils literal notranslate"><span class="pre">TextTransformer.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.text_encoders.html#module-cvnets.text_encoders">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.text_encoders.html#cvnets.text_encoders.arguments_text_encoder"><code class="docutils literal notranslate"><span class="pre">arguments_text_encoder()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.text_encoders.html#cvnets.text_encoders.build_text_encoder"><code class="docutils literal notranslate"><span class="pre">build_text_encoder()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="module-cvnets">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-cvnets" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="cvnets.modeling_arguments">
+<span class="sig-prename descclassname"><span class="pre">cvnets.</span></span><span class="sig-name descname"><span class="pre">modeling_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/cvnets.html#modeling_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.modeling_arguments" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

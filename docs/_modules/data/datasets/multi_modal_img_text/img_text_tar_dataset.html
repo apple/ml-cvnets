@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>data.datasets.multi_modal_img_text.img_text_tar_dataset &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../datasets.html">data.datasets</a></li>
+          <li class="breadcrumb-item"><a href="../multi_modal_img_text.html">data.datasets.multi_modal_img_text</a></li>
+      <li class="breadcrumb-item active">data.datasets.multi_modal_img_text.img_text_tar_dataset</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for data.datasets.multi_modal_img_text.img_text_tar_dataset</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">glob</span>
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">import</span> <span class="nn">tarfile</span>
+<span class="kn">from</span> <span class="nn">multiprocessing.pool</span> <span class="kn">import</span> <span class="n">Pool</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">AnyStr</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span><span class="p">,</span> <span class="n">ImageFile</span>
+
+<span class="kn">from</span> <span class="nn">data.datasets</span> <span class="kn">import</span> <span class="n">DATASET_REGISTRY</span>
+<span class="kn">from</span> <span class="nn">data.datasets.multi_modal_img_text.base_multi_modal_img_text</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BaseMultiModalImgText</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span><span class="p">,</span> <span class="n">resources</span>
+<span class="kn">from</span> <span class="nn">utils.ddp_utils</span> <span class="kn">import</span> <span class="n">dist_barrier</span>
+<span class="kn">from</span> <span class="nn">utils.download_utils</span> <span class="kn">import</span> <span class="n">get_local_path</span>
+
+<span class="c1"># To enable reading truncated images, we update the default values of following variables in PIL</span>
+<span class="n">Image</span><span class="o">.</span><span class="n">MAX_IMAGE_PIXELS</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="n">ImageFile</span><span class="o">.</span><span class="n">LOAD_TRUNCATED_IMAGES</span> <span class="o">=</span> <span class="kc">True</span>
+
+
+<div class="viewcode-block" id="extract_content"><a class="viewcode-back" href="../../../../autogen/data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.img_text_tar_dataset.extract_content">[docs]</a><span class="k">def</span> <span class="nf">extract_content</span><span class="p">(</span><span class="n">tar_file</span><span class="p">:</span> <span class="n">tarfile</span><span class="o">.</span><span class="n">TarFile</span><span class="p">,</span> <span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnyStr</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract the context of a particular file inside a tar file and returns it.&quot;&quot;&quot;</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">tar_file</span><span class="o">.</span><span class="n">extractfile</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="decode_image"><a class="viewcode-back" href="../../../../autogen/data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.img_text_tar_dataset.decode_image">[docs]</a><span class="k">def</span> <span class="nf">decode_image</span><span class="p">(</span><span class="n">byte_data</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Reads the byte image data and returns the PIL image.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">byte_data</span><span class="p">))</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s2">&quot;RGB&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="decode_text"><a class="viewcode-back" href="../../../../autogen/data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.img_text_tar_dataset.decode_text">[docs]</a><span class="k">def</span> <span class="nf">decode_text</span><span class="p">(</span><span class="n">byte_data</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Reads the byte text data and returns the decoded string.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">byte_data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="async_download_file_from_s3"><a class="viewcode-back" href="../../../../autogen/data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.img_text_tar_dataset.async_download_file_from_s3">[docs]</a><span class="k">def</span> <span class="nf">async_download_file_from_s3</span><span class="p">(</span>
+    <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">tar_file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">cache_loc</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Helper function to download the files asynchronously from S3.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: command-line arguments</span>
+<span class="sd">        tar_file_name: Name of the tar file</span>
+<span class="sd">        cache_loc: Caching location on the local machine</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># async download files form s3</span>
+    <span class="n">local_path</span> <span class="o">=</span> <span class="n">get_local_path</span><span class="p">(</span>
+        <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+        <span class="n">path</span><span class="o">=</span><span class="n">tar_file_name</span><span class="p">,</span>
+        <span class="n">cache_loc</span><span class="o">=</span><span class="n">cache_loc</span><span class="p">,</span>
+        <span class="n">quiet_download</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">force_delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_start_rank</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">sync_ranks</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># now extract the tar file and save the content as each separate file</span>
+    <span class="n">folder_name</span> <span class="o">=</span> <span class="n">local_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.tar.gz&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tarfile</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">local_path</span><span class="p">,</span> <span class="s2">&quot;r:gz&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tar_file</span><span class="p">:</span>
+        <span class="n">tar_file</span><span class="o">.</span><span class="n">extractall</span><span class="p">(</span><span class="n">folder_name</span><span class="p">)</span>
+
+    <span class="c1"># delete the tar file, to save space</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">local_path</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">local_path</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ImgTextTarDataset"><a class="viewcode-back" href="../../../../autogen/data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.img_text_tar_dataset.ImgTextTarDataset">[docs]</a><span class="nd">@DATASET_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;img_text_tar&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;multi_modal_image_text&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">ImgTextTarDataset</span><span class="p">(</span><span class="n">BaseMultiModalImgText</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;ImgTextTarDataset class for datasets that store Image-Text pairs as tar files, each tar file with multiple pairs.</span>
+
+<span class="sd">    The dataset should be stored in following format where `img_text_tar_dataset` is the location of directory that</span>
+<span class="sd">    has all tar files.</span>
+
+<span class="sd">    img_text_tar_dataset</span>
+<span class="sd">    |--- 00000000_0_1000.tar.gz</span>
+<span class="sd">    |-------- 00000000_0_image</span>
+<span class="sd">    |-------- 00000000_0_text</span>
+<span class="sd">    |-------- 00000000_1_image</span>
+<span class="sd">    |-------- 00000000_1_text</span>
+<span class="sd">    |-------- ...</span>
+
+<span class="sd">    |--- 00000000_1000_2000.tar.gz</span>
+<span class="sd">    |-------- 00000000_1000_image</span>
+<span class="sd">    |-------- 00000000_1000_text</span>
+<span class="sd">    |-------- 00000000_1001_image</span>
+<span class="sd">    |-------- 00000000_1001_text</span>
+<span class="sd">    |-------- ...</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: An argparse.Namespace instance.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Number of files in node i that overlaps (or same) with files in node i+1.</span>
+    <span class="n">__OVERLAP_RATIO</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="c1"># TAR File extension</span>
+    <span class="n">__FILE_EXTN</span> <span class="o">=</span> <span class="s2">&quot;.tar.gz&quot;</span>
+
+<div class="viewcode-block" id="ImgTextTarDataset.__init__"><a class="viewcode-back" href="../../../../autogen/data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.img_text_tar_dataset.ImgTextTarDataset.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">opts</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zeros_shot_dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_zero_shot_dataset</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_training</span><span class="p">:</span>
+            <span class="n">dataset_metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_dataset</span><span class="p">()</span>
+
+            <span class="n">total_files</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">in</span> <span class="n">dataset_metadata</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="c1"># At key=-1, we store the information about total files.</span>
+                <span class="n">total_files</span> <span class="o">=</span> <span class="n">dataset_metadata</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">total_files</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s2">&quot;Total files can&#39;t be 0. Please check if metadata has key -1, which stores &quot;</span>
+                    <span class="s2">&quot;the total number of files&quot;</span>
+                <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="n">dataset_metadata</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">total_pairs</span> <span class="o">=</span> <span class="n">total_files</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataset_keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+            <span class="n">s3_bucket_path</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.multi_modal_img_text.img_text_tar.s3_bucket_path&quot;</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">s3_bucket_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_master_node</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> needs the path of AWS bucket where data is stored.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">s3_bucket_path</span> <span class="o">=</span> <span class="n">s3_bucket_path</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_download_dataset</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ImgTextTarDataset.get_dataset"><a class="viewcode-back" href="../../../../autogen/data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.img_text_tar_dataset.ImgTextTarDataset.get_dataset">[docs]</a>    <span class="k">def</span> <span class="nf">get_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reads the metadata file and returns a mapping of indices of files stored in a tar file and its name&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_training</span><span class="p">:</span>
+            <span class="c1"># read metadata file</span>
+            <span class="c1"># metadata file is a dictionary storing the start image-text ids along with the tar file name.</span>
+            <span class="c1"># Example {&#39;0-18000&#39;: &#39;file_1.tar&#39;, 18000-29000&#39;, &#39;file_2.tar&#39;}</span>
+            <span class="n">metadata_file_loc</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span>
+                <span class="s2">&quot;dataset.multi_modal_img_text.img_text_tar.metadata_file&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">metadata_file_loc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_master_node</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                        <span class="s2">&quot;Please specify metadata file using &quot;</span>
+                        <span class="s2">&quot;--dataset.multi-modal-img-text.img_text_tar.metadata-file for </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+            <span class="n">metadata_file_local_path</span> <span class="o">=</span> <span class="n">get_local_path</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">metadata_file_loc</span><span class="p">,</span> <span class="n">force_delete</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">metadata_file_local_path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                <span class="n">metadata</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">metadata</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{}</span></div>
+
+    <span class="k">def</span> <span class="nf">_download_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Download the dataset&quot;&quot;&quot;</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_loc</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># The total number of GPUs that a task is using is equal to the world size</span>
+        <span class="n">world_size</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;ddp.world_size&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">world_size</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">world_size</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_start_rank_node</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;DDP world size should be greater than 1. Got: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># find the number of GPUs in each node</span>
+        <span class="n">n_gpus_per_node</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device_count</span><span class="p">()</span>
+
+        <span class="c1"># Total number of GPUs = Total number of nodes * number of GPUs per Node</span>
+        <span class="n">n_nodes</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">world_size</span> <span class="o">//</span> <span class="n">n_gpus_per_node</span><span class="p">)</span>
+
+        <span class="c1"># Find the node id based on current node rank</span>
+        <span class="c1"># node_id = current_node_rank / n_gpus_per_node</span>
+        <span class="n">curr_node_rank</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;ddp.rank&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">curr_node_rank</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_start_rank_node</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Node rank can&#39;t be None.&quot;</span><span class="p">)</span>
+        <span class="n">node_id</span> <span class="o">=</span> <span class="n">curr_node_rank</span> <span class="o">//</span> <span class="n">n_gpus_per_node</span>
+
+        <span class="c1"># Downloading the entire dataset on each node is not feasible. Instead, for each</span>
+        <span class="c1"># node, we will download a subset of the dataset and learn from it.</span>
+
+        <span class="c1"># Split the dataset almost equally among all nodes. The length of this split</span>
+        <span class="c1"># is going to be the same as the number of nodes.</span>
+        <span class="n">node_wise_dataset_split</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array_split</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_keys</span><span class="p">,</span> <span class="n">n_nodes</span><span class="p">)</span>
+
+        <span class="c1"># download files corresponding to ith node</span>
+        <span class="n">files_node_i</span> <span class="o">=</span> <span class="n">node_wise_dataset_split</span><span class="p">[</span><span class="n">node_id</span><span class="p">]</span>
+
+        <span class="c1"># Dataset is organized as a dict where key corresponds to start_index of image-text pair and</span>
+        <span class="c1"># value corresponds to the file name.</span>
+
+        <span class="c1"># find the start and end image-text pair indexes for node_i.</span>
+        <span class="c1"># Note that we overlap node_i and node_i+1 by at most __OVERLAP_RATIO files</span>
+        <span class="n">start_idx_node_i</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+            <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_keys</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">files_node_i</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">__OVERLAP_RATIO</span>
+        <span class="p">)</span>
+        <span class="n">end_idx_node_i</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_keys</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dataset_keys</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">files_node_i</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">__OVERLAP_RATIO</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Now, download the files concurrently using each rank on node i</span>
+        <span class="c1"># Now, download the files concurrently using each rank on node i</span>
+        <span class="n">indexes_to_download_node_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_keys</span><span class="p">[</span><span class="n">start_idx_node_i</span><span class="p">:</span><span class="n">end_idx_node_i</span><span class="p">]</span>
+        <span class="n">indexes_to_download_node_i_rank_j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array_split</span><span class="p">(</span>
+            <span class="n">indexes_to_download_node_i</span><span class="p">,</span> <span class="n">n_gpus_per_node</span>
+        <span class="p">)</span>
+        <span class="n">total_files_to_download</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">indexes_to_download_node_i</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_start_rank_node</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting to downloading </span><span class="si">{</span><span class="n">total_files_to_download</span><span class="si">}</span><span class="s2"> files&quot;</span><span class="p">)</span>
+
+        <span class="n">current_device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">current_device</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span>
+            <span class="s2">&quot;dataset.multi_modal_img_text.img_text_tar.parallel_download&quot;</span><span class="p">,</span>
+            <span class="kc">False</span><span class="p">,</span>
+        <span class="p">):</span>
+            <span class="c1"># download concurrently using many workers for each rank</span>
+            <span class="n">n_cpus</span> <span class="o">=</span> <span class="n">resources</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span>
+            <span class="n">n_process_per_gpu</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+                <span class="mi">1</span><span class="p">,</span> <span class="n">n_cpus</span> <span class="o">//</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device_count</span><span class="p">()</span>
+            <span class="p">)</span>  <span class="c1"># max(1, min(4, n_cpus // torch.cuda.device_count()))</span>
+            <span class="k">with</span> <span class="n">Pool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="n">n_process_per_gpu</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+                <span class="n">pool</span><span class="o">.</span><span class="n">starmap</span><span class="p">(</span>
+                    <span class="n">async_download_file_from_s3</span><span class="p">,</span>
+                    <span class="p">[</span>
+                        <span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span>
+                            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">s3_bucket_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">[</span><span class="n">img_text_idx</span><span class="p">]</span>
+                            <span class="p">),</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">cache_loc</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="k">for</span> <span class="n">img_text_idx</span> <span class="ow">in</span> <span class="n">indexes_to_download_node_i_rank_j</span><span class="p">[</span>
+                            <span class="n">current_device</span>
+                        <span class="p">]</span>
+                    <span class="p">],</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># download sequentially (1 worker per rank)</span>
+            <span class="k">for</span> <span class="n">count</span><span class="p">,</span> <span class="n">img_text_idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+                <span class="n">indexes_to_download_node_i_rank_j</span><span class="p">[</span><span class="n">current_device</span><span class="p">]</span>
+            <span class="p">):</span>
+                <span class="c1"># Recall that dataset is organized as a dict where key corresponds to start_index of image-text pair</span>
+                <span class="c1"># value corresponds to the tar file name.</span>
+
+                <span class="n">async_download_file_from_s3</span><span class="p">(</span>
+                    <span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span>
+                    <span class="n">tar_file_name</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">s3_bucket_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">[</span><span class="n">img_text_idx</span><span class="p">]</span>
+                    <span class="p">),</span>
+                    <span class="n">cache_loc</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_loc</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">count</span> <span class="o">%</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_start_rank_node</span><span class="p">:</span>
+                    <span class="n">n_files_downloaded</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_loc</span><span class="si">}</span><span class="s2">/*&quot;</span><span class="p">))</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Progress: </span><span class="si">{</span><span class="n">n_files_downloaded</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">total_files_to_download</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                        <span class="n">end</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\r</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+        <span class="c1"># synchronize between all DDP jobs</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;ddp.use_distributed&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="n">dist_barrier</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_start_rank_node</span><span class="p">:</span>
+            <span class="n">n_files_downloaded</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_loc</span><span class="si">}</span><span class="s2">/*&quot;</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Download complete (</span><span class="si">{</span><span class="n">n_files_downloaded</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">total_files_to_download</span><span class="si">}</span><span class="s2">). &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Files are stored at: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_loc</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">zeros_shot_dataset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">zeros_shot_dataset</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_pairs</span>
+
+<div class="viewcode-block" id="ImgTextTarDataset.add_arguments"><a class="viewcode-back" href="../../../../autogen/data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.img_text_tar_dataset.ImgTextTarDataset.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add dataset-specific arguments to the parser.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">cls</span> <span class="o">!=</span> <span class="n">ImgTextTarDataset</span><span class="p">:</span>
+            <span class="c1"># Don&#39;t re-register arguments in subclasses that don&#39;t override `add_arguments()`.</span>
+            <span class="k">return</span> <span class="n">parser</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--dataset.multi-modal-img-text.img-text-tar.metadata-file&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Location of the metadata file storing information about file indices and corresponding tar files. &quot;</span>
+            <span class="s2">&quot;Defaults to None.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--dataset.multi-modal-img-text.img-text-tar.s3-bucket-path&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Path of the s3 bucket where data is stored.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--dataset.multi-modal-img-text.img-text-tar.parallel-download&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Download the data in parallel on each rank of the DDP process. Defaults to False.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="ImgTextTarDataset.get_dataset_pair"><a class="viewcode-back" href="../../../../autogen/data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.img_text_tar_dataset.ImgTextTarDataset.get_dataset_pair">[docs]</a>    <span class="k">def</span> <span class="nf">get_dataset_pair</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;For a given image index, read the image file, corresponding caption, and class label.</span>
+<span class="sd">        If class label is not present, -1 is returned.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">class_label</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">try</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="n">img_index</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_keys</span><span class="p">:</span>
+                <span class="c1"># file index is the same as the start index</span>
+                <span class="n">file_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_keys</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">img_index</span><span class="p">)</span>
+                <span class="c1"># data index is 0 because file index is one of the start indices</span>
+                <span class="n">data_index</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">img_text_pair_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_keys</span><span class="p">[</span><span class="n">file_index</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># find the index at which the element will be inserted.</span>
+                <span class="c1"># Example: If we have an array of start indices as [0, 15, 35, 90] and</span>
+                <span class="c1"># we want to find the position of image index 92, then the insertion index will be 4.</span>
+                <span class="n">insertion_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_keys</span><span class="p">,</span> <span class="n">img_index</span><span class="p">)</span>
+
+                <span class="c1"># the image id corresponding to 92 is stored in file whose start index is 90.</span>
+                <span class="c1"># So, the file index is one less than insertion index</span>
+                <span class="n">file_index</span> <span class="o">=</span> <span class="n">insertion_idx</span> <span class="o">-</span> <span class="mi">1</span>
+
+                <span class="n">img_text_pair_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_keys</span><span class="p">[</span><span class="n">file_index</span><span class="p">]</span>
+
+                <span class="c1"># data index is delta between current value (92) and value at file index (90)</span>
+                <span class="n">data_index</span> <span class="o">=</span> <span class="n">img_index</span> <span class="o">-</span> <span class="n">img_text_pair_id</span>
+
+            <span class="c1"># get the key corresponding to file index and retrieve the file name</span>
+            <span class="c1"># concatenate the file name with cache location path</span>
+            <span class="n">tar_file_name_from_metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">[</span><span class="n">img_text_pair_id</span><span class="p">]</span>
+
+            <span class="n">tar_file_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_loc</span><span class="p">,</span> <span class="n">tar_file_name_from_metadata</span><span class="p">)</span>
+            <span class="c1"># Tar file name is encoded as: &lt;path&gt;/&lt;folder_start_end.tar.gz&gt;</span>
+            <span class="c1"># each file name in tar file is encoded as: &lt;folder_dataIdx_image&gt; and &lt;folder_dataIdx_text&gt;</span>
+
+            <span class="c1"># remove the tar extension because we have extracted the data when downloaded</span>
+            <span class="n">tar_file_name</span> <span class="o">=</span> <span class="n">tar_file_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__FILE_EXTN</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">tar_file_name</span><span class="p">):</span>
+                <span class="n">async_download_file_from_s3</span><span class="p">(</span>
+                    <span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span>
+                    <span class="n">tar_file_name</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">s3_bucket_path</span><span class="p">,</span> <span class="n">tar_file_name_from_metadata</span>
+                    <span class="p">),</span>
+                    <span class="n">cache_loc</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_loc</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="c1"># Based on this, decode the folder information</span>
+            <span class="n">folder_name</span> <span class="o">=</span> <span class="n">tar_file_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="c1"># adjust the data index with start_id offset</span>
+            <span class="n">start_id</span> <span class="o">=</span> <span class="n">tar_file_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">data_index</span> <span class="o">=</span> <span class="n">data_index</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">start_id</span><span class="p">)</span>
+
+            <span class="n">img_text_fname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">tar_file_name</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">folder_name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">data_index</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">img_text_fname</span><span class="si">}</span><span class="s2">_image&quot;</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">img_byte_data</span><span class="p">:</span>
+                <span class="n">input_img</span> <span class="o">=</span> <span class="n">decode_image</span><span class="p">(</span><span class="n">img_byte_data</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">img_text_fname</span><span class="si">}</span><span class="s2">_text&quot;</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">text_byte_data</span><span class="p">:</span>
+                <span class="n">captions_str</span> <span class="o">=</span> <span class="n">decode_text</span><span class="p">(</span><span class="n">text_byte_data</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;error loading </span><span class="si">{}</span><span class="s2">. Error message: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">img_index</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)))</span>
+
+            <span class="n">input_img</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">captions_str</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">input_img</span><span class="p">,</span> <span class="n">captions_str</span><span class="p">,</span> <span class="n">class_label</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

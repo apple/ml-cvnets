@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>loss_fn.composite_loss &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../loss_fn.html">loss_fn</a></li>
+      <li class="breadcrumb-item active">loss_fn.composite_loss</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for loss_fn.composite_loss</h1><div class="highlight"><pre>
+<span></span><span class="c1">#  For licensing see accompanying LICENSE file.</span>
+<span class="c1">#  Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
+
+<span class="kn">from</span> <span class="nn">loss_fn</span> <span class="kn">import</span> <span class="n">LOSS_REGISTRY</span><span class="p">,</span> <span class="n">BaseCriteria</span><span class="p">,</span> <span class="n">build_loss_fn</span>
+<span class="kn">from</span> <span class="nn">options.utils</span> <span class="kn">import</span> <span class="n">flatten_yaml_as_dict</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+
+
+<span class="c1"># CompositeLoss can be used with any task. Therefore, we register both name and type</span>
+<span class="c1"># as the same.</span>
+<div class="viewcode-block" id="CompositeLoss"><a class="viewcode-back" href="../../autogen/loss_fn.html#loss_fn.composite_loss.CompositeLoss">[docs]</a><span class="nd">@LOSS_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;composite_loss&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;composite_loss&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">CompositeLoss</span><span class="p">(</span><span class="n">BaseCriteria</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Combines different loss functions and returns the weighted sum of these losses.</span>
+<span class="sd">    `loss_category` and `loss_weight` are two mandatory keys that allows us to combine</span>
+<span class="sd">    different losses and compute their weighted sum. The `loss_category` specifies the category</span>
+<span class="sd">    of a loss function and is a string (e.g., classification). The `loss_weight` specifies</span>
+<span class="sd">    the contribution of a loss function and is a float value (e.g., 1.0). The sum of `loss_weight`s</span>
+<span class="sd">    corresponding to different loss functions is not required to be 1.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: command-line arguments</span>
+
+<span class="sd">    Example::</span>
+<span class="sd">    # Example yaml config for combining classification and neural_augmentation loss function is given below.</span>
+<span class="sd">    # Please note that configuration for each loss function should start with `-` in `composite_loss`.</span>
+
+<span class="sd">    loss:</span>
+<span class="sd">      category: &quot;composite_loss&quot;</span>
+<span class="sd">      composite_loss:</span>
+<span class="sd">        - loss_category: &quot;classification&quot;</span>
+<span class="sd">          loss_weight: 1.0</span>
+<span class="sd">          classification:</span>
+<span class="sd">            name: &quot;cross_entropy&quot;</span>
+<span class="sd">            cross_entropy:</span>
+<span class="sd">              label_smoothing: 0.1</span>
+<span class="sd">        - loss_category: &quot;neural_augmentation&quot;</span>
+<span class="sd">          loss_weight: 1.0</span>
+<span class="sd">          neural_augmentation:</span>
+<span class="sd">            perceptual_metric: &quot;psnr&quot;</span>
+<span class="sd">            target_value: [ 40, 10 ]</span>
+<span class="sd">            curriculum_method: &quot;cosine&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="CompositeLoss.__init__"><a class="viewcode-back" href="../../autogen/loss_fn.html#loss_fn.composite_loss.CompositeLoss.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="p">(</span>
+            <span class="n">task_loss_fn_mapping</span><span class="p">,</span>
+            <span class="n">task_loss_wts_mapping</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="n">CompositeLoss</span><span class="o">.</span><span class="n">build_composite_loss_fn</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss_fns</span> <span class="o">=</span> <span class="n">task_loss_fn_mapping</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss_weights</span> <span class="o">=</span> <span class="n">task_loss_wts_mapping</span></div>
+
+<div class="viewcode-block" id="CompositeLoss.build_composite_loss_fn"><a class="viewcode-back" href="../../autogen/loss_fn.html#loss_fn.composite_loss.CompositeLoss.build_composite_loss_fn">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">build_composite_loss_fn</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">BaseCriteria</span><span class="p">],</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build loss functions from command line arguments and loss registry</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            opts: command-line arguments</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A tuple of two dictionaries. The first dictionary, task_loss_fn_mapping, contains</span>
+<span class="sd">            information about loss function category and module. The second dictionary, `task_loss_wts_mapping`</span>
+<span class="sd">            contains the information about loss function category and weight.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">composite_loss_opts</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;loss.composite_loss&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">composite_loss_opts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> can&#39;t be None. Please specify --loss.composite-loss using yaml file&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">composite_loss_opts</span><span class="p">,</span> <span class="n">List</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> options are expected as a List. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Got type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">composite_loss_opts</span><span class="p">)</span><span class="si">}</span><span class="s2"> and values: </span><span class="si">{</span><span class="n">composite_loss_opts</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">num_loss_fns</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">composite_loss_opts</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">num_loss_fns</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;We need at least one loss function if using </span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">task_loss_fn_mapping</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">task_loss_wts_mapping</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">composite_loss_opts_as_dict</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">composite_loss_opts</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s2">&quot;loss_category&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">composite_loss_opts_as_dict</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;loss_category is a mandatory key&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;loss_weight&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">composite_loss_opts_as_dict</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Loss weight is a mandatory&quot;</span><span class="p">)</span>
+            <span class="n">loss_category</span> <span class="o">=</span> <span class="n">composite_loss_opts_as_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;loss_category&quot;</span><span class="p">)</span>
+
+            <span class="n">loss_weight</span> <span class="o">=</span> <span class="n">composite_loss_opts_as_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;loss_weight&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loss_weight</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;loss weight should be either int or float. &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Got: value=</span><span class="si">{</span><span class="n">loss_weight</span><span class="si">}</span><span class="s2">, type=</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">loss_weight</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
+            <span class="c1"># flatten the dictionary</span>
+            <span class="n">composite_loss_opts_as_dict</span> <span class="o">=</span> <span class="n">flatten_yaml_as_dict</span><span class="p">(</span>
+                <span class="n">composite_loss_opts_as_dict</span>
+            <span class="p">)</span>
+
+            <span class="c1"># `composite_loss_opts_as_dict` only contains the values of command-line arguments that are</span>
+            <span class="c1"># defined in the yaml file. Therefore, if a user misses few arguments, we won&#39;t have access</span>
+            <span class="c1"># to default values, leading to an error. To avoid this, we create a local copy of global</span>
+            <span class="c1"># command-line arguments and update it with `composite_loss_opts_as_dict` arguments</span>
+            <span class="n">loss_opts</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+
+            <span class="c1"># override the global opts with loss_fn specific opts in local copy</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">composite_loss_opts_as_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="c1"># we need to prefix each argument with loss because we define individual losses as</span>
+                <span class="c1"># `loss.classification.*` and not `classification.*`</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">loss_opts</span><span class="p">,</span> <span class="s2">&quot;loss.&quot;</span> <span class="o">+</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+            <span class="c1"># given the category of a loss function, build the criteria</span>
+            <span class="n">task_loss_fn_mapping</span><span class="p">[</span><span class="n">loss_category</span><span class="p">]</span> <span class="o">=</span> <span class="n">build_loss_fn</span><span class="p">(</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">loss_opts</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="n">loss_category</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span>
+
+            <span class="n">task_loss_wts_mapping</span><span class="p">[</span><span class="n">loss_category</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss_weight</span>
+
+        <span class="c1"># see if the keys in task_loss_fn_mapping and task_loss_wts_mapping are the same or not</span>
+        <span class="c1"># i.e., intersection is null.</span>
+        <span class="n">is_intersection</span> <span class="o">=</span> <span class="n">task_loss_fn_mapping</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="o">.</span><span class="n">isdisjoint</span><span class="p">(</span><span class="n">task_loss_wts_mapping</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">is_intersection</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">,</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;The keys in task_loss_fn_mapping and task_loss_wts_mapping are not the same. &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Got: </span><span class="si">{</span><span class="n">task_loss_fn_mapping</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">task_loss_wts_mapping</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">task_loss_fn_mapping</span><span class="p">,</span> <span class="n">task_loss_wts_mapping</span></div>
+
+<div class="viewcode-block" id="CompositeLoss.add_arguments"><a class="viewcode-back" href="../../autogen/loss_fn.html#loss_fn.composite_loss.CompositeLoss.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add criterion-specific arguments to the parser.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">cls</span> <span class="o">!=</span> <span class="n">CompositeLoss</span><span class="p">:</span>
+            <span class="c1"># Don&#39;t re-register arguments in subclasses that don&#39;t override `add_arguments()`.</span>
+            <span class="k">return</span> <span class="n">parser</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--loss.composite-loss&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;append&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+<div class="viewcode-block" id="CompositeLoss.forward"><a class="viewcode-back" href="../../autogen/loss_fn.html#loss_fn.composite_loss.CompositeLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">input_sample</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">prediction</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute the weighted sum of different loss functions.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            input_sample: Input to the model.</span>
+<span class="sd">            prediction: Model&#39;s output</span>
+<span class="sd">            target: Ground truth labels</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A mapping of the form (str: scalar loss value) with `total_loss` as a mandatory key.</span>
+<span class="sd">            The other keys corresponds to loss category names and their values contain category-specific</span>
+<span class="sd">            scalar loss values. total_loss is weighted sum of these category-specific losses.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">total_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">for</span> <span class="n">loss_name</span><span class="p">,</span> <span class="n">loss_layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_fns</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">loss_wt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_weights</span><span class="p">[</span><span class="n">loss_name</span><span class="p">]</span>
+            <span class="n">loss_val</span> <span class="o">=</span> <span class="n">loss_layer</span><span class="p">(</span>
+                <span class="n">input_sample</span><span class="o">=</span><span class="n">input_sample</span><span class="p">,</span>
+                <span class="n">prediction</span><span class="o">=</span><span class="n">prediction</span><span class="p">,</span>
+                <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
+                <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loss_val</span><span class="p">,</span> <span class="p">(</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">)):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s2">&quot;Loss value is expected as a scalar or dictionary of scalars with total_loss as a &quot;</span>
+                    <span class="s2">&quot;mandatory key.&quot;</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loss_val</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">&quot;total_loss&quot;</span> <span class="ow">in</span> <span class="n">loss_val</span><span class="p">:</span>
+                <span class="n">loss_val</span> <span class="o">=</span> <span class="n">loss_val</span><span class="p">[</span><span class="s2">&quot;total_loss&quot;</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loss_val</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">):</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Value corresponding to total_loss key in </span><span class="si">{</span><span class="n">loss_val</span><span class="si">}</span><span class="s2"> is expected to be scalar.&quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;Got: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">loss_val</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+            <span class="c1"># scale the loss</span>
+            <span class="n">loss_val</span> <span class="o">=</span> <span class="n">loss_val</span> <span class="o">*</span> <span class="n">loss_wt</span>
+
+            <span class="n">total_loss</span> <span class="o">+=</span> <span class="n">loss_val</span>
+            <span class="n">outputs</span><span class="p">[</span><span class="n">loss_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss_val</span>
+        <span class="n">outputs</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;total_loss&quot;</span><span class="p">:</span> <span class="n">total_loss</span><span class="p">})</span>
+        <span class="k">return</span> <span class="n">outputs</span></div>
+
+<div class="viewcode-block" id="CompositeLoss.train"><a class="viewcode-back" href="../../autogen/loss_fn.html#loss_fn.composite_loss.CompositeLoss.train">[docs]</a>    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sets the loss functions in training mode.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">loss_name</span><span class="p">,</span> <span class="n">loss_layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_fns</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">loss_layer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CompositeLoss.eval"><a class="viewcode-back" href="../../autogen/loss_fn.html#loss_fn.composite_loss.CompositeLoss.eval">[docs]</a>    <span class="k">def</span> <span class="nf">eval</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sets the loss functions in evaluation mode.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">loss_name</span><span class="p">,</span> <span class="n">loss_layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_fns</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">loss_layer</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">repr_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(</span><span class="se">\n\t</span><span class="s2">&quot;</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_fns</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">repr_str</span> <span class="o">+=</span> <span class="p">(</span>
+                <span class="n">v</span><span class="o">.</span><span class="fm">__repr__</span><span class="p">()</span>
+                <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot; loss_wt=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">loss_weights</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">&quot;</span>
+        <span class="n">repr_str</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">)&quot;</span>
+        <span class="k">return</span> <span class="n">repr_str</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

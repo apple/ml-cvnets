@@ -1,0 +1,29 @@
+loss\_fn.multi\_modal\_img\_text package
+========================================
+
+Submodules
+----------
+
+loss\_fn.multi\_modal\_img\_text.base\_multi\_modal\_img\_text\_criteria module
+-------------------------------------------------------------------------------
+
+.. automodule:: loss_fn.multi_modal_img_text.base_multi_modal_img_text_criteria
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+loss\_fn.multi\_modal\_img\_text.contrastive\_loss\_clip module
+---------------------------------------------------------------
+
+.. automodule:: loss_fn.multi_modal_img_text.contrastive_loss_clip
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: loss_fn.multi_modal_img_text
+   :members:
+   :undoc-members:
+   :show-inheritance:

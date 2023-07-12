@@ -1,0 +1,45 @@
+cvnets.image\_projection\_layers package
+========================================
+
+Submodules
+----------
+
+cvnets.image\_projection\_layers.attention\_pool\_2d module
+-----------------------------------------------------------
+
+.. automodule:: cvnets.image_projection_layers.attention_pool_2d
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.image\_projection\_layers.base\_image\_projection module
+---------------------------------------------------------------
+
+.. automodule:: cvnets.image_projection_layers.base_image_projection
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.image\_projection\_layers.global\_pool\_2d module
+--------------------------------------------------------
+
+.. automodule:: cvnets.image_projection_layers.global_pool_2d
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.image\_projection\_layers.simple\_projection\_head module
+----------------------------------------------------------------
+
+.. automodule:: cvnets.image_projection_layers.simple_projection_head
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cvnets.image_projection_layers
+   :members:
+   :undoc-members:
+   :show-inheritance:

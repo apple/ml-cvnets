@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Model Zoo &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="prev" title="Data Samplers" href="../../data_samplers.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Model Zoo</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#classification-imagenet-1k">Classification (ImageNet-1k)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#mobilevitv1-legacy">MobileViTv1 (Legacy)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mobilevitv2-256x256">MobileViTv2 (256x256)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mobilevitv2-trained-on-256x256-and-finetuned-on-384x384">MobileViTv2 (Trained on 256x256 and Finetuned on 384x384)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mobilevitv2-trained-on-imagenet-21k-and-finetuned-on-imagenet-1k-256x256">MobileViTv2 (Trained on ImageNet-21k and Finetuned on ImageNet-1k 256x256)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mobilevitv2-trained-on-imagenet-21k-finetuned-on-imagenet-1k-256x256-and-finetuned-on-imagenet-1k-384x384">MobileViTv2 (Trained on ImageNet-21k, Finetuned on ImageNet-1k 256x256, and Finetuned on ImageNet-1k 384x384)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#object-detection-ms-coco">Object Detection (MS-COCO)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#segmentation">Segmentation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ade20k-dataset">ADE20K Dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pascal-voc-2012-dataset">Pascal VOC 2012 Dataset</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#video-classification-kinetics-400">Video Classification (Kinetics-400)</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Model Zoo</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/en/general/README-model-zoo.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="model-zoo">
+<h1>Model Zoo<a class="headerlink" href="#model-zoo" title="Permalink to this heading"></a></h1>
+<p>⚠️ For recent papers along with pre-trained models, training/evaluation recipes, and configuration files, please see <a class="reference external" href="https://github.com/apple/ml-cvnets/tree/main/examples">examples</a> folder. We will update model zoo periodically.⚠️</p>
+<p>This file contains the links to all the pre-trained models in CVNets and their configs:</p>
+<section id="classification-imagenet-1k">
+<h2>Classification (ImageNet-1k)<a class="headerlink" href="#classification-imagenet-1k" title="Permalink to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Parameters</p></th>
+<th class="head"><p>Top-1</p></th>
+<th class="head"><p>Pretrained weights</p></th>
+<th class="head"><p>Config file</p></th>
+<th class="head"><p>Logs</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>ViT-tiny</p></td>
+<td><p>5.7 M</p></td>
+<td><p>72.91</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/vit-tiny.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/vit-tiny.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/vit-tiny.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>ResNet-34</p></td>
+<td><p>21.8 M</p></td>
+<td><p>74.85</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/resnet-34.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/resnet-34.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/resnet-34.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>ResNet-50</p></td>
+<td><p>25.6 M</p></td>
+<td><p>78.44</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/resnet-50.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/resnet-50.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/resnet-50.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>ResNet-101</p></td>
+<td><p>44.5 M</p></td>
+<td><p>79.81</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/resnet-101.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/resnet-101.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/resnet-101.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>MobileNetv1-0.25</p></td>
+<td><p>0.5 M</p></td>
+<td><p>54.45</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv1-0.25.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv1-0.25.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv1-0.25.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>MobileNetv1-0.5</p></td>
+<td><p>1.3 M</p></td>
+<td><p>65.93</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv1-0.5.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv1-0.5.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv1-0.5.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>MobileNetv1-0.75</p></td>
+<td><p>2.6 M</p></td>
+<td><p>71.44</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv1-0.75.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv1-0.75.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv1-0.75.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>MobileNetv1-1.00</p></td>
+<td><p>4.2 M</p></td>
+<td><p>74.04</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv1-1.00.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv1-1.00.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv1-1.00.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>MobileNetv2-0.25</p></td>
+<td><p>1.5 M</p></td>
+<td><p>53.57</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv2-0.25.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv2-0.25.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv2-0.25.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>MobileNetv2-0.5</p></td>
+<td><p>2.0 M</p></td>
+<td><p>65.28</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv2-0.5.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv2-0.5.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv2-0.5.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>MobileNetv2-0.75</p></td>
+<td><p>2.6 M</p></td>
+<td><p>70.42</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv2-0.75.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv2-0.75.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv2-0.75.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>MobileNetv2-1.00</p></td>
+<td><p>3.5 M</p></td>
+<td><p>72.93</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv2-1.00.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv2-1.00.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv2-1.00.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>MobileNetv3-small</p></td>
+<td><p>2.5 M</p></td>
+<td><p>66.65</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv3-small.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv3-small.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv3-small.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>MobileNetv3-large</p></td>
+<td><p>5.4 M</p></td>
+<td><p>75.13</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv3-large.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv3-large.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilenetv3-large.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>ResNet-34 (advanced recipe)</p></td>
+<td><p>21.8 M</p></td>
+<td><p>76.91</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/advanced/resnet-34-adv.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/advanced/resnet-34-adv.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/advanced/resnet-34-adv.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>ResNet-50 (advanced recipe)</p></td>
+<td><p>25.6 M</p></td>
+<td><p>80.36</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/advanced/resnet-50-adv.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/advanced/resnet-50-adv.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/advanced/resnet-50-adv.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>ResNet-101 (advanced recipe)</p></td>
+<td><p>44.5 M</p></td>
+<td><p>81.68</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/advanced/resnet-101-adv.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/advanced/resnet-101-adv.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/advanced/resnet-101-adv.logs">Link</a></p></td>
+</tr>
+</tbody>
+</table>
+<section id="mobilevitv1-legacy">
+<h3>MobileViTv1 (Legacy)<a class="headerlink" href="#mobilevitv1-legacy" title="Permalink to this heading"></a></h3>
+<p>Note: These resutls are from CVNets v0.1. We discontinued the support of OpenCV and switched to PIL in v0.2. For MobileViTv1 results, see v0.1.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Parameters</p></th>
+<th class="head"><p>Top-1</p></th>
+<th class="head"><p>Pretrained weights</p></th>
+<th class="head"><p>Config file</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>MobileViT-XXS</p></td>
+<td><p>1.3 M</p></td>
+<td><p>69.0</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets/classification/mobilevit_xxs.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets/classification/mobilevit_xxs.yaml">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>MobileViT-XS</p></td>
+<td><p>2.3 M</p></td>
+<td><p>74.7</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets/classification/mobilevit_xs.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets/classification/mobilevit_xs.yaml">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>MobileViT-S</p></td>
+<td><p>5.6 M</p></td>
+<td><p>78.3</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets/classification/mobilevit_s.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets/classification/mobilevit_s.yaml">Link</a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="mobilevitv2-256x256">
+<h3>MobileViTv2 (256x256)<a class="headerlink" href="#mobilevitv2-256x256" title="Permalink to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Parameters</p></th>
+<th class="head"><p>Top-1</p></th>
+<th class="head"><p>Pretrained weights</p></th>
+<th class="head"><p>Config file</p></th>
+<th class="head"><p>Logs</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>MobileViTv2-0.5</p></td>
+<td><p>1.4 M</p></td>
+<td><p>70.18</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-0.5.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-0.5.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-0.5.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>MobileViTv2-0.75</p></td>
+<td><p>2.9 M</p></td>
+<td><p>75.56</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-0.75.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-0.75.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-0.75.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>MobileViTv2-1.0</p></td>
+<td><p>4.9 M</p></td>
+<td><p>78.09</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-1.0.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-1.0.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-1.0.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>MobileViTv2-1.25</p></td>
+<td><p>7.5 M</p></td>
+<td><p>79.65</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-1.25.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-1.25.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-1.25.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>MobileViTv2-1.5</p></td>
+<td><p>10.6 M</p></td>
+<td><p>80.38</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-1.5.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-1.5.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-1.5.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>MobileViTv2-1.75</p></td>
+<td><p>14.3 M</p></td>
+<td><p>80.84</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-1.75.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-1.75.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-1.75.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>MobileViTv2-2.0</p></td>
+<td><p>18.4 M</p></td>
+<td><p>81.17</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-2.0.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-2.0.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-2.0.logs">Link</a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="mobilevitv2-trained-on-256x256-and-finetuned-on-384x384">
+<h3>MobileViTv2 (Trained on 256x256 and Finetuned on 384x384)<a class="headerlink" href="#mobilevitv2-trained-on-256x256-and-finetuned-on-384x384" title="Permalink to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Parameters</p></th>
+<th class="head"><p>Top-1</p></th>
+<th class="head"><p>Pretrained weights</p></th>
+<th class="head"><p>Config file</p></th>
+<th class="head"><p>Logs</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>MobileViTv2-0.5</p></td>
+<td><p>1.4 M</p></td>
+<td><p>72.14</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/384x384/mobilevitv2-0.5.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/384x384/mobilevitv2-0.5.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/384x384/mobilevitv2-0.5.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>MobileViTv2-0.75</p></td>
+<td><p>2.9 M</p></td>
+<td><p>76.98</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/384x384/mobilevitv2-0.75.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/384x384/mobilevitv2-0.75.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/384x384/mobilevitv2-0.75.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>MobileViTv2-1.0</p></td>
+<td><p>4.9 M</p></td>
+<td><p>79.68</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/384x384/mobilevitv2-1.0.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/384x384/mobilevitv2-1.0.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/384x384/mobilevitv2-1.0.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>MobileViTv2-1.25</p></td>
+<td><p>7.5 M</p></td>
+<td><p>80.94</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/384x384/mobilevitv2-1.25.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/384x384/mobilevitv2-1.25.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/384x384/mobilevitv2-1.25.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>MobileViTv2-1.5</p></td>
+<td><p>10.6 M</p></td>
+<td><p>81.50</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/384x384/mobilevitv2-1.5.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/384x384/mobilevitv2-1.5.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/384x384/mobilevitv2-1.5.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>MobileViTv2-1.75</p></td>
+<td><p>14.3 M</p></td>
+<td><p>82.04</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/384x384/mobilevitv2-1.75.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/384x384/mobilevitv2-1.75.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/384x384/mobilevitv2-1.75.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>MobileViTv2-2.0</p></td>
+<td><p>18.4 M</p></td>
+<td><p>82.17</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/384x384/mobilevitv2-2.0.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/384x384/mobilevitv2-2.0.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/384x384/mobilevitv2-2.0.logs">Link</a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="mobilevitv2-trained-on-imagenet-21k-and-finetuned-on-imagenet-1k-256x256">
+<h3>MobileViTv2 (Trained on ImageNet-21k and Finetuned on ImageNet-1k 256x256)<a class="headerlink" href="#mobilevitv2-trained-on-imagenet-21k-and-finetuned-on-imagenet-1k-256x256" title="Permalink to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Parameters</p></th>
+<th class="head"><p>Top-1</p></th>
+<th class="head"><p>Pretrained weights</p></th>
+<th class="head"><p>Config file</p></th>
+<th class="head"><p>Logs</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>MobileViTv2-1.5</p></td>
+<td><p>10.6 M</p></td>
+<td><p>81.46</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet21k_to_1k/256x256/mobilevitv2-1.5.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet21k_to_1k/256x256/mobilevitv2-1.5.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet21k_to_1k/256x256/mobilevitv2-1.5.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>MobileViTv2-1.75</p></td>
+<td><p>14.3 M</p></td>
+<td><p>81.94</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet21k_to_1k/256x256/mobilevitv2-1.75.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet21k_to_1k/256x256/mobilevitv2-1.75.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet21k_to_1k/256x256/mobilevitv2-1.75.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>MobileViTv2-2.0</p></td>
+<td><p>18.4 M</p></td>
+<td><p>82.36</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet21k_to_1k/256x256/mobilevitv2-2.0.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet21k_to_1k/256x256/mobilevitv2-2.0.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet21k_to_1k/256x256/mobilevitv2-2.0.logs">Link</a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="mobilevitv2-trained-on-imagenet-21k-finetuned-on-imagenet-1k-256x256-and-finetuned-on-imagenet-1k-384x384">
+<h3>MobileViTv2 (Trained on ImageNet-21k, Finetuned on ImageNet-1k 256x256, and Finetuned on ImageNet-1k 384x384)<a class="headerlink" href="#mobilevitv2-trained-on-imagenet-21k-finetuned-on-imagenet-1k-256x256-and-finetuned-on-imagenet-1k-384x384" title="Permalink to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Parameters</p></th>
+<th class="head"><p>Top-1</p></th>
+<th class="head"><p>Pretrained weights</p></th>
+<th class="head"><p>Config file</p></th>
+<th class="head"><p>Logs</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>MobileViTv2-1.5</p></td>
+<td><p>10.6 M</p></td>
+<td><p>82.60</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet21k_to_1k/384x384/mobilevitv2-1.5.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet21k_to_1k/384x384/mobilevitv2-1.5.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet21k_to_1k/384x384/mobilevitv2-1.5.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>MobileViTv2-1.75</p></td>
+<td><p>14.3 M</p></td>
+<td><p>82.93</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet21k_to_1k/384x384/mobilevitv2-1.75.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet21k_to_1k/384x384/mobilevitv2-1.75.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet21k_to_1k/384x384/mobilevitv2-1.75.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>MobileViTv2-2.0</p></td>
+<td><p>18.4 M</p></td>
+<td><p>83.41</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet21k_to_1k/384x384/mobilevitv2-2.0.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet21k_to_1k/384x384/mobilevitv2-2.0.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet21k_to_1k/384x384/mobilevitv2-2.0.logs">Link</a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="object-detection-ms-coco">
+<h2>Object Detection (MS-COCO)<a class="headerlink" href="#object-detection-ms-coco" title="Permalink to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Parameters</p></th>
+<th class="head"><p>MAP</p></th>
+<th class="head"><p>Pretrained weights</p></th>
+<th class="head"><p>Config file</p></th>
+<th class="head"><p>Logs</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>SSD ResNet-50</p></td>
+<td><p>28.5 M</p></td>
+<td><p>29.98</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/coco-ssd-resnet-50.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/coco-ssd-resnet-50.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/coco-ssd-resnet-50.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>SSD MobileViTv2-0.5</p></td>
+<td><p>2.0 M</p></td>
+<td><p>21.24</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/mobilevitv2/coco-ssd-mobilevitv2-0.5.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/mobilevitv2/coco-ssd-mobilevitv2-0.5.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/mobilevitv2/coco-ssd-mobilevitv2-0.5.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>SSD MobileViTv2-0.75</p></td>
+<td><p>3.6 M</p></td>
+<td><p>24.57</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/mobilevitv2/coco-ssd-mobilevitv2-0.75.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/mobilevitv2/coco-ssd-mobilevitv2-0.75.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/mobilevitv2/coco-ssd-mobilevitv2-0.75.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>SSD MobileViTv2-1.0</p></td>
+<td><p>5.6 M</p></td>
+<td><p>26.47</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/mobilevitv2/coco-ssd-mobilevitv2-1.0.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/mobilevitv2/coco-ssd-mobilevitv2-1.0.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/mobilevitv2/coco-ssd-mobilevitv2-1.0.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>SSD MobileViTv2-1.25</p></td>
+<td><p>8.2 M</p></td>
+<td><p>27.85</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/mobilevitv2/coco-ssd-mobilevitv2-1.25.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/mobilevitv2/coco-ssd-mobilevitv2-1.25.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/mobilevitv2/coco-ssd-mobilevitv2-1.25.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>SSD MobileViTv2-1.5</p></td>
+<td><p>11.3 M</p></td>
+<td><p>28.83</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/mobilevitv2/coco-ssd-mobilevitv2-1.5.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/mobilevitv2/coco-ssd-mobilevitv2-1.5.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/mobilevitv2/coco-ssd-mobilevitv2-1.5.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>SSD MobileViTv2-1.75</p></td>
+<td><p>14.9 M</p></td>
+<td><p>29.52</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/mobilevitv2/coco-ssd-mobilevitv2-1.75.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/mobilevitv2/coco-ssd-mobilevitv2-1.75.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/mobilevitv2/coco-ssd-mobilevitv2-1.75.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>SSD MobileViTv2-2.0</p></td>
+<td><p>19.1 M</p></td>
+<td><p>30.21</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/mobilevitv2/coco-ssd-mobilevitv2-2.0.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/mobilevitv2/coco-ssd-mobilevitv2-2.0.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/mobilevitv2/coco-ssd-mobilevitv2-2.0.logs">Link</a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="segmentation">
+<h2>Segmentation<a class="headerlink" href="#segmentation" title="Permalink to this heading"></a></h2>
+<p>Note: The number of parameters reported does not include the auxiliary branches.</p>
+<section id="ade20k-dataset">
+<h3>ADE20K Dataset<a class="headerlink" href="#ade20k-dataset" title="Permalink to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Parameters</p></th>
+<th class="head"><p>mIoU</p></th>
+<th class="head"><p>Pretrained weights</p></th>
+<th class="head"><p>Config file</p></th>
+<th class="head"><p>Logs</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>DeepLabv3 MobileNetv2</p></td>
+<td><p>8.0 M</p></td>
+<td><p>35.20</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/deeplabv3-mobilenetv2.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/deeplabv3-mobilenetv2.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/deeplabv3-mobilenetv2.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>PSPNet MobileViTv2-0.5</p></td>
+<td><p>3.6 M</p></td>
+<td><p>31.77</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/pspnet-mobilevitv2-0.5.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/pspnet-mobilevitv2-0.5.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/pspnet-mobilevitv2-0.5.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>PSPNet MobileViTv2-0.75</p></td>
+<td><p>6.2 M</p></td>
+<td><p>35.22</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/pspnet-mobilevitv2-0.75.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/pspnet-mobilevitv2-0.75.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/pspnet-mobilevitv2-0.75.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>PSPNet MobileViTv2-1.0</p></td>
+<td><p>9.4 M</p></td>
+<td><p>36.57</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/pspnet-mobilevitv2-1.0.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/pspnet-mobilevitv2-1.0.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/pspnet-mobilevitv2-1.0.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>PSPNet MobileViTv2-1.25</p></td>
+<td><p>13.2 M</p></td>
+<td><p>38.76</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/pspnet-mobilevitv2-1.25.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/pspnet-mobilevitv2-1.25.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/pspnet-mobilevitv2-1.25.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>PSPNet MobileViTv2-1.5</p></td>
+<td><p>17.6 M</p></td>
+<td><p>38.74</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/pspnet-mobilevitv2-1.5.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/pspnet-mobilevitv2-1.5.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/pspnet-mobilevitv2-1.5.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>PSPNet MobileViTv2-1.75</p></td>
+<td><p>22.5 M</p></td>
+<td><p>39.82</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/pspnet-mobilevitv2-1.75.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/pspnet-mobilevitv2-1.75.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/pspnet-mobilevitv2-1.75.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>DeepLabv3 MobileViTv2-0.5</p></td>
+<td><p>6.3 M</p></td>
+<td><p>31.93</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/deeplabv3-mobilevitv2-0.5.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/deeplabv3-mobilevitv2-0.5.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/deeplabv3-mobilevitv2-0.5.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>DeepLabv3 MobileViTv2-0.75</p></td>
+<td><p>9.6 M</p></td>
+<td><p>34.70</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/deeplabv3-mobilevitv2-0.75.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/deeplabv3-mobilevitv2-0.75.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/deeplabv3-mobilevitv2-0.75.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>DeepLabv3 MobileViTv2-1.0</p></td>
+<td><p>13.4 M</p></td>
+<td><p>37.06</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/deeplabv3-mobilevitv2-1.0.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/deeplabv3-mobilevitv2-1.0.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/deeplabv3-mobilevitv2-1.0.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>DeepLabv3 MobileViTv2-1.25</p></td>
+<td><p>17.7 M</p></td>
+<td><p>38.42</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/deeplabv3-mobilevitv2-1.25.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/deeplabv3-mobilevitv2-1.25.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/deeplabv3-mobilevitv2-1.25.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>DeepLabv3 MobileViTv2-1.5</p></td>
+<td><p>22.6 M</p></td>
+<td><p>38.91</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/deeplabv3-mobilevitv2-1.5.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/deeplabv3-mobilevitv2-1.5.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/deeplabv3-mobilevitv2-1.5.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>DeepLabv3 MobileViTv2-1.75</p></td>
+<td><p>28.1 M</p></td>
+<td><p>39.53</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/deeplabv3-mobilevitv2-1.75.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/deeplabv3-mobilevitv2-1.75.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/deeplabv3-mobilevitv2-1.75.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>DeepLabv3 MobileViTv2-2.0</p></td>
+<td><p>34.0 M</p></td>
+<td><p>40.94</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/deeplabv3-mobilevitv2-2.0.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/deeplabv3-mobilevitv2-2.0.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/ade20k/mobilevitv2/deeplabv3-mobilevitv2-2.0.logs">Link</a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="pascal-voc-2012-dataset">
+<h3>Pascal VOC 2012 Dataset<a class="headerlink" href="#pascal-voc-2012-dataset" title="Permalink to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Parameters</p></th>
+<th class="head"><p>mIoU</p></th>
+<th class="head"><p>Pretrained weights</p></th>
+<th class="head"><p>Config file</p></th>
+<th class="head"><p>Logs</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>DeepLabv3 MobileViTv1</p></td>
+<td><p>8.5 M</p></td>
+<td><p>79.44</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/deeplabv3-mobilevitv1.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/deeplabv3-mobilevitv1.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/deeplabv3-mobilevitv1.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>PSPNet MobileViTv2-0.5</p></td>
+<td><p>3.6 M</p></td>
+<td><p>74.62</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/pspnet-mobilevitv2-0.5.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/pspnet-mobilevitv2-0.5.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/pspnet-mobilevitv2-0.5.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>PSPNet MobileViTv2-0.75</p></td>
+<td><p>6.2 M</p></td>
+<td><p>77.44</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/pspnet-mobilevitv2-0.75.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/pspnet-mobilevitv2-0.75.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/pspnet-mobilevitv2-0.75.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>PSPNet MobileViTv2-1.0</p></td>
+<td><p>9.4 M</p></td>
+<td><p>78.92</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/pspnet-mobilevitv2-1.0.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/pspnet-mobilevitv2-1.0.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/pspnet-mobilevitv2-1.0.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>PSPNet MobileViTv2-1.25</p></td>
+<td><p>13.2 M</p></td>
+<td><p>79.40</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/pspnet-mobilevitv2-1.25.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/pspnet-mobilevitv2-1.25.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/pspnet-mobilevitv2-1.25.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>PSPNet MobileViTv2-1.5</p></td>
+<td><p>17.5 M</p></td>
+<td><p>79.93</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/pspnet-mobilevitv2-1.5.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/pspnet-mobilevitv2-1.5.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/pspnet-mobilevitv2-1.5.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>DeepLabv3 MobileViTv2-0.5</p></td>
+<td><p>6.2 M</p></td>
+<td><p>75.07</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/deeplabv3-mobilevitv2-0.5.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/deeplabv3-mobilevitv2-0.5.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/deeplabv3-mobilevitv2-0.5.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>DeepLabv3 MobileViTv2-1.0</p></td>
+<td><p>13.3 M</p></td>
+<td><p>78.94</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/deeplabv3-mobilevitv2-1.0.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/deeplabv3-mobilevitv2-1.0.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/deeplabv3-mobilevitv2-1.0.logs">Link</a></p></td>
+</tr>
+<tr class="row-even"><td><p>DeepLabv3 MobileViTv2-1.25</p></td>
+<td><p>17.7 M</p></td>
+<td><p>79.68</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/deeplabv3-mobilevitv2-1.25.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/deeplabv3-mobilevitv2-1.25.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/deeplabv3-mobilevitv2-1.25.logs">Link</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>DeepLabv3 MobileViTv2-1.5</p></td>
+<td><p>22.6 M</p></td>
+<td><p>80.30</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/deeplabv3-mobilevitv2-1.5.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/deeplabv3-mobilevitv2-1.5.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/deeplabv3-mobilevitv2-1.5.logs">Link</a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="video-classification-kinetics-400">
+<h2>Video Classification (Kinetics-400)<a class="headerlink" href="#video-classification-kinetics-400" title="Permalink to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Parameters</p></th>
+<th class="head"><p>Top-1</p></th>
+<th class="head"><p>Pretrained weights</p></th>
+<th class="head"><p>Config file</p></th>
+<th class="head"><p>Logs</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>MobileViTv1-small-SpatioTemporal</p></td>
+<td><p>5.2 M</p></td>
+<td><p>68.38</p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/video_classification/mobilevitv1-small-st.pt">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/video_classification/mobilevitv1-small-st.yaml">Link</a></p></td>
+<td><p><a class="reference external" href="https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/video_classification/mobilevitv1-small-st.logs">Link</a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../../data_samplers.html" class="btn btn-neutral float-left" title="Data Samplers" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

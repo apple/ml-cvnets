@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>data.sampler.utils &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../sampler.html">data.sampler</a></li>
+      <li class="breadcrumb-item active">data.sampler.utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for data.sampler.utils</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">utils.math_utils</span> <span class="kn">import</span> <span class="n">make_divisible</span>
+
+
+<div class="viewcode-block" id="image_batch_pairs"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.utils.image_batch_pairs">[docs]</a><span class="k">def</span> <span class="nf">image_batch_pairs</span><span class="p">(</span>
+    <span class="n">crop_size_w</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">crop_size_h</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">batch_size_gpu0</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">max_scales</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="n">check_scale_div_factor</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
+    <span class="n">min_crop_size_w</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">160</span><span class="p">,</span>
+    <span class="n">max_crop_size_w</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">320</span><span class="p">,</span>
+    <span class="n">min_crop_size_h</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">160</span><span class="p">,</span>
+    <span class="n">max_crop_size_h</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">320</span><span class="p">,</span>
+    <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;This function creates batch and image size pairs.  For a given batch size and image size, different image sizes</span>
+<span class="sd">        are generated and batch size is adjusted so that GPU memory can be utilized efficiently.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        crop_size_w: Base Image width (e.g., 224)</span>
+<span class="sd">        crop_size_h: Base Image height (e.g., 224)</span>
+<span class="sd">        batch_size_gpu0: Batch size on GPU 0 for base image</span>
+<span class="sd">        max_scales: Number of scales. How many image sizes that we want to generate between min and max scale factors. Default: 5</span>
+<span class="sd">        check_scale_div_factor: Check if image scales are divisible by this factor. Default: 32</span>
+<span class="sd">        min_crop_size_w: Min. crop size along width. Default: 160</span>
+<span class="sd">        max_crop_size_w: Max. crop size along width. Default: 320</span>
+<span class="sd">        min_crop_size_h: Min. crop size along height. Default: 160</span>
+<span class="sd">        max_crop_size_h: Max. crop size along height. Default: 320</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        a sorted list of tuples. Each index is of the form (h, w, batch_size)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">width_dims</span> <span class="o">=</span> <span class="n">create_intervallic_integer_list</span><span class="p">(</span>
+        <span class="n">crop_size_w</span><span class="p">,</span>
+        <span class="n">min_crop_size_w</span><span class="p">,</span>
+        <span class="n">max_crop_size_w</span><span class="p">,</span>
+        <span class="n">max_scales</span><span class="p">,</span>
+        <span class="n">check_scale_div_factor</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">height_dims</span> <span class="o">=</span> <span class="n">create_intervallic_integer_list</span><span class="p">(</span>
+        <span class="n">crop_size_h</span><span class="p">,</span>
+        <span class="n">min_crop_size_h</span><span class="p">,</span>
+        <span class="n">max_crop_size_h</span><span class="p">,</span>
+        <span class="n">max_scales</span><span class="p">,</span>
+        <span class="n">check_scale_div_factor</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">img_batch_tuples</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">n_elements</span> <span class="o">=</span> <span class="n">crop_size_w</span> <span class="o">*</span> <span class="n">crop_size_h</span> <span class="o">*</span> <span class="n">batch_size_gpu0</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">crop_h</span><span class="p">,</span> <span class="n">crop_y</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">height_dims</span><span class="p">,</span> <span class="n">width_dims</span><span class="p">):</span>
+        <span class="c1"># compute the batch size for sampled image resolutions with respect to the base resolution</span>
+        <span class="n">_bsz</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">n_elements</span> <span class="o">/</span> <span class="p">(</span><span class="n">crop_h</span> <span class="o">*</span> <span class="n">crop_y</span><span class="p">),</span> <span class="mi">2</span><span class="p">)))</span>
+
+        <span class="n">img_batch_tuples</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">crop_h</span><span class="p">,</span> <span class="n">crop_y</span><span class="p">,</span> <span class="n">_bsz</span><span class="p">))</span>
+
+    <span class="n">img_batch_tuples</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">img_batch_tuples</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">img_batch_tuples</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="make_video_pairs"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.utils.make_video_pairs">[docs]</a><span class="k">def</span> <span class="nf">make_video_pairs</span><span class="p">(</span>
+    <span class="n">crop_size_h</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">crop_size_w</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">min_crop_size_h</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">max_crop_size_h</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">min_crop_size_w</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">max_crop_size_w</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">default_frames</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">max_scales</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="n">check_scale_div_factor</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
+    <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;This function creates number of frames and spatial size pairs for videos.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        crop_size_h: Base Image height (e.g., 224)</span>
+<span class="sd">        crop_size_w: Base Image width (e.g., 224)</span>
+<span class="sd">        min_crop_size_w: Min. crop size along width.</span>
+<span class="sd">        max_crop_size_w: Max. crop size along width.</span>
+<span class="sd">        min_crop_size_h: Min. crop size along height.</span>
+<span class="sd">        max_crop_size_h: Max. crop size along height.</span>
+<span class="sd">        default_frames: Default number of frames per clip in a video.</span>
+<span class="sd">        max_scales: Number of scales. Default: 5</span>
+<span class="sd">        check_scale_div_factor: Check if spatial scales are divisible by this factor.</span>
+<span class="sd">            Default: 32.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A sorted list of tuples. Each index is of the form (h, w, n_frames)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">width_dims</span> <span class="o">=</span> <span class="n">create_intervallic_integer_list</span><span class="p">(</span>
+        <span class="n">crop_size_w</span><span class="p">,</span>
+        <span class="n">min_crop_size_w</span><span class="p">,</span>
+        <span class="n">max_crop_size_w</span><span class="p">,</span>
+        <span class="n">max_scales</span><span class="p">,</span>
+        <span class="n">check_scale_div_factor</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">height_dims</span> <span class="o">=</span> <span class="n">create_intervallic_integer_list</span><span class="p">(</span>
+        <span class="n">crop_size_h</span><span class="p">,</span>
+        <span class="n">min_crop_size_h</span><span class="p">,</span>
+        <span class="n">max_crop_size_h</span><span class="p">,</span>
+        <span class="n">max_scales</span><span class="p">,</span>
+        <span class="n">check_scale_div_factor</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">batch_pairs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">n_elements</span> <span class="o">=</span> <span class="n">crop_size_w</span> <span class="o">*</span> <span class="n">crop_size_h</span> <span class="o">*</span> <span class="n">default_frames</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">height_dims</span><span class="p">,</span> <span class="n">width_dims</span><span class="p">):</span>
+        <span class="n">n_frames</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">n_elements</span> <span class="o">/</span> <span class="p">(</span><span class="n">h</span> <span class="o">*</span> <span class="n">w</span><span class="p">),</span> <span class="mi">2</span><span class="p">)))</span>
+        <span class="n">batch_pairs</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">n_frames</span><span class="p">))</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">batch_pairs</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="create_intervallic_integer_list"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.utils.create_intervallic_integer_list">[docs]</a><span class="k">def</span> <span class="nf">create_intervallic_integer_list</span><span class="p">(</span>
+    <span class="n">base_val</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+    <span class="n">min_val</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">max_val</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">num_scales</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="n">scale_div_factor</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;This function creates a list of `n` integer values that scales `base_val` between</span>
+<span class="sd">    `min_scale` and `max_scale`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        base_val: The base value to scale.</span>
+<span class="sd">        min_val: The lower end of the value.</span>
+<span class="sd">        max_val: The higher end of the value.</span>
+<span class="sd">        n: Number of scaled values to generate.</span>
+<span class="sd">        scale_div_factor: Check if scaled values are divisible by this factor.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        a sorted list of tuples. Each index is of the form (h, w, n_frames)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">min_val</span><span class="p">,</span> <span class="n">max_val</span><span class="p">,</span> <span class="n">num_scales</span><span class="p">))</span>
+    <span class="n">values</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">base_val</span><span class="p">)</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">make_divisible</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">scale_div_factor</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">]</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">values</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="make_tuple_list"><a class="viewcode-back" href="../../../autogen/data.sampler.html#data.sampler.utils.make_tuple_list">[docs]</a><span class="k">def</span> <span class="nf">make_tuple_list</span><span class="p">(</span><span class="o">*</span><span class="n">val_list</span><span class="p">:</span> <span class="n">List</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Make a list of values to a list of the tuples. Where ith element in each list</span>
+<span class="sd">    is in the ith tuple of the returned list.</span>
+
+<span class="sd">    For example: [[1, 2], [3, 4], [5, 6]] is converted to [(1, 3, 5), (2, 4, 6)].</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        val_list: A list of m list, where each element is a list of n values.</span>
+
+<span class="sd">    Return:</span>
+<span class="sd">        A list of size n, where each value is a tupe if m values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">val_list</span><span class="p">))</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

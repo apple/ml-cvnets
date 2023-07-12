@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>utils.third_party.ddp_functional_utils &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">utils.third_party.ddp_functional_utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for utils.third_party.ddp_functional_utils</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.distributed</span> <span class="k">as</span> <span class="nn">dist</span>
+<span class="kn">from</span> <span class="nn">torch.autograd</span> <span class="kn">import</span> <span class="n">Function</span>
+
+<span class="sd">&quot;&quot;&quot; This code is borrowed from PyTorch in order for CVNets to be compatbile with versions &lt; 1.12&quot;&quot;&quot;</span>
+
+<span class="c1"># The two imports below are not always available depending on the</span>
+<span class="c1"># USE_DISTRIBUTED compile flag. Make sure they raise import error</span>
+<span class="c1"># if we&#39;re trying to use them.</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">torch.distributed</span> <span class="kn">import</span> <span class="n">ReduceOp</span><span class="p">,</span> <span class="n">group</span>
+<span class="k">except</span> <span class="ne">ModuleNotFoundError</span> <span class="k">as</span> <span class="n">mnfe</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ModuleNotFoundError</span><span class="p">(</span>
+        <span class="s2">&quot;group and ReduceOp are not found. Make sure that you are using PyTorch&gt;=1.12&quot;</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="broadcast"><a class="viewcode-back" href="../../../autogen/utils.third_party.html#utils.third_party.ddp_functional_utils.broadcast">[docs]</a><span class="k">def</span> <span class="nf">broadcast</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="o">.</span><span class="n">WORLD</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Broadcasts the tensor to the whole group.</span>
+
+<span class="sd">    ``tensor`` must have the same number of elements in all processes</span>
+<span class="sd">    participating in the collective.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        tensor (Tensor): Data to be sent if ``src`` is the rank of current</span>
+<span class="sd">            process.</span>
+<span class="sd">        src (int): Source rank.</span>
+<span class="sd">        group (ProcessGroup, optional): The process group to work on.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tensor: Received tensor from the broadcast op.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_Broadcast</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">tensor</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="gather"><a class="viewcode-back" href="../../../autogen/utils.third_party.html#utils.third_party.ddp_functional_utils.gather">[docs]</a><span class="k">def</span> <span class="nf">gather</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">dst</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="o">.</span><span class="n">WORLD</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gathers a list of tensors in a single process.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        tensor (Tensor): Input tensor.</span>
+<span class="sd">        dst (int, optional): Destination rank (default is 0).</span>
+<span class="sd">        group (ProcessGroup, optional): The process group to work on.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple[Tensor]: List of appropriately-sized tensors with the gathered data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_Gather</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">tensor</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="scatter"><a class="viewcode-back" href="../../../autogen/utils.third_party.html#utils.third_party.ddp_functional_utils.scatter">[docs]</a><span class="k">def</span> <span class="nf">scatter</span><span class="p">(</span><span class="n">tensors</span><span class="p">,</span> <span class="n">src</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="o">.</span><span class="n">WORLD</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Scatters a list of tensors to all processes in a group.</span>
+
+<span class="sd">    Each process will receive exactly one tensor and store its data in the</span>
+<span class="sd">    ``tensor`` argument.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        tensors (list[Tensor]): List of tensors to scatter on the source rank.</span>
+<span class="sd">            Receivers must pass ``None`.</span>
+<span class="sd">        src (int, optional): Source rank (default is 0).</span>
+<span class="sd">        group (ProcessGroup, optional): The process group to work on.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tensor: Output tensor from the scatter operation.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_Scatter</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="o">*</span><span class="n">tensors</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="reduce"><a class="viewcode-back" href="../../../autogen/utils.third_party.html#utils.third_party.ddp_functional_utils.reduce">[docs]</a><span class="k">def</span> <span class="nf">reduce</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="n">op</span><span class="o">=</span><span class="n">ReduceOp</span><span class="o">.</span><span class="n">SUM</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="o">.</span><span class="n">WORLD</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reduces the tensor data across all machines.</span>
+
+<span class="sd">    Only the process with rank ``dst`` is going to receive the final result.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        tensor (Tensor): Input of the collective.</span>
+<span class="sd">        dst (int): Destination rank.</span>
+<span class="sd">        op (optional): One of the values from</span>
+<span class="sd">            ``torch.distributed.ReduceOp``</span>
+<span class="sd">            enum.  Specifies an operation used for element-wise reductions.</span>
+<span class="sd">        group (ProcessGroup, optional): The process group to work on.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tensor: Output of the collective.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_Reduce</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">tensor</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="reduce_scatter"><a class="viewcode-back" href="../../../autogen/utils.third_party.html#utils.third_party.ddp_functional_utils.reduce_scatter">[docs]</a><span class="k">def</span> <span class="nf">reduce_scatter</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">input_list</span><span class="p">,</span> <span class="n">op</span><span class="o">=</span><span class="n">ReduceOp</span><span class="o">.</span><span class="n">SUM</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="o">.</span><span class="n">WORLD</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reduces, then scatters a list of tensors to all processes in a group.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        output (Tensor): Output tensor.</span>
+<span class="sd">        input_list (list[Tensor]): List of tensors to reduce and scatter.</span>
+<span class="sd">        op (optional): One of the values from</span>
+<span class="sd">            ``torch.distributed.ReduceOp``</span>
+<span class="sd">            enum.  Specifies an operation used for element-wise reductions.</span>
+<span class="sd">        group (ProcessGroup, optional): The process group to work on.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tensor: Output of the collective.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_Reduce_Scatter</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="o">*</span><span class="n">input_list</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="all_gather"><a class="viewcode-back" href="../../../autogen/utils.third_party.html#utils.third_party.ddp_functional_utils.all_gather">[docs]</a><span class="k">def</span> <span class="nf">all_gather</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="o">.</span><span class="n">WORLD</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gathers tensors from the whole group in a list.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        tensor (Tensor): Tensor to be broadcast from current process.</span>
+<span class="sd">        group (ProcessGroup, optional): The process group to work on.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple([Tensor]): Output of the collective.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_AllGather</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="n">tensor</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_all_gather_base</span><span class="p">(</span><span class="n">output_tensor</span><span class="p">,</span> <span class="n">input_tensor</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="o">.</span><span class="n">WORLD</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Single tensor all gather. Gathers a single tensor from all ranks, and puts them in a single output tensor.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        output_tensor (Tensor): Output tensor. It should contain</span>
+<span class="sd">            correctly-sized tensors to be used for output of the collective.</span>
+<span class="sd">        input_tensor (Tensor): Tensor to be broadcast from current process.</span>
+<span class="sd">        group (ProcessGroup, optional): The process group to work on. If None,</span>
+<span class="sd">            the default process group will be used.</span>
+<span class="sd">        async_op (bool, optional): Whether this op should be an async op</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Async work handle, if async_op is set to True.</span>
+<span class="sd">        None, if not async_op or if not part of the group</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; # All tensors below are of torch.int64 dtype.</span>
+<span class="sd">        &gt;&gt;&gt; # We have 2 process groups, 2 ranks.</span>
+<span class="sd">        &gt;&gt;&gt; # xdoctest: +SKIP(&quot;incorrect want text&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; output_tensor = torch.zeros(2, dtype=torch.int64)</span>
+<span class="sd">        &gt;&gt;&gt; output_tensor</span>
+<span class="sd">        [tensor([0, 0])] # Rank 0 and 1</span>
+<span class="sd">        &gt;&gt;&gt; tensor = torch.arange(1, dtype=torch.int64) + 1 + rank</span>
+<span class="sd">        &gt;&gt;&gt; tensor</span>
+<span class="sd">        tensor([1]) # Rank 0</span>
+<span class="sd">        tensor([2]) # Rank 1</span>
+<span class="sd">        &gt;&gt;&gt; dist.all_gather_base(output_tensor, tensor)</span>
+<span class="sd">        &gt;&gt;&gt; output_tensor</span>
+<span class="sd">        tensor([1,2]) # Rank 0</span>
+<span class="sd">        tensor([1,2]) # Rank 1</span>
+
+<span class="sd">    .. warning::</span>
+<span class="sd">        `_all_gather_base` is experimental and subject to change.</span>
+<span class="sd">        It is the caller&#39;s responsibility to ensure the output_tensor</span>
+<span class="sd">        is correctly sized.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_AllGatherBase</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">output_tensor</span><span class="p">,</span> <span class="n">input_tensor</span><span class="p">,</span> <span class="n">group</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="all_to_all"><a class="viewcode-back" href="../../../autogen/utils.third_party.html#utils.third_party.ddp_functional_utils.all_to_all">[docs]</a><span class="k">def</span> <span class="nf">all_to_all</span><span class="p">(</span><span class="n">output_tensor_list</span><span class="p">,</span> <span class="n">input_tensor_list</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="o">.</span><span class="n">WORLD</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Each process scatters list of input tensors to all processes in a group and</span>
+<span class="sd">    return gathered list of tensors in output list.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        out_tensor_list (list[Tensor]): list of tensors to gather one per rank.</span>
+<span class="sd">        input_tensor_list (list[Tensor]): List of tensors to scatter one per rank.</span>
+<span class="sd">        group (ProcessGroup, optional): The process group to work on.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple([Tensor]): Output of the collective.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_AlltoAll</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="n">output_tensor_list</span><span class="p">,</span> <span class="o">*</span><span class="n">input_tensor_list</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="all_to_all_single"><a class="viewcode-back" href="../../../autogen/utils.third_party.html#utils.third_party.ddp_functional_utils.all_to_all_single">[docs]</a><span class="k">def</span> <span class="nf">all_to_all_single</span><span class="p">(</span>
+    <span class="n">output</span><span class="p">,</span>
+    <span class="nb">input</span><span class="p">,</span>
+    <span class="n">output_split_sizes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">input_split_sizes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="o">.</span><span class="n">WORLD</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Each process splits input tensor and then scatters the split list</span>
+<span class="sd">    to all processes in a group. Then concatenate the received tensors from all</span>
+<span class="sd">    the processes in the group and return single output tensor.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        output (Tensor): Gathered cancatenated output tensor.</span>
+<span class="sd">        input (Tensor): Input tensor to scatter.</span>
+<span class="sd">        output_split_sizes: (list[Int], optional): Output split sizes for dim 0</span>
+<span class="sd">            if specified None or empty, dim 0 of ``output`` tensor must divide</span>
+<span class="sd">            equally by ``world_size``.</span>
+<span class="sd">        input_split_sizes: (list[Int], optional): Input split sizes for dim 0</span>
+<span class="sd">            if specified None or empty, dim 0 of ``input`` tensor must divide</span>
+<span class="sd">            equally by ``world_size``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tensor: Output of the collective.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_AlltoAllSingle</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+        <span class="n">group</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">output_split_sizes</span><span class="p">,</span> <span class="n">input_split_sizes</span><span class="p">,</span> <span class="nb">input</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="all_reduce"><a class="viewcode-back" href="../../../autogen/utils.third_party.html#utils.third_party.ddp_functional_utils.all_reduce">[docs]</a><span class="k">def</span> <span class="nf">all_reduce</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">op</span><span class="o">=</span><span class="n">ReduceOp</span><span class="o">.</span><span class="n">SUM</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="o">.</span><span class="n">WORLD</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reduces the tensor data across all machines in such a way that all get</span>
+<span class="sd">    the final result.</span>
+
+<span class="sd">    After the call the returned tensor is going to be bitwise</span>
+<span class="sd">    identical in all processes.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        tensor (Tensor): Input of the collective.</span>
+<span class="sd">        op (optional): One of the values from</span>
+<span class="sd">            ``torch.distributed.ReduceOp``</span>
+<span class="sd">            enum.  Specifies an operation used for element-wise reductions.</span>
+<span class="sd">        group (ProcessGroup, optional): The process group to work on.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tensor: Output of the collective</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_AllReduce</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">tensor</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">_Broadcast</span><span class="p">(</span><span class="n">Function</span><span class="p">):</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">tensor</span><span class="p">):</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">src</span> <span class="o">=</span> <span class="n">src</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">group</span> <span class="o">=</span> <span class="n">group</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_rank</span><span class="p">()</span>
+        <span class="c1"># torch.distributed makes all the calls in place</span>
+        <span class="c1"># we allocate new tensors to avoid this</span>
+        <span class="n">tensor</span> <span class="o">=</span> <span class="n">tensor</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">dist</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">tensor</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">):</span>
+        <span class="n">gx</span> <span class="o">=</span> <span class="n">_Reduce</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">src</span><span class="p">,</span> <span class="n">ReduceOp</span><span class="o">.</span><span class="n">SUM</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">group</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">src</span> <span class="o">!=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">rank</span><span class="p">:</span>
+            <span class="n">gx</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">gx</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_Gather</span><span class="p">(</span><span class="n">Function</span><span class="p">):</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">tensor</span><span class="p">):</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">dst</span> <span class="o">=</span> <span class="n">dst</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">group</span> <span class="o">=</span> <span class="n">group</span>
+        <span class="c1"># Need to create a list of tensors here to do the</span>
+        <span class="c1"># aggregation, get it from the group size</span>
+        <span class="c1"># tensor should be correctly sized for the method</span>
+        <span class="c1"># gathering</span>
+        <span class="n">tensor_list</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">tensor</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dist</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">(</span><span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">))</span>
+        <span class="p">]</span>
+
+        <span class="n">tensor</span> <span class="o">=</span> <span class="n">tensor</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_rank</span><span class="p">(</span><span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)</span> <span class="o">==</span> <span class="n">dst</span><span class="p">:</span>
+            <span class="n">dist</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">tensor_list</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dist</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">tensor_list</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="o">*</span><span class="n">grad_outputs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">_Scatter</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">dst</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">group</span><span class="p">,</span> <span class="o">*</span><span class="n">grad_outputs</span><span class="p">),)</span>
+
+
+<span class="k">class</span> <span class="nc">_Scatter</span><span class="p">(</span><span class="n">Function</span><span class="p">):</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="o">*</span><span class="n">tensors</span><span class="p">):</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">src</span> <span class="o">=</span> <span class="n">src</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">group</span> <span class="o">=</span> <span class="n">group</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="o">==</span> <span class="n">tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tensors</span><span class="p">)</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_rank</span><span class="p">(</span><span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)</span> <span class="o">==</span> <span class="n">src</span><span class="p">:</span>
+            <span class="n">dist</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">tensors</span><span class="p">),</span> <span class="n">src</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dist</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">output</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">+</span> <span class="n">_Gather</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">src</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">group</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_Reduce</span><span class="p">(</span><span class="n">Function</span><span class="p">):</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">tensor</span><span class="p">):</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">src</span> <span class="o">=</span> <span class="n">src</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">group</span> <span class="o">=</span> <span class="n">group</span>
+        <span class="n">tensor</span> <span class="o">=</span> <span class="n">tensor</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">dist</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">tensor</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">_Broadcast</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">src</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">group</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">),)</span>
+
+
+<span class="k">class</span> <span class="nc">_Reduce_Scatter</span><span class="p">(</span><span class="n">Function</span><span class="p">):</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">tensor</span><span class="p">,</span> <span class="o">*</span><span class="n">input_tensor_list</span><span class="p">):</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">group</span> <span class="o">=</span> <span class="n">group</span>
+        <span class="n">input_tensor_list</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">input_tensor_list</span><span class="p">)</span>
+        <span class="n">dist</span><span class="o">.</span><span class="n">reduce_scatter</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">input_tensor_list</span><span class="p">),</span> <span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">tensor</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">+</span> <span class="n">_AllGather</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">group</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_AllGather</span><span class="p">(</span><span class="n">Function</span><span class="p">):</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">tensor</span><span class="p">):</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">group</span> <span class="o">=</span> <span class="n">group</span>
+        <span class="n">out_tensor_list</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">tensor</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dist</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">(</span><span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">))</span>
+        <span class="p">]</span>
+
+        <span class="n">dist</span><span class="o">.</span><span class="n">all_gather</span><span class="p">(</span><span class="n">out_tensor_list</span><span class="p">,</span> <span class="n">tensor</span><span class="o">.</span><span class="n">contiguous</span><span class="p">(),</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">out_tensor_list</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="o">*</span><span class="n">grad_outputs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_backend</span><span class="p">(</span><span class="n">group</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">group</span><span class="p">)</span> <span class="ow">is</span> <span class="n">dist</span><span class="o">.</span><span class="n">Backend</span><span class="o">.</span><span class="n">NCCL</span><span class="p">:</span>
+            <span class="n">rank</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_rank</span><span class="p">()</span>
+            <span class="n">gx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">grad_outputs</span><span class="p">[</span><span class="n">rank</span><span class="p">])</span>
+            <span class="n">_Reduce_Scatter</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">ReduceOp</span><span class="o">.</span><span class="n">SUM</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">group</span><span class="p">,</span> <span class="n">gx</span><span class="p">,</span> <span class="o">*</span><span class="n">grad_outputs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># As many backends doesn&#39;t support ReduceScatter, we use AlltoAll with .sum()</span>
+            <span class="c1"># to emulate the ReduceScatter behavior</span>
+            <span class="n">tensor_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">tensor</span><span class="p">)</span> <span class="k">for</span> <span class="n">tensor</span> <span class="ow">in</span> <span class="n">grad_outputs</span><span class="p">]</span>
+            <span class="n">gxs</span> <span class="o">=</span> <span class="n">_AlltoAll</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">group</span><span class="p">,</span> <span class="n">tensor_list</span><span class="p">,</span> <span class="o">*</span><span class="n">grad_outputs</span><span class="p">)</span>
+            <span class="n">gx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">gxs</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">gx</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_AllGatherBase</span><span class="p">(</span><span class="n">Function</span><span class="p">):</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">output_tensor</span><span class="p">,</span> <span class="n">input_tensor</span><span class="p">,</span> <span class="n">group</span><span class="p">):</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">group</span> <span class="o">=</span> <span class="n">group</span>
+        <span class="n">dist</span><span class="o">.</span><span class="n">_all_gather_base</span><span class="p">(</span><span class="n">output_tensor</span><span class="p">,</span> <span class="n">input_tensor</span><span class="o">.</span><span class="n">contiguous</span><span class="p">(),</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">output_tensor</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_backend</span><span class="p">(</span><span class="n">group</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">group</span><span class="p">)</span> <span class="ow">is</span> <span class="n">dist</span><span class="o">.</span><span class="n">Backend</span><span class="o">.</span><span class="n">NCCL</span><span class="p">:</span>
+            <span class="n">world_size</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">(</span><span class="n">group</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">group</span><span class="p">)</span>
+            <span class="n">out_size</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">grad_output</span><span class="o">.</span><span class="n">size</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">out_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">%</span> <span class="n">world_size</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Tensor with dimensions: </span><span class="si">{</span><span class="n">out_size</span><span class="si">}</span><span class="s2"> does &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;not have first dimension divisible by world_size: </span><span class="si">{</span><span class="n">world_size</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="n">out_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">out_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">(</span><span class="n">group</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">group</span><span class="p">)</span>
+            <span class="n">gx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+                <span class="n">out_size</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">grad_output</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">grad_output</span><span class="o">.</span><span class="n">dtype</span>
+            <span class="p">)</span>
+            <span class="n">dist</span><span class="o">.</span><span class="n">_reduce_scatter_base</span><span class="p">(</span><span class="n">gx</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">,</span> <span class="n">ReduceOp</span><span class="o">.</span><span class="n">SUM</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">group</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Backend not supported!&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">gx</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_AlltoAll</span><span class="p">(</span><span class="n">Function</span><span class="p">):</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">out_tensor_list</span><span class="p">,</span> <span class="o">*</span><span class="n">tensors</span><span class="p">):</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">group</span> <span class="o">=</span> <span class="n">group</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">input_tensor_size_list</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">tensors</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dist</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">(</span><span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">))</span>
+        <span class="p">]</span>
+        <span class="n">my_rank</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_rank</span><span class="p">(</span><span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)</span>
+        <span class="n">tensors</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tensors</span><span class="p">)</span>
+        <span class="c1"># Implement it on means of scatter/gather, send/recv async operations have issues</span>
+        <span class="k">if</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_backend</span><span class="p">(</span><span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)</span> <span class="ow">is</span> <span class="n">dist</span><span class="o">.</span><span class="n">Backend</span><span class="o">.</span><span class="n">GLOO</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dist</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">(</span><span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)):</span>
+                <span class="n">to_send</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">my_rank</span><span class="p">:</span>
+                    <span class="n">to_send</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">tensors</span><span class="p">)</span>
+                <span class="n">dist</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">out_tensor_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">to_send</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dist</span><span class="o">.</span><span class="n">all_to_all</span><span class="p">(</span>
+                <span class="n">out_tensor_list</span><span class="p">,</span>
+                <span class="nb">list</span><span class="p">(</span><span class="n">tensors</span><span class="p">),</span>
+                <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">out_tensor_list</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="o">*</span><span class="n">grad_outputs</span><span class="p">):</span>
+        <span class="n">tensor_list</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+                <span class="n">size</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">grad_outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">grad_outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">size</span> <span class="ow">in</span> <span class="n">ctx</span><span class="o">.</span><span class="n">input_tensor_size_list</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">+</span> <span class="n">_AlltoAll</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">group</span><span class="p">,</span> <span class="n">tensor_list</span><span class="p">,</span> <span class="o">*</span><span class="n">grad_outputs</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_AlltoAllSingle</span><span class="p">(</span><span class="n">Function</span><span class="p">):</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">output_split_sizes</span><span class="p">,</span> <span class="n">input_split_sizes</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">group</span> <span class="o">=</span> <span class="n">group</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">input_size</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">output_split_sizes</span> <span class="o">=</span> <span class="n">input_split_sizes</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">input_split_sizes</span> <span class="o">=</span> <span class="n">output_split_sizes</span>
+        <span class="n">dist</span><span class="o">.</span><span class="n">all_to_all_single</span><span class="p">(</span>
+            <span class="n">output</span><span class="p">,</span>
+            <span class="nb">input</span><span class="p">,</span>
+            <span class="n">output_split_sizes</span><span class="o">=</span><span class="n">output_split_sizes</span><span class="p">,</span>
+            <span class="n">input_split_sizes</span><span class="o">=</span><span class="n">input_split_sizes</span><span class="p">,</span>
+            <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">output</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">):</span>
+        <span class="n">tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+            <span class="n">ctx</span><span class="o">.</span><span class="n">input_size</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">grad_output</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">grad_output</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span>
+            <span class="n">_AlltoAllSingle</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+                <span class="n">ctx</span><span class="o">.</span><span class="n">group</span><span class="p">,</span>
+                <span class="n">tensor</span><span class="p">,</span>
+                <span class="n">ctx</span><span class="o">.</span><span class="n">output_split_sizes</span><span class="p">,</span>
+                <span class="n">ctx</span><span class="o">.</span><span class="n">input_split_sizes</span><span class="p">,</span>
+                <span class="n">grad_output</span><span class="o">.</span><span class="n">contiguous</span><span class="p">(),</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_AllReduce</span><span class="p">(</span><span class="n">Function</span><span class="p">):</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">tensor</span><span class="p">):</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">group</span> <span class="o">=</span> <span class="n">group</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">op</span> <span class="o">=</span> <span class="n">op</span>
+        <span class="n">tensor</span> <span class="o">=</span> <span class="n">tensor</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">dist</span><span class="o">.</span><span class="n">all_reduce</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">tensor</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">_AllReduce</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">group</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">),)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

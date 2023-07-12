@@ -1,0 +1,62 @@
+engine package
+==============
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   engine.detection_utils
+   engine.segmentation_utils
+
+Submodules
+----------
+
+engine.eval\_detection module
+-----------------------------
+
+.. automodule:: engine.eval_detection
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+engine.eval\_segmentation module
+--------------------------------
+
+.. automodule:: engine.eval_segmentation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+engine.evaluation\_engine module
+--------------------------------
+
+.. automodule:: engine.evaluation_engine
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+engine.training\_engine module
+------------------------------
+
+.. automodule:: engine.training_engine
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+engine.utils module
+-------------------
+
+.. automodule:: engine.utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: engine
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Samplers &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Model Zoo" href="en/general/README-model-zoo.html" />
+    <link rel="prev" title="How to Create a New Dataset Type" href="en/general/README-new-dataset.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="how_to.html">How To</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Data Samplers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#single-scale-with-fixed-batch-size-ssc-fbs">Single-scale with fixed batch size (SSc-FBS)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#multi-scale-with-fixed-batch-size-msc-fbs">Multi-scale with fixed batch size (MSc-FBS)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#multi-scale-with-variable-batch-size-msc-vbs">Multi-scale with variable batch size (MSc-VBS):</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#variably-sized-video-sampler">Variably-sized video sampler</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-data.sampler.batch_sampler">Data Sampler Objects</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#data.sampler.batch_sampler.BatchSampler"><code class="docutils literal notranslate"><span class="pre">BatchSampler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#data.sampler.batch_sampler.BatchSampler.__init__"><code class="docutils literal notranslate"><span class="pre">BatchSampler.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#data.sampler.batch_sampler.BatchSampler.extra_repr"><code class="docutils literal notranslate"><span class="pre">BatchSampler.extra_repr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#data.sampler.batch_sampler.BatchSampler.add_arguments"><code class="docutils literal notranslate"><span class="pre">BatchSampler.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#data.sampler.batch_sampler.BatchSamplerDDP"><code class="docutils literal notranslate"><span class="pre">BatchSamplerDDP</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#data.sampler.batch_sampler.BatchSamplerDDP.__init__"><code class="docutils literal notranslate"><span class="pre">BatchSamplerDDP.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#data.sampler.batch_sampler.BatchSamplerDDP.extra_repr"><code class="docutils literal notranslate"><span class="pre">BatchSamplerDDP.extra_repr()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#data.sampler.multi_scale_sampler.MultiScaleSampler"><code class="docutils literal notranslate"><span class="pre">MultiScaleSampler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#data.sampler.multi_scale_sampler.MultiScaleSampler.__init__"><code class="docutils literal notranslate"><span class="pre">MultiScaleSampler.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#data.sampler.multi_scale_sampler.MultiScaleSampler.add_arguments"><code class="docutils literal notranslate"><span class="pre">MultiScaleSampler.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#data.sampler.multi_scale_sampler.MultiScaleSampler.update_scales"><code class="docutils literal notranslate"><span class="pre">MultiScaleSampler.update_scales()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#data.sampler.multi_scale_sampler.MultiScaleSampler.extra_repr"><code class="docutils literal notranslate"><span class="pre">MultiScaleSampler.extra_repr()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#data.sampler.multi_scale_sampler.MultiScaleSamplerDDP"><code class="docutils literal notranslate"><span class="pre">MultiScaleSamplerDDP</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#data.sampler.multi_scale_sampler.MultiScaleSamplerDDP.__init__"><code class="docutils literal notranslate"><span class="pre">MultiScaleSamplerDDP.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#data.sampler.multi_scale_sampler.MultiScaleSamplerDDP.extra_repr"><code class="docutils literal notranslate"><span class="pre">MultiScaleSamplerDDP.extra_repr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#data.sampler.multi_scale_sampler.MultiScaleSamplerDDP.update_scales"><code class="docutils literal notranslate"><span class="pre">MultiScaleSamplerDDP.update_scales()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#data.sampler.variable_batch_sampler.VariableBatchSampler"><code class="docutils literal notranslate"><span class="pre">VariableBatchSampler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#data.sampler.variable_batch_sampler.VariableBatchSampler.__init__"><code class="docutils literal notranslate"><span class="pre">VariableBatchSampler.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#data.sampler.variable_batch_sampler.VariableBatchSampler.update_scales"><code class="docutils literal notranslate"><span class="pre">VariableBatchSampler.update_scales()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#data.sampler.variable_batch_sampler.VariableBatchSampler.extra_repr"><code class="docutils literal notranslate"><span class="pre">VariableBatchSampler.extra_repr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#data.sampler.variable_batch_sampler.VariableBatchSampler.add_arguments"><code class="docutils literal notranslate"><span class="pre">VariableBatchSampler.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#data.sampler.variable_batch_sampler.VariableBatchSamplerDDP"><code class="docutils literal notranslate"><span class="pre">VariableBatchSamplerDDP</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#data.sampler.variable_batch_sampler.VariableBatchSamplerDDP.__init__"><code class="docutils literal notranslate"><span class="pre">VariableBatchSamplerDDP.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#data.sampler.variable_batch_sampler.VariableBatchSamplerDDP.update_scales"><code class="docutils literal notranslate"><span class="pre">VariableBatchSamplerDDP.update_scales()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#data.sampler.variable_batch_sampler.VariableBatchSamplerDDP.extra_repr"><code class="docutils literal notranslate"><span class="pre">VariableBatchSamplerDDP.extra_repr()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Data Samplers</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/data_samplers.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="data-samplers">
+<h1>Data Samplers<a class="headerlink" href="#data-samplers" title="Permalink to this heading"></a></h1>
+<p>CVNet offer data samplers with three sampling strategies:</p>
+<ol class="arabic simple">
+<li><p>Single-scale with fixed batch size (SSc-FBS)</p></li>
+<li><p>Multi-scale with fixed batch size (MSc-FBS)</p></li>
+<li><p>Multi-scale with variable batch size (MSc-VBS)</p></li>
+</ol>
+<p>For details about these samplers, please see <a class="reference external" href="https://arxiv.org/abs/2110.02178">MobileViT</a> paper.</p>
+<section id="single-scale-with-fixed-batch-size-ssc-fbs">
+<h2>Single-scale with fixed batch size (SSc-FBS)<a class="headerlink" href="#single-scale-with-fixed-batch-size-ssc-fbs" title="Permalink to this heading"></a></h2>
+<p>This method is the default sampling strategy in most of the deep learning frameworks (e.g., PyTorch, Tensorflow, and MixNet)
+and libraries built on top of them (e.g., the <em>timm</em> library).
+At the <span class="math notranslate nohighlight">\(t\)</span>-th training iteration, this method samples a batch of <span class="math notranslate nohighlight">\(b\)</span> images per GPU <a class="footnote-reference brackets" href="#id2" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a>
+with a pre-defined spatial resolution of height <span class="math notranslate nohighlight">\(H\)</span> and width <span class="math notranslate nohighlight">\(W\)</span>.</p>
+</section>
+<section id="multi-scale-with-fixed-batch-size-msc-fbs">
+<h2>Multi-scale with fixed batch size (MSc-FBS)<a class="headerlink" href="#multi-scale-with-fixed-batch-size-msc-fbs" title="Permalink to this heading"></a></h2>
+<p>The SSc-FBS method allows a network to learn representations at a single scale (or resolution).
+However, objects in the real-world are composed at different scales. To allow a network to learn representations at multiple scales, MSc-FBS extends SSc-FBS to multiple scales.
+Unlike the SSc-FBS method that takes a pre-defined spatial resolution as an input, this method takes a sorted set of $n$ spatial resolutions
+<span class="math notranslate nohighlight">\(\mathcal{S} = \{ (H_1, W_1), (H_2, W_2), \cdots, (H_n, W_n)\}\)</span> as an input.
+At the <span class="math notranslate nohighlight">\(t\)</span>-th iteration, this method randomly samples <span class="math notranslate nohighlight">\(b\)</span> images per GPU of spatial resolution <span class="math notranslate nohighlight">\((H_t, W_t) \in \mathcal{S}\)</span>.</p>
+</section>
+<section id="multi-scale-with-variable-batch-size-msc-vbs">
+<h2>Multi-scale with variable batch size (MSc-VBS):<a class="headerlink" href="#multi-scale-with-variable-batch-size-msc-vbs" title="Permalink to this heading"></a></h2>
+<p>Networks trained using the MSc-FBS methods are more robust to scale changes as compared to SSc-FBS.
+However, depending on the maximum spatial resolution in <span class="math notranslate nohighlight">\(\mathcal{S}\)</span>, MSc-FBS methods may have a higher peak GPU memory
+utilization (see Figure ref{fig:sampler_perf_cost}) as compared to SSc-FBS; causing out-of-memory errors on GPUs with limited memory.
+For example, MSc-FBS with <span class="math notranslate nohighlight">\(\mathcal{S} = \{ (128, 128), (192, 192), (224, 224), (320, 320)\}\)</span> and <span class="math notranslate nohighlight">\(b=256\)</span> would need about <span class="math notranslate nohighlight">\(2\times\)</span> more GPU memory (for images only)
+than SSc-FBS with a spatial resolution of <span class="math notranslate nohighlight">\((224, 224)\)</span> and <span class="math notranslate nohighlight">\(b=256\)</span>. To address this memory issue, we extend MSc-FBS to variably-batch sizes.
+For a given sorted set of spatial resolutions <span class="math notranslate nohighlight">\(\mathcal{S} = \{ (H_1, W_1), (H_2, W_2), \cdots, (H_n, W_n)\}\)</span> and a batch size <span class="math notranslate nohighlight">\(b\)</span>
+for a maximum spatial resolution of <span class="math notranslate nohighlight">\((H_n, W_n)\)</span>, a spatial resolution <span class="math notranslate nohighlight">\((H_t, W_t) \in \mathcal{S}\)</span> with a batch size of
+<span class="math notranslate nohighlight">\(b_t = \frac{H_n W_n b}{H_t W_t}\)</span> is sampled randomly at <span class="math notranslate nohighlight">\(t\)</span>-th training iteration on each GPU.</p>
+<section id="variably-sized-video-sampler">
+<h3>Variably-sized video sampler<a class="headerlink" href="#variably-sized-video-sampler" title="Permalink to this heading"></a></h3>
+<p>These samplers can be easily extended for videos also.
+CVNet provides variably-sized sampler for videos, wherein researchers can control different video-related input
+variables (e.g., number of frames, number of clips per video, and video spatial resolution) for learning space- and time-invariant representations.</p>
+</section>
+</section>
+<section id="module-data.sampler.batch_sampler">
+<span id="data-sampler-objects"></span><h2>Data Sampler Objects<a class="headerlink" href="#module-data.sampler.batch_sampler" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="data.sampler.batch_sampler.BatchSampler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">data.sampler.batch_sampler.</span></span><span class="sig-name descname"><span class="pre">BatchSampler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_data_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_training</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data/sampler/batch_sampler.html#BatchSampler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.batch_sampler.BatchSampler" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="autogen/data.sampler.html#data.sampler.base_sampler.BaseSampler" title="data.sampler.base_sampler.BaseSampler"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseSampler</span></code></a></p>
+<p>Standard Batch Sampler for data parallel. This sampler yields batches of fixed batch size
+and spatial resolutions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>opts</strong> – command line argument</p></li>
+<li><p><strong>n_data_samples</strong> – Number of samples in the dataset</p></li>
+<li><p><strong>is_training</strong> – Training or validation mode. Default: False</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="data.sampler.batch_sampler.BatchSampler.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_data_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_training</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/data/sampler/batch_sampler.html#BatchSampler.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.batch_sampler.BatchSampler.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.sampler.batch_sampler.BatchSampler.extra_repr">
+<span class="sig-name descname"><span class="pre">extra_repr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/data/sampler/batch_sampler.html#BatchSampler.extra_repr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.batch_sampler.BatchSampler.extra_repr" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.sampler.batch_sampler.BatchSampler.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="_modules/data/sampler/batch_sampler.html#BatchSampler.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.batch_sampler.BatchSampler.add_arguments" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data.sampler.batch_sampler.BatchSamplerDDP">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">data.sampler.batch_sampler.</span></span><span class="sig-name descname"><span class="pre">BatchSamplerDDP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_data_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_training</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data/sampler/batch_sampler.html#BatchSamplerDDP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.batch_sampler.BatchSamplerDDP" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="autogen/data.sampler.html#data.sampler.base_sampler.BaseSamplerDDP" title="data.sampler.base_sampler.BaseSamplerDDP"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseSamplerDDP</span></code></a></p>
+<p>DDP variant of BatchSampler</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>opts</strong> – command line argument</p></li>
+<li><p><strong>n_data_samples</strong> – Number of samples in the dataset</p></li>
+<li><p><strong>is_training</strong> – Training or validation mode. Default: False</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="data.sampler.batch_sampler.BatchSamplerDDP.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_data_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_training</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/data/sampler/batch_sampler.html#BatchSamplerDDP.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.batch_sampler.BatchSamplerDDP.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.sampler.batch_sampler.BatchSamplerDDP.extra_repr">
+<span class="sig-name descname"><span class="pre">extra_repr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/data/sampler/batch_sampler.html#BatchSamplerDDP.extra_repr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.batch_sampler.BatchSamplerDDP.extra_repr" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-data.sampler.multi_scale_sampler"></span><dl class="py class">
+<dt class="sig sig-object py" id="data.sampler.multi_scale_sampler.MultiScaleSampler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">data.sampler.multi_scale_sampler.</span></span><span class="sig-name descname"><span class="pre">MultiScaleSampler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_data_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_training</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data/sampler/multi_scale_sampler.html#MultiScaleSampler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.multi_scale_sampler.MultiScaleSampler" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="autogen/data.sampler.html#data.sampler.base_sampler.BaseSampler" title="data.sampler.base_sampler.BaseSampler"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseSampler</span></code></a></p>
+<p>Multi-scale batch sampler for data parallel. This sampler yields batches of fixed batch size, but each batch
+has different spatial resolution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>opts</strong> – command line argument</p></li>
+<li><p><strong>n_data_samples</strong> – Number of samples in the dataset</p></li>
+<li><p><strong>is_training</strong> – Training or validation mode. Default: False</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="data.sampler.multi_scale_sampler.MultiScaleSampler.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_data_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_training</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/data/sampler/multi_scale_sampler.html#MultiScaleSampler.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.multi_scale_sampler.MultiScaleSampler.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.sampler.multi_scale_sampler.MultiScaleSampler.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="_modules/data/sampler/multi_scale_sampler.html#MultiScaleSampler.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.multi_scale_sampler.MultiScaleSampler.add_arguments" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.sampler.multi_scale_sampler.MultiScaleSampler.update_scales">
+<span class="sig-name descname"><span class="pre">update_scales</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">epoch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_master_node</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/data/sampler/multi_scale_sampler.html#MultiScaleSampler.update_scales"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.multi_scale_sampler.MultiScaleSampler.update_scales" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to update scales in each sampler. This is typically useful in variable-batch sampler.</p>
+<p>Subclass is expected to implement this function. By default, we do not do anything</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.sampler.multi_scale_sampler.MultiScaleSampler.extra_repr">
+<span class="sig-name descname"><span class="pre">extra_repr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/data/sampler/multi_scale_sampler.html#MultiScaleSampler.extra_repr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.multi_scale_sampler.MultiScaleSampler.extra_repr" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data.sampler.multi_scale_sampler.MultiScaleSamplerDDP">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">data.sampler.multi_scale_sampler.</span></span><span class="sig-name descname"><span class="pre">MultiScaleSamplerDDP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_data_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_training</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data/sampler/multi_scale_sampler.html#MultiScaleSamplerDDP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.multi_scale_sampler.MultiScaleSamplerDDP" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="autogen/data.sampler.html#data.sampler.base_sampler.BaseSamplerDDP" title="data.sampler.base_sampler.BaseSamplerDDP"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseSamplerDDP</span></code></a></p>
+<p>DDP version of MultiScaleSampler</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>opts</strong> – command line argument</p></li>
+<li><p><strong>n_data_samples</strong> – Number of samples in the dataset</p></li>
+<li><p><strong>is_training</strong> – Training or validation mode. Default: False</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="data.sampler.multi_scale_sampler.MultiScaleSamplerDDP.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_data_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_training</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/data/sampler/multi_scale_sampler.html#MultiScaleSamplerDDP.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.multi_scale_sampler.MultiScaleSamplerDDP.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.sampler.multi_scale_sampler.MultiScaleSamplerDDP.extra_repr">
+<span class="sig-name descname"><span class="pre">extra_repr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/data/sampler/multi_scale_sampler.html#MultiScaleSamplerDDP.extra_repr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.multi_scale_sampler.MultiScaleSamplerDDP.extra_repr" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.sampler.multi_scale_sampler.MultiScaleSamplerDDP.update_scales">
+<span class="sig-name descname"><span class="pre">update_scales</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">epoch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_master_node</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/data/sampler/multi_scale_sampler.html#MultiScaleSamplerDDP.update_scales"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.multi_scale_sampler.MultiScaleSamplerDDP.update_scales" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to update scales in each sampler. This is typically useful in variable-batch sampler</p>
+<p>Subclass is expected to implement this function. By default, we do not do anything</p>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-data.sampler.variable_batch_sampler"></span><dl class="py class">
+<dt class="sig sig-object py" id="data.sampler.variable_batch_sampler.VariableBatchSampler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">data.sampler.variable_batch_sampler.</span></span><span class="sig-name descname"><span class="pre">VariableBatchSampler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_data_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_training</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data/sampler/variable_batch_sampler.html#VariableBatchSampler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.variable_batch_sampler.VariableBatchSampler" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="autogen/data.sampler.html#data.sampler.base_sampler.BaseSampler" title="data.sampler.base_sampler.BaseSampler"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseSampler</span></code></a></p>
+<p>Variably-size multi-scale batch sampler &lt;<a class="reference external" href="https://arxiv.org/abs/2110.02178?context=cs.LG">https://arxiv.org/abs/2110.02178?context=cs.LG</a>&gt;` for data parallel.
+This sampler yields batches with variable spatial resolution and batch size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>opts</strong> – command line argument</p></li>
+<li><p><strong>n_data_samples</strong> – Number of samples in the dataset</p></li>
+<li><p><strong>is_training</strong> – Training or validation mode. Default: False</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="data.sampler.variable_batch_sampler.VariableBatchSampler.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_data_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_training</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/data/sampler/variable_batch_sampler.html#VariableBatchSampler.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.variable_batch_sampler.VariableBatchSampler.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.sampler.variable_batch_sampler.VariableBatchSampler.update_scales">
+<span class="sig-name descname"><span class="pre">update_scales</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">epoch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_master_node</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/data/sampler/variable_batch_sampler.html#VariableBatchSampler.update_scales"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.variable_batch_sampler.VariableBatchSampler.update_scales" title="Permalink to this definition"></a></dt>
+<dd><p>Update the scales in variable batch sampler at specified epoch intervals during training.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.sampler.variable_batch_sampler.VariableBatchSampler.extra_repr">
+<span class="sig-name descname"><span class="pre">extra_repr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/data/sampler/variable_batch_sampler.html#VariableBatchSampler.extra_repr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.variable_batch_sampler.VariableBatchSampler.extra_repr" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.sampler.variable_batch_sampler.VariableBatchSampler.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="_modules/data/sampler/variable_batch_sampler.html#VariableBatchSampler.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.variable_batch_sampler.VariableBatchSampler.add_arguments" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data.sampler.variable_batch_sampler.VariableBatchSamplerDDP">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">data.sampler.variable_batch_sampler.</span></span><span class="sig-name descname"><span class="pre">VariableBatchSamplerDDP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_data_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_training</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/data/sampler/variable_batch_sampler.html#VariableBatchSamplerDDP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.variable_batch_sampler.VariableBatchSamplerDDP" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="autogen/data.sampler.html#data.sampler.base_sampler.BaseSamplerDDP" title="data.sampler.base_sampler.BaseSamplerDDP"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseSamplerDDP</span></code></a></p>
+<p>DDP version of  VariableBatchSampler</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>opts</strong> – command line argument</p></li>
+<li><p><strong>n_data_samples</strong> – Number of samples in the dataset</p></li>
+<li><p><strong>is_training</strong> – Training or validation mode. Default: False</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="data.sampler.variable_batch_sampler.VariableBatchSamplerDDP.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_data_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_training</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/data/sampler/variable_batch_sampler.html#VariableBatchSamplerDDP.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.variable_batch_sampler.VariableBatchSamplerDDP.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.sampler.variable_batch_sampler.VariableBatchSamplerDDP.update_scales">
+<span class="sig-name descname"><span class="pre">update_scales</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">epoch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_master_node</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/data/sampler/variable_batch_sampler.html#VariableBatchSamplerDDP.update_scales"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.variable_batch_sampler.VariableBatchSamplerDDP.update_scales" title="Permalink to this definition"></a></dt>
+<dd><p>Update the scales in variable batch sampler at specified epoch intervals during training.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.sampler.variable_batch_sampler.VariableBatchSamplerDDP.extra_repr">
+<span class="sig-name descname"><span class="pre">extra_repr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/data/sampler/variable_batch_sampler.html#VariableBatchSamplerDDP.extra_repr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.sampler.variable_batch_sampler.VariableBatchSamplerDDP.extra_repr" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id2" role="note">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
+<p>The effective batch size is the number of images per GPU times the number of GPUs.</p>
+</aside>
+</aside>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="en/general/README-new-dataset.html" class="btn btn-neutral float-left" title="How to Create a New Dataset Type" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="en/general/README-model-zoo.html" class="btn btn-neutral float-right" title="Model Zoo" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>data.datasets.detection package &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">data.datasets.detection package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/autogen/data.datasets.detection.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="data-datasets-detection-package">
+<h1>data.datasets.detection package<a class="headerlink" href="#data-datasets-detection-package" title="Permalink to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</section>
+<section id="module-data.datasets.detection.base_detection">
+<span id="data-datasets-detection-base-detection-module"></span><h2>data.datasets.detection.base_detection module<a class="headerlink" href="#module-data.datasets.detection.base_detection" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="data.datasets.detection.base_detection.BaseDetectionDataset">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">data.datasets.detection.base_detection.</span></span><span class="sig-name descname"><span class="pre">BaseDetectionDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data/datasets/detection/base_detection.html#BaseDetectionDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.detection.base_detection.BaseDetectionDataset" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.BaseImageDataset" title="data.datasets.dataset_base.BaseImageDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseImageDataset</span></code></a></p>
+<p>Base Dataset class for Object Dection datasets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>opts</strong> – Command-line arguments</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.detection.base_detection.BaseDetectionDataset.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/data/datasets/detection/base_detection.html#BaseDetectionDataset.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.detection.base_detection.BaseDetectionDataset.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.detection.base_detection.BaseDetectionDataset.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/data/datasets/detection/base_detection.html#BaseDetectionDataset.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.detection.base_detection.BaseDetectionDataset.add_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Add dataset-specific arguments</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-data.datasets.detection.coco_base">
+<span id="data-datasets-detection-coco-base-module"></span><h2>data.datasets.detection.coco_base module<a class="headerlink" href="#module-data.datasets.detection.coco_base" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="data.datasets.detection.coco_base.COCODetection">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">data.datasets.detection.coco_base.</span></span><span class="sig-name descname"><span class="pre">COCODetection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data/datasets/detection/coco_base.html#COCODetection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.detection.coco_base.COCODetection" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#data.datasets.detection.base_detection.BaseDetectionDataset" title="data.datasets.detection.base_detection.BaseDetectionDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseDetectionDataset</span></code></a></p>
+<p>Base class for the MS COCO Object Detection Dataset. Sub-classes should implement
+training and validation transform functions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>opts</strong> – command-line arguments</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This class implements basic functions (e.g., reading image and annotations), and does not implement
+training/validation transforms. Detector specific sub-classes should extend this class and implement those
+methods. See <cite>coco_ssd.py</cite> as an example for SSD.</p>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.detection.coco_base.COCODetection.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/data/datasets/detection/coco_base.html#COCODetection.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.detection.coco_base.COCODetection.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.detection.coco_base.COCODetection.share_dataset_arguments">
+<span class="sig-name descname"><span class="pre">share_dataset_arguments</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/data/datasets/detection/coco_base.html#COCODetection.share_dataset_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.detection.coco_base.COCODetection.share_dataset_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the number of classes in detection dataset along with super-class arguments.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.detection.coco_base.COCODetection.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/data/datasets/detection/coco_base.html#COCODetection.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.detection.coco_base.COCODetection.add_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Add dataset-specific arguments</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.detection.coco_base.COCODetection.get_boxes_and_labels">
+<span class="sig-name descname"><span class="pre">get_boxes_and_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_height</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_masks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/data/datasets/detection/coco_base.html#COCODetection.get_boxes_and_labels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.detection.coco_base.COCODetection.get_boxes_and_labels" title="Permalink to this definition"></a></dt>
+<dd><p>Get the boxes and label information for a given image_id</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image_id</strong> – Image ID</p></li>
+<li><p><strong>image_width</strong> – Width of the image</p></li>
+<li><p><strong>image_height</strong> – Height of the image</p></li>
+<li><p><strong>include_masks</strong> – Return instance masks or not</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><dl class="simple">
+<dt>Numpy array containing bounding box information in xyxy format.</dt><dd><p>The shape of array is [Num_of_boxes, 4].</p>
+</dd>
+</dl>
+</li>
+<li><p>Numpy array containing labels for each of the box. The shape of array is [Num_of_boxes]</p></li>
+<li><dl class="simple">
+<dt>When include_masks is enabled, a numpy array of instance masks is returned. The shape of the</dt><dd><p>array is [Num_of_boxes, image_height, image_width]</p>
+</dd>
+</dl>
+</li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A tuple of length 3</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.detection.coco_base.COCODetection.get_image">
+<span class="sig-name descname"><span class="pre">get_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span></span></span><a class="reference internal" href="../_modules/data/datasets/detection/coco_base.html#COCODetection.get_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.detection.coco_base.COCODetection.get_image" title="Permalink to this definition"></a></dt>
+<dd><p>Return the PIL image for a given image id</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.detection.coco_base.COCODetection.extra_repr">
+<span class="sig-name descname"><span class="pre">extra_repr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/data/datasets/detection/coco_base.html#COCODetection.extra_repr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.detection.coco_base.COCODetection.extra_repr" title="Permalink to this definition"></a></dt>
+<dd><p>Extra information to be represented in __repr__. Each line in the output
+string should be prefixed with <code class="docutils literal notranslate"><span class="pre">\t</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.detection.coco_base.COCODetection.class_names">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">class_names</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/data/datasets/detection/coco_base.html#COCODetection.class_names"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.detection.coco_base.COCODetection.class_names" title="Permalink to this definition"></a></dt>
+<dd><p>Name of the classes in the COCO dataset</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-data.datasets.detection.coco_mask_rcnn">
+<span id="data-datasets-detection-coco-mask-rcnn-module"></span><h2>data.datasets.detection.coco_mask_rcnn module<a class="headerlink" href="#module-data.datasets.detection.coco_mask_rcnn" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="data.datasets.detection.coco_mask_rcnn.COCODetectionMaskRCNN">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">data.datasets.detection.coco_mask_rcnn.</span></span><span class="sig-name descname"><span class="pre">COCODetectionMaskRCNN</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data/datasets/detection/coco_mask_rcnn.html#COCODetectionMaskRCNN"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.detection.coco_mask_rcnn.COCODetectionMaskRCNN" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#data.datasets.detection.coco_base.COCODetection" title="data.datasets.detection.coco_base.COCODetection"><code class="xref py py-class docutils literal notranslate"><span class="pre">COCODetection</span></code></a></p>
+<p>Dataset class for the MS COCO Object Detection using Mask RCNN .</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>opts</strong> – Command-line arguments</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.detection.coco_mask_rcnn.COCODetectionMaskRCNN.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/data/datasets/detection/coco_mask_rcnn.html#COCODetectionMaskRCNN.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.detection.coco_mask_rcnn.COCODetectionMaskRCNN.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.detection.coco_mask_rcnn.COCODetectionMaskRCNN.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/data/datasets/detection/coco_mask_rcnn.html#COCODetectionMaskRCNN.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.detection.coco_mask_rcnn.COCODetectionMaskRCNN.add_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Add dataset-specific arguments</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="data.datasets.detection.coco_mask_rcnn.coco_mask_rcnn_collate_fn">
+<span class="sig-prename descclassname"><span class="pre">data.datasets.detection.coco_mask_rcnn.</span></span><span class="sig-name descname"><span class="pre">coco_mask_rcnn_collate_fn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/data/datasets/detection/coco_mask_rcnn.html#coco_mask_rcnn_collate_fn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.detection.coco_mask_rcnn.coco_mask_rcnn_collate_fn" title="Permalink to this definition"></a></dt>
+<dd><p>Combines a list of dictionaries into a single dictionary by concatenating matching fields.</p>
+<p>For expected keys, see the keys in the output of <cite>__getitem__</cite> function of COCODetectionMaskRCNN class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>batch</strong> – A list of dictionaries</p></li>
+<li><p><strong>opts</strong> – Command-line arguments</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary with <cite>samples</cite> and <cite>targets</cite> as keys.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-data.datasets.detection.coco_ssd">
+<span id="data-datasets-detection-coco-ssd-module"></span><h2>data.datasets.detection.coco_ssd module<a class="headerlink" href="#module-data.datasets.detection.coco_ssd" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="data.datasets.detection.coco_ssd.COCODetectionSSD">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">data.datasets.detection.coco_ssd.</span></span><span class="sig-name descname"><span class="pre">COCODetectionSSD</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data/datasets/detection/coco_ssd.html#COCODetectionSSD"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.detection.coco_ssd.COCODetectionSSD" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#data.datasets.detection.coco_base.COCODetection" title="data.datasets.detection.coco_base.COCODetection"><code class="xref py py-class docutils literal notranslate"><span class="pre">COCODetection</span></code></a></p>
+<p>Dataset class for the MS COCO Object Detection using Single Shot Object Detector (SSD).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>opts</strong> – Command-line arguments</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.detection.coco_ssd.COCODetectionSSD.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/data/datasets/detection/coco_ssd.html#COCODetectionSSD.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.detection.coco_ssd.COCODetectionSSD.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.detection.coco_ssd.COCODetectionSSD.generate_anchors">
+<span class="sig-name descname"><span class="pre">generate_anchors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="../_modules/data/datasets/detection/coco_ssd.html#COCODetectionSSD.generate_anchors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.detection.coco_ssd.COCODetectionSSD.generate_anchors" title="Permalink to this definition"></a></dt>
+<dd><p>Given the height and width of the input to the SSD model, generate anchors</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>height</strong> – Height of the input image to the SSD model</p></li>
+<li><p><strong>width</strong> – Width of the input image to the SSD model</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tensor containing anchor locations</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.detection.coco_ssd.COCODetectionSSD.extra_repr">
+<span class="sig-name descname"><span class="pre">extra_repr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/data/datasets/detection/coco_ssd.html#COCODetectionSSD.extra_repr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.detection.coco_ssd.COCODetectionSSD.extra_repr" title="Permalink to this definition"></a></dt>
+<dd><p>Extra information to be represented in __repr__. Each line in the output
+string should be prefixed with <code class="docutils literal notranslate"><span class="pre">\t</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="data.datasets.detection.coco_ssd.coco_ssd_collate_fn">
+<span class="sig-prename descclassname"><span class="pre">data.datasets.detection.coco_ssd.</span></span><span class="sig-name descname"><span class="pre">coco_ssd_collate_fn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/data/datasets/detection/coco_ssd.html#coco_ssd_collate_fn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.detection.coco_ssd.coco_ssd_collate_fn" title="Permalink to this definition"></a></dt>
+<dd><p>Combines a list of dictionaries into a single dictionary by concatenating matching fields.</p>
+<p>For expected keys, see the keys in the output of <cite>__getitem__</cite> function of COCODetectionSSD class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>batch</strong> – A list of dictionaries</p></li>
+<li><p><strong>opts</strong> – Command-line arguments</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary with <cite>samples</cite> and <cite>targets</cite> as keys.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-data.datasets.detection">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-data.datasets.detection" title="Permalink to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

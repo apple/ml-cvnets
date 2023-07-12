@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Semantic segmentation usng MobileViTv2 &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Semantic segmentation usng MobileViTv2</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/en/models/segmentation/README-segmentation-mobilevit-v2.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="semantic-segmentation-usng-mobilevitv2">
+<h1>Semantic segmentation usng MobileViTv2<a class="headerlink" href="#semantic-segmentation-usng-mobilevitv2" title="Permalink to this heading"></a></h1>
+<section id="training-segmentation-network">
+<h2>Training segmentation network<a class="headerlink" href="#training-segmentation-network" title="Permalink to this heading"></a></h2>
+<p>Single node 4-GPU training of <code class="docutils literal notranslate"><span class="pre">DeepLabv3-MobileViTv2-1.0</span></code> on the PASCAL VOC 2012 dataset.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>  <span class="n">PYTHONWARNINGS</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span> <span class="n">cvnets</span><span class="o">-</span><span class="n">train</span> <span class="o">--</span><span class="n">common</span><span class="o">.</span><span class="n">config</span><span class="o">-</span><span class="n">file</span> <span class="n">config</span><span class="o">/</span><span class="n">segmentation</span><span class="o">/</span><span class="n">pascal_voc</span><span class="o">/</span><span class="n">deeplabv3_mobilevitv2</span><span class="o">.</span><span class="n">yaml</span> <span class="o">--</span><span class="n">common</span><span class="o">.</span><span class="n">results</span><span class="o">-</span><span class="n">loc</span> <span class="n">deeplabv3_mobilevitv2_results</span><span class="o">/</span><span class="n">width_1_0_0</span> <span class="o">--</span><span class="n">common</span><span class="o">.</span><span class="n">override</span><span class="o">-</span><span class="n">kwargs</span> <span class="n">model</span><span class="o">.</span><span class="n">classification</span><span class="o">.</span><span class="n">pretrained</span><span class="o">=</span><span class="s2">&quot;LOCATION_OF_IMAGENET_1k_CHECKPOINT&quot;</span>
+</pre></div>
+</div>
+<p>where <code class="docutils literal notranslate"><span class="pre">LOCATION_OF_IMAGENET_1k_CHECKPOINT</span></code> is the location of the best EMA checkpoint of the MobileViTv2 model pretrained on the ImageNet-1k dataset.</p>
+<details>
+<summary>
+Single node 4-GPU training of PSPNet-MobileViTv2-1.0 on the PASCAL VOC 2012 dataset.
+</summary>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>  <span class="n">PYTHONWARNINGS</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span> <span class="n">cvnets</span><span class="o">-</span><span class="n">train</span> <span class="o">--</span><span class="n">common</span><span class="o">.</span><span class="n">config</span><span class="o">-</span><span class="n">file</span> <span class="n">config</span><span class="o">/</span><span class="n">segmentation</span><span class="o">/</span><span class="n">pascal_voc</span><span class="o">/</span><span class="n">pspnet_mobilevitv2</span><span class="o">.</span><span class="n">yaml</span> <span class="o">--</span><span class="n">common</span><span class="o">.</span><span class="n">results</span><span class="o">-</span><span class="n">loc</span> <span class="n">pspnet_mobilevitv2_results</span><span class="o">/</span><span class="n">width_1_0_0</span> <span class="o">--</span><span class="n">common</span><span class="o">.</span><span class="n">override</span><span class="o">-</span><span class="n">kwargs</span> <span class="n">model</span><span class="o">.</span><span class="n">classification</span><span class="o">.</span><span class="n">pretrained</span><span class="o">=</span><span class="s2">&quot;LOCATION_OF_IMAGENET_1k_CHECKPOINT&quot;</span>
+</pre></div>
+</div>
+</details>
+<details>
+<summary>
+Single node 4-GPU training of DeepLabv3-MobileViTv2-1.0 on the ADE20k dataset.
+</summary>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>  <span class="n">PYTHONWARNINGS</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span> <span class="n">cvnets</span><span class="o">-</span><span class="n">train</span> <span class="o">--</span><span class="n">common</span><span class="o">.</span><span class="n">config</span><span class="o">-</span><span class="n">file</span> <span class="n">config</span><span class="o">/</span><span class="n">segmentation</span><span class="o">/</span><span class="n">ade20k</span><span class="o">/</span><span class="n">deeplabv3_mobilevitv2</span><span class="o">.</span><span class="n">yaml</span> <span class="o">--</span><span class="n">common</span><span class="o">.</span><span class="n">results</span><span class="o">-</span><span class="n">loc</span> <span class="n">deeplabv3_ade20k_results</span><span class="o">/</span><span class="n">width_1_0_0</span> <span class="o">--</span><span class="n">common</span><span class="o">.</span><span class="n">override</span><span class="o">-</span><span class="n">kwargs</span> <span class="n">model</span><span class="o">.</span><span class="n">classification</span><span class="o">.</span><span class="n">pretrained</span><span class="o">=</span><span class="s2">&quot;LOCATION_OF_IMAGENET_1k_CHECKPOINT&quot;</span>
+</pre></div>
+</div>
+</details>
+<details>
+<summary>
+Single node 4-GPU training of DeepLabv3-MobileViTv2-1.0 on the ADE20k dataset.
+</summary>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>  <span class="n">PYTHONWARNINGS</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span> <span class="n">cvnets</span><span class="o">-</span><span class="n">train</span> <span class="o">--</span><span class="n">common</span><span class="o">.</span><span class="n">config</span><span class="o">-</span><span class="n">file</span> <span class="n">config</span><span class="o">/</span><span class="n">segmentation</span><span class="o">/</span><span class="n">ade20k</span><span class="o">/</span><span class="n">pspnet_mobilevitv2</span><span class="o">.</span><span class="n">yaml</span> <span class="o">--</span><span class="n">common</span><span class="o">.</span><span class="n">results</span><span class="o">-</span><span class="n">loc</span> <span class="n">pspnet_ade20k_results</span><span class="o">/</span><span class="n">width_1_0_0</span> <span class="o">--</span><span class="n">common</span><span class="o">.</span><span class="n">override</span><span class="o">-</span><span class="n">kwargs</span> <span class="n">model</span><span class="o">.</span><span class="n">classification</span><span class="o">.</span><span class="n">pretrained</span><span class="o">=</span><span class="s2">&quot;LOCATION_OF_IMAGENET_1k_CHECKPOINT&quot;</span>
+</pre></div>
+</div>
+</details>
+</section>
+<section id="quantitative-evaluation">
+<h2>Quantitative evaluation<a class="headerlink" href="#quantitative-evaluation" title="Permalink to this heading"></a></h2>
+<p>Mean intersection over union (mIoU) score can be computed on segmentation dataset using the below command:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span> export CFG_FILE=&quot;PATH_TO_CONFIG_FILE&quot;
+ export DEEPLABV3_MODEL_WEIGHTS=&quot;PATH_TO_MODEL_WEIGHTS&quot; 
+ CUDA_VISIBLE_DEVICES=0 cvnets-eval-seg --common.config-file $CFG_FILE --common.results-loc seg_results --model.segmentation.pretrained $DEEPLABV3_MODEL_WEIGHTS --evaluation.segmentation.resize-input-images --evaluation.segmentation.mode validation_set
+</pre></div>
+</div>
+</section>
+<section id="qualitative-evaluation">
+<h2>Qualitative evaluation<a class="headerlink" href="#qualitative-evaluation" title="Permalink to this heading"></a></h2>
+<p>In the below example, we download an image from the Internet and then segment objects using DeepLabv3 w/ MobileViTv2-1.0 backbone.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span> export IMG_PATH=&quot;http://farm7.staticflickr.com/6206/6118204766_b1c9a39153_z.jpg&quot;
+ export CFG_FILE=&quot;https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/deeplabv3-mobilevitv2-1.0.yaml&quot;
+ export MODEL_WEIGHTS=&quot;https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/segmentation/pascalvoc/mobilevitv2/deeplabv3-mobilevitv2-1.0.pt&quot;
+ cvnets-eval-seg 
+ python main_eval.py --common.config-file $CFG_FILE --common.results-loc deeplabv3_mobilevitv2_results --model.segmentation.pretrained $MODEL_WEIGHTS --model.segmentation.n-classes 21 \
+ --evaluation.segmentation.resize-input-images --evaluation.segmentation.mode single_image --evaluation.segmentation.path &quot;${IMG_PATH}&quot; --evaluation.segmentation.save-masks \
+ --evaluation.segmentation.apply-color-map --evaluation.segmentation.save-overlay-rgb-pred
+</pre></div>
+</div>
+</section>
+<section id="citation">
+<h2>Citation<a class="headerlink" href="#citation" title="Permalink to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@article</span><span class="p">{</span><span class="n">mehta2022separable</span><span class="p">,</span>
+  <span class="n">title</span><span class="o">=</span><span class="p">{</span><span class="n">Separable</span> <span class="n">Self</span><span class="o">-</span><span class="n">attention</span> <span class="k">for</span> <span class="n">Mobile</span> <span class="n">Vision</span> <span class="n">Transformers</span><span class="p">},</span>
+  <span class="n">author</span><span class="o">=</span><span class="p">{</span><span class="n">Sachin</span> <span class="n">Mehta</span> <span class="ow">and</span> <span class="n">Mohammad</span> <span class="n">Rastegari</span><span class="p">},</span>
+  <span class="n">year</span><span class="o">=</span><span class="p">{</span><span class="mi">2022</span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

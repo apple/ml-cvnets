@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cvnets.models.detection package &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">cvnets.models.detection package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/autogen/cvnets.models.detection.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="cvnets-models-detection-package">
+<h1>cvnets.models.detection package<a class="headerlink" href="#cvnets-models-detection-package" title="Permalink to this heading"></a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="cvnets.models.detection.utils.html">cvnets.models.detection.utils package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.detection.utils.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.detection.utils.html#module-cvnets.models.detection.utils.rcnn_utils">cvnets.models.detection.utils.rcnn_utils module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.detection.utils.html#cvnets.models.detection.utils.rcnn_utils.FastRCNNConvFCHead"><code class="docutils literal notranslate"><span class="pre">FastRCNNConvFCHead</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.utils.html#cvnets.models.detection.utils.rcnn_utils.FastRCNNConvFCHead.__init__"><code class="docutils literal notranslate"><span class="pre">FastRCNNConvFCHead.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.detection.utils.html#cvnets.models.detection.utils.rcnn_utils.RPNHead"><code class="docutils literal notranslate"><span class="pre">RPNHead</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.utils.html#cvnets.models.detection.utils.rcnn_utils.RPNHead.__init__"><code class="docutils literal notranslate"><span class="pre">RPNHead.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.utils.html#cvnets.models.detection.utils.rcnn_utils.RPNHead.forward"><code class="docutils literal notranslate"><span class="pre">RPNHead.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.detection.utils.html#cvnets.models.detection.utils.rcnn_utils.MaskRCNNHeads"><code class="docutils literal notranslate"><span class="pre">MaskRCNNHeads</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.utils.html#cvnets.models.detection.utils.rcnn_utils.MaskRCNNHeads.__init__"><code class="docutils literal notranslate"><span class="pre">MaskRCNNHeads.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.detection.utils.html#cvnets.models.detection.utils.rcnn_utils.MaskRCNNPredictor"><code class="docutils literal notranslate"><span class="pre">MaskRCNNPredictor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.utils.html#cvnets.models.detection.utils.rcnn_utils.MaskRCNNPredictor.__init__"><code class="docutils literal notranslate"><span class="pre">MaskRCNNPredictor.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.detection.utils.html#cvnets.models.detection.utils.rcnn_utils.FastRCNNPredictor"><code class="docutils literal notranslate"><span class="pre">FastRCNNPredictor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.utils.html#cvnets.models.detection.utils.rcnn_utils.FastRCNNPredictor.__init__"><code class="docutils literal notranslate"><span class="pre">FastRCNNPredictor.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="cvnets.models.detection.utils.html#cvnets.models.detection.utils.rcnn_utils.FastRCNNPredictor.forward"><code class="docutils literal notranslate"><span class="pre">FastRCNNPredictor.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cvnets.models.detection.utils.html#cvnets.models.detection.utils.rcnn_utils.replace_syncbn_with_syncbnfp32"><code class="docutils literal notranslate"><span class="pre">replace_syncbn_with_syncbnfp32()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cvnets.models.detection.utils.html#module-cvnets.models.detection.utils">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</section>
+<section id="module-cvnets.models.detection.base_detection">
+<span id="cvnets-models-detection-base-detection-module"></span><h2>cvnets.models.detection.base_detection module<a class="headerlink" href="#module-cvnets.models.detection.base_detection" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="cvnets.models.detection.base_detection.BaseDetection">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cvnets.models.detection.base_detection.</span></span><span class="sig-name descname"><span class="pre">BaseDetection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder" title="cvnets.models.classification.base_image_encoder.BaseImageEncoder"><span class="pre">BaseImageEncoder</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cvnets/models/detection/base_detection.html#BaseDetection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.base_detection.BaseDetection" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel" title="cvnets.models.base_model.BaseAnyNNModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseAnyNNModel</span></code></a></p>
+<p>Base class for the task of object detection</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>opts</strong> – Command-line arguments</p></li>
+<li><p><strong>encoder</strong> – Image-encoder model (e.g., MobileNet or ResNet)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.base_detection.BaseDetection.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder" title="cvnets.models.classification.base_image_encoder.BaseImageEncoder"><span class="pre">BaseImageEncoder</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/base_detection.html#BaseDetection.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.base_detection.BaseDetection.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.base_detection.BaseDetection.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/base_detection.html#BaseDetection.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.base_detection.BaseDetection.add_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Add model specific arguments</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.base_detection.BaseDetection.reset_layer_parameters">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reset_layer_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Module</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/base_detection.html#BaseDetection.reset_layer_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.base_detection.BaseDetection.reset_layer_parameters" title="Permalink to this definition"></a></dt>
+<dd><p>Initialize weights of a given layer</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.base_detection.BaseDetection.build_model">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">build_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="cvnets.models.html#cvnets.models.base_model.BaseAnyNNModel" title="cvnets.models.base_model.BaseAnyNNModel"><span class="pre">BaseAnyNNModel</span></a></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/base_detection.html#BaseDetection.build_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.base_detection.BaseDetection.build_model" title="Permalink to this definition"></a></dt>
+<dd><p>Build a model from command-line arguments. Sub-classes must implement this method</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>opts</strong> – Command-line arguments</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>…note::</dt><dd><p>This function is typically implemented in the base class for each task and
+implementation is reused by all models in that task.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cvnets.models.detection.base_detection.check_feature_map_output_channels">
+<span class="sig-prename descclassname"><span class="pre">cvnets.models.detection.base_detection.</span></span><span class="sig-name descname"><span class="pre">check_feature_map_output_channels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/base_detection.html#check_feature_map_output_channels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.base_detection.check_feature_map_output_channels" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-cvnets.models.detection.mask_rcnn">
+<span id="cvnets-models-detection-mask-rcnn-module"></span><h2>cvnets.models.detection.mask_rcnn module<a class="headerlink" href="#module-cvnets.models.detection.mask_rcnn" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="cvnets.models.detection.mask_rcnn.MaskRCNNEncoder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cvnets.models.detection.mask_rcnn.</span></span><span class="sig-name descname"><span class="pre">MaskRCNNEncoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder" title="cvnets.models.classification.base_image_encoder.BaseImageEncoder"><span class="pre">BaseImageEncoder</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_strides</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projection_channels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_lr_multiplier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cvnets/models/detection/mask_rcnn.html#MaskRCNNEncoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.mask_rcnn.MaskRCNNEncoder" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.mask_rcnn.MaskRCNNEncoder.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder" title="cvnets.models.classification.base_image_encoder.BaseImageEncoder"><span class="pre">BaseImageEncoder</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_strides</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projection_channels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_lr_multiplier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/mask_rcnn.html#MaskRCNNEncoder.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.mask_rcnn.MaskRCNNEncoder.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.mask_rcnn.MaskRCNNEncoder.get_augmented_tensor">
+<span class="sig-name descname"><span class="pre">get_augmented_tensor</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tensor</span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/mask_rcnn.html#MaskRCNNEncoder.get_augmented_tensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.mask_rcnn.MaskRCNNEncoder.get_augmented_tensor" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.mask_rcnn.MaskRCNNEncoder.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/mask_rcnn.html#MaskRCNNEncoder.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.mask_rcnn.MaskRCNNEncoder.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.mask_rcnn.MaskRCNNEncoder.get_trainable_parameters">
+<span class="sig-name descname"><span class="pre">get_trainable_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">weight_decay</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">no_decay_bn_filter_bias</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/mask_rcnn.html#MaskRCNNEncoder.get_trainable_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.mask_rcnn.MaskRCNNEncoder.get_trainable_parameters" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cvnets.models.detection.mask_rcnn.MaskRCNNDetector">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cvnets.models.detection.mask_rcnn.</span></span><span class="sig-name descname"><span class="pre">MaskRCNNDetector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder" title="cvnets.models.classification.base_image_encoder.BaseImageEncoder"><span class="pre">BaseImageEncoder</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cvnets/models/detection/mask_rcnn.html#MaskRCNNDetector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.mask_rcnn.MaskRCNNDetector" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#cvnets.models.detection.base_detection.BaseDetection" title="cvnets.models.detection.base_detection.BaseDetection"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseDetection</span></code></a></p>
+<p>This class implements a <cite>Mask RCNN style object detector &lt;https://arxiv.org/abs/1703.06870&gt;</cite></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>opts</strong> – command-line arguments</p></li>
+<li><p><strong>encoder</strong> (<a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder" title="cvnets.models.classification.base_image_encoder.BaseImageEncoder"><em>BaseImageEncoder</em></a>) – Encoder network (e.g., ResNet or MobileViT)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.mask_rcnn.MaskRCNNDetector.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder" title="cvnets.models.classification.base_image_encoder.BaseImageEncoder"><span class="pre">BaseImageEncoder</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/mask_rcnn.html#MaskRCNNDetector.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.mask_rcnn.MaskRCNNDetector.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.mask_rcnn.MaskRCNNDetector.update_layer_norm_eps">
+<span class="sig-name descname"><span class="pre">update_layer_norm_eps</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cvnets/models/detection/mask_rcnn.html#MaskRCNNDetector.update_layer_norm_eps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.mask_rcnn.MaskRCNNDetector.update_layer_norm_eps" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.mask_rcnn.MaskRCNNDetector.set_norm_layer_opts">
+<span class="sig-name descname"><span class="pre">set_norm_layer_opts</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cvnets/models/detection/mask_rcnn.html#MaskRCNNDetector.set_norm_layer_opts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.mask_rcnn.MaskRCNNDetector.set_norm_layer_opts" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.mask_rcnn.MaskRCNNDetector.reset_norm_layer_opts">
+<span class="sig-name descname"><span class="pre">reset_norm_layer_opts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">default_norm</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cvnets/models/detection/mask_rcnn.html#MaskRCNNDetector.reset_norm_layer_opts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.mask_rcnn.MaskRCNNDetector.reset_norm_layer_opts" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.mask_rcnn.MaskRCNNDetector.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/mask_rcnn.html#MaskRCNNDetector.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.mask_rcnn.MaskRCNNDetector.add_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Add model specific arguments</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.mask_rcnn.MaskRCNNDetector.reset_generalized_rcnn_transform">
+<span class="sig-name descname"><span class="pre">reset_generalized_rcnn_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">height</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cvnets/models/detection/mask_rcnn.html#MaskRCNNDetector.reset_generalized_rcnn_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.mask_rcnn.MaskRCNNDetector.reset_generalized_rcnn_transform" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.mask_rcnn.MaskRCNNDetector.get_trainable_parameters">
+<span class="sig-name descname"><span class="pre">get_trainable_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">weight_decay</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">no_decay_bn_filter_bias</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/mask_rcnn.html#MaskRCNNDetector.get_trainable_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.mask_rcnn.MaskRCNNDetector.get_trainable_parameters" title="Permalink to this definition"></a></dt>
+<dd><p>Get parameters for training along with the learning rate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>weight_decay</strong> – weight decay</p></li>
+<li><p><strong>no_decay_bn_filter_bias</strong> – Do not decay BN and biases. Defaults to False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Returns a tuple of length 2. The first entry is a list of dictionary with three keys
+(params, weight_decay, param_names). The second entry is a list of floats containing
+learning rate for each parameter.</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Kwargs may contain module_name. To avoid multiple arguments with the same name,
+we pop it and concatenate with encoder or head name</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.mask_rcnn.MaskRCNNDetector.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/mask_rcnn.html#MaskRCNNDetector.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.mask_rcnn.MaskRCNNDetector.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Implement the model-specific forward function in sub-classes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.mask_rcnn.MaskRCNNDetector.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cvnets.models.detection.DetectionPredTuple" title="cvnets.models.detection.DetectionPredTuple"><span class="pre">DetectionPredTuple</span></a></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/mask_rcnn.html#MaskRCNNDetector.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.mask_rcnn.MaskRCNNDetector.predict" title="Permalink to this definition"></a></dt>
+<dd><p>Predict the bounding boxes given an image tensor</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.mask_rcnn.MaskRCNNDetector.dummy_input_and_label">
+<span class="sig-name descname"><span class="pre">dummy_input_and_label</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/mask_rcnn.html#MaskRCNNDetector.dummy_input_and_label"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.mask_rcnn.MaskRCNNDetector.dummy_input_and_label" title="Permalink to this definition"></a></dt>
+<dd><p>Create dummy input and labels for CI/CD purposes.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-cvnets.models.detection.ssd">
+<span id="cvnets-models-detection-ssd-module"></span><h2>cvnets.models.detection.ssd module<a class="headerlink" href="#module-cvnets.models.detection.ssd" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="cvnets.models.detection.ssd.SingleShotMaskDetector">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cvnets.models.detection.ssd.</span></span><span class="sig-name descname"><span class="pre">SingleShotMaskDetector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder" title="cvnets.models.classification.base_image_encoder.BaseImageEncoder"><span class="pre">BaseImageEncoder</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cvnets/models/detection/ssd.html#SingleShotMaskDetector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.ssd.SingleShotMaskDetector" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#cvnets.models.detection.base_detection.BaseDetection" title="cvnets.models.detection.base_detection.BaseDetection"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseDetection</span></code></a></p>
+<p>This class implements a <a class="reference external" href="https://arxiv.org/abs/1512.02325">Single Shot Object Detector</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>opts</strong> – command-line arguments</p></li>
+<li><p><strong>encoder</strong> (<a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder" title="cvnets.models.classification.base_image_encoder.BaseImageEncoder"><em>BaseImageEncoder</em></a>) – Encoder network (e.g., ResNet or MobileViT)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cvnets.models.detection.ssd.SingleShotMaskDetector.coordinates">
+<span class="sig-name descname"><span class="pre">coordinates</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#cvnets.models.detection.ssd.SingleShotMaskDetector.coordinates" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.ssd.SingleShotMaskDetector.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="cvnets.models.classification.html#cvnets.models.classification.base_image_encoder.BaseImageEncoder" title="cvnets.models.classification.base_image_encoder.BaseImageEncoder"><span class="pre">BaseImageEncoder</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/ssd.html#SingleShotMaskDetector.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.ssd.SingleShotMaskDetector.__init__" title="Permalink to this definition"></a></dt>
+<dd><p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.ssd.SingleShotMaskDetector.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/ssd.html#SingleShotMaskDetector.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.ssd.SingleShotMaskDetector.add_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Add model specific arguments</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.ssd.SingleShotMaskDetector.reset_layers">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">reset_layers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/ssd.html#SingleShotMaskDetector.reset_layers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.ssd.SingleShotMaskDetector.reset_layers" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.ssd.SingleShotMaskDetector.process_anchors_ar">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">process_anchors_ar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">anchor_ar</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/ssd.html#SingleShotMaskDetector.process_anchors_ar"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.ssd.SingleShotMaskDetector.process_anchors_ar" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.ssd.SingleShotMaskDetector.get_backbone_features">
+<span class="sig-name descname"><span class="pre">get_backbone_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/ssd.html#SingleShotMaskDetector.get_backbone_features"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.ssd.SingleShotMaskDetector.get_backbone_features" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.ssd.SingleShotMaskDetector.ssd_forward">
+<span class="sig-name descname"><span class="pre">ssd_forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">end_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">device</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">device(type='cpu')</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/ssd.html#SingleShotMaskDetector.ssd_forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.ssd.SingleShotMaskDetector.ssd_forward" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.ssd.SingleShotMaskDetector.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/ssd.html#SingleShotMaskDetector.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.ssd.SingleShotMaskDetector.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Implement the model-specific forward function in sub-classes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.ssd.SingleShotMaskDetector.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cvnets.models.detection.DetectionPredTuple" title="cvnets.models.detection.DetectionPredTuple"><span class="pre">DetectionPredTuple</span></a></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/ssd.html#SingleShotMaskDetector.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.ssd.SingleShotMaskDetector.predict" title="Permalink to this definition"></a></dt>
+<dd><p>Predict the bounding boxes given an image tensor</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.ssd.SingleShotMaskDetector.postprocess_detections">
+<span class="sig-name descname"><span class="pre">postprocess_detections</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">boxes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scores</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cvnets.models.detection.DetectionPredTuple" title="cvnets.models.detection.DetectionPredTuple"><span class="pre">DetectionPredTuple</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/ssd.html#SingleShotMaskDetector.postprocess_detections"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.ssd.SingleShotMaskDetector.postprocess_detections" title="Permalink to this definition"></a></dt>
+<dd><p>Post process detections, including NMS</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cvnets.models.detection.ssd.SingleShotMaskDetector.dummy_input_and_label">
+<span class="sig-name descname"><span class="pre">dummy_input_and_label</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="reference internal" href="../_modules/cvnets/models/detection/ssd.html#SingleShotMaskDetector.dummy_input_and_label"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cvnets.models.detection.ssd.SingleShotMaskDetector.dummy_input_and_label" title="Permalink to this definition"></a></dt>
+<dd><p>Create dummy input and labels for CI/CD purposes.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-cvnets.models.detection">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-cvnets.models.detection" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="cvnets.models.detection.DetectionPredTuple">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cvnets.models.detection.</span></span><span class="sig-name descname"><span class="pre">DetectionPredTuple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boxes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">masks</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cvnets.models.detection.DetectionPredTuple" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cvnets.models.detection.DetectionPredTuple.boxes">
+<span class="sig-name descname"><span class="pre">boxes</span></span><a class="headerlink" href="#cvnets.models.detection.DetectionPredTuple.boxes" title="Permalink to this definition"></a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cvnets.models.detection.DetectionPredTuple.labels">
+<span class="sig-name descname"><span class="pre">labels</span></span><a class="headerlink" href="#cvnets.models.detection.DetectionPredTuple.labels" title="Permalink to this definition"></a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cvnets.models.detection.DetectionPredTuple.masks">
+<span class="sig-name descname"><span class="pre">masks</span></span><a class="headerlink" href="#cvnets.models.detection.DetectionPredTuple.masks" title="Permalink to this definition"></a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cvnets.models.detection.DetectionPredTuple.scores">
+<span class="sig-name descname"><span class="pre">scores</span></span><a class="headerlink" href="#cvnets.models.detection.DetectionPredTuple.scores" title="Permalink to this definition"></a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

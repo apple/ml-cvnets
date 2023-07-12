@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>data.datasets.utils.video &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../datasets.html">data.datasets</a></li>
+      <li class="breadcrumb-item active">data.datasets.utils.video</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for data.datasets.utils.video</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="sd">&quot;&quot;&quot;Contains helper functions for reading from video detection datasets.</span>
+
+<span class="sd">    NOTE: Annotations are stored via a @rectangles_dict of the form:</span>
+<span class="sd">        Dict:</span>
+<span class="sd">            key -&gt; identity:</span>
+<span class="sd">                Annotation list of Dicts for different timestamps:</span>
+<span class="sd">                    timestamp (float): The timestamp representing the seconds since the</span>
+<span class="sd">                        video began, ex. 1.2 is 1.2 seconds into the video.</span>
+<span class="sd">                    x0 (float): Normalized pixel space coordinate of top left of</span>
+<span class="sd">                        bounding box.</span>
+<span class="sd">                    y0 (float): Normalized pixel space coordinate of top left of</span>
+<span class="sd">                        bounding box.</span>
+<span class="sd">                    x1 (float): Normalized pixel space coordinate of bottom right of</span>
+<span class="sd">                        bounding box.</span>
+<span class="sd">                    y1 (float): Normalized pixel space coordinate of bottom right of</span>
+<span class="sd">                        bounding box.</span>
+<span class="sd">                    &lt;class_label_name&gt; (int): Label of the class. The key to</span>
+<span class="sd">                        this field depends on the dataset.</span>
+<span class="sd">                    is_visible (bool): []Optional] Whether bounding box is</span>
+<span class="sd">                        visible.</span>
+<span class="sd">        See `tests/data/datasets/utils/video_test.py` for an example of this dictionary.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+
+<span class="n">EPS</span> <span class="o">=</span> <span class="mf">1e-6</span>
+<span class="n">FLOAT_TIMESTAMP_EPS</span> <span class="o">=</span> <span class="mf">1e-15</span>
+
+
+<span class="k">def</span> <span class="nf">_simultaneous</span><span class="p">(</span>
+    <span class="n">this_timestamp</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">other_timestamp</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">time_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">FLOAT_TIMESTAMP_EPS</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="n">this_timestamp</span> <span class="o">-</span> <span class="n">other_timestamp</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">time_eps</span>
+
+
+<span class="k">def</span> <span class="nf">_before</span><span class="p">(</span><span class="n">this_timestamp</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">other_timestamp</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="ow">not</span> <span class="n">_simultaneous</span><span class="p">(</span><span class="n">this_timestamp</span><span class="p">,</span> <span class="n">other_timestamp</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="n">this_timestamp</span> <span class="o">&lt;</span> <span class="n">other_timestamp</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="fetch_labels_from_timestamps"><a class="viewcode-back" href="../../../../autogen/data.datasets.utils.html#data.datasets.utils.video.fetch_labels_from_timestamps">[docs]</a><span class="k">def</span> <span class="nf">fetch_labels_from_timestamps</span><span class="p">(</span>
+    <span class="n">class_label_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">timestamps</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+    <span class="n">rectangles_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
+    <span class="n">interpolation_cutoff_threshold_sec</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">progressible_labels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Collection</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">carry_over_keys</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">required_keys</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns object labels for the specified video frame timestamps.</span>
+
+<span class="sd">    The result will retain the structure of `rectangles_dict`, but just ensure that the</span>
+<span class="sd">    timestamp values are as requested.</span>
+
+<span class="sd">    If `progressible_labels` are supplied, the `&quot;progress&quot;` field will be included. This</span>
+<span class="sd">    field represents the &#39;normalized&#39; amount of time that the class label has existed</span>
+<span class="sd">    temporally. See</span>
+<span class="sd">    tests/data/datasets/utils/test_video.py:test_fetch_frame_with_progress for examples.</span>
+
+<span class="sd">    This fetching function can be used for (per-frame) video classification pipelines.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        class_label_name: The field name in `rectangles_dict` that maps to the class</span>
+<span class="sd">            label.</span>
+<span class="sd">        timestamps: A list of timestamps to fectch label from.</span>
+<span class="sd">        rectangles_dict: (See docstring at top of file.)</span>
+<span class="sd">        interpolation_cutoff_threshold_sec: Threshold under which we allow</span>
+<span class="sd">            interpolation. In some `rectangles_dict`s, the labels (within the same</span>
+<span class="sd">            track) are so far apart (e.g. 10 seconds) that interpolation is</span>
+<span class="sd">            non-sensical. Thus this value prevents unrelated labels from being</span>
+<span class="sd">            interpolated.</span>
+<span class="sd">        progressible_labels: Set of labels for which to calculate `&quot;progress&quot;` for the</span>
+<span class="sd">            resulting bounding boxes. If None, no `&quot;progress&quot;` field will be included.</span>
+<span class="sd">        carry_over_keys: A list of keywords that specifies which keys should be carried</span>
+<span class="sd">            over from the previous rectangle during interpolation. Defaults to None.</span>
+<span class="sd">        required_keys: A list of keywords that specifies which keywords need to be</span>
+<span class="sd">            included in a new bounding_box in addition to the @class_label_name.</span>
+<span class="sd">            Defaults to None.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict containing the labels, still indexable by track id.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">progressible_labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">progressible_labels</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;Currently only the calculation of one progressible label is supported;&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot; got labels=</span><span class="si">{</span><span class="n">progressible_labels</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">labels</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">timestamp</span> <span class="ow">in</span> <span class="n">timestamps</span><span class="p">:</span>
+        <span class="n">labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">_fetch_frame_label</span><span class="p">(</span>
+                <span class="n">class_label_name</span><span class="p">,</span>
+                <span class="n">timestamp</span><span class="p">,</span>
+                <span class="n">rectangles_dict</span><span class="p">,</span>
+                <span class="n">interpolation_cutoff_threshold_sec</span><span class="p">,</span>
+                <span class="n">progressible_labels</span><span class="p">,</span>
+                <span class="n">carry_over_keys</span><span class="p">,</span>
+                <span class="n">required_keys</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Reslice @labels to be a dict of lists.</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">:</span>
+        <span class="c1"># @label is a dict with a key and dict of values.</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">label</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">:</span>
+                <span class="n">ret</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">ret</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<span class="k">def</span> <span class="nf">_make_fake_bbox</span><span class="p">(</span>
+    <span class="n">rectangles_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
+    <span class="n">timestamp</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">progressible_labels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Collection</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">required_keys</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a fake bounding box annotation.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        rectangles_dict: dictionary of annotations.</span>
+<span class="sd">        timestamp: timestamp for make bounding box.</span>
+<span class="sd">        progressive_labels: whether to add progressive labels or not.</span>
+<span class="sd">        required_keys: A list of keywords that specifies which keywords need to be</span>
+<span class="sd">            included in a new bounding_box in addition to the class_label_name. Defaults</span>
+<span class="sd">            to None.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        bounding box annotation at @timestamp that is not visible with all other values</span>
+<span class="sd">        set to -1.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="n">rectangles_dict</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">rectangles_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">}</span>
+    <span class="n">res</span><span class="p">[</span><span class="s2">&quot;is_visible&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">res</span><span class="p">[</span><span class="s2">&quot;timestamp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timestamp</span>
+    <span class="k">if</span> <span class="n">required_keys</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">required_keys</span><span class="p">:</span>
+            <span class="n">res</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">if</span> <span class="n">progressible_labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">progressible_labels</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">res</span><span class="p">[</span><span class="s2">&quot;progress&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+    <span class="k">return</span> <span class="n">res</span>
+
+
+<span class="k">def</span> <span class="nf">_fetch_frame_label</span><span class="p">(</span>
+    <span class="n">class_label_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">timestamp</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">rectangles_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
+    <span class="n">interpolation_cutoff_threshold_sec</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">progressible_labels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Collection</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">carry_over_keys</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">required_keys</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns object labels for the specified video frame timestamp.</span>
+
+<span class="sd">    The result will retain the structure of `rectangles_dict`, but just ensure that the</span>
+<span class="sd">    timestamp value is as requested.</span>
+
+<span class="sd">    If `progressible_labels` are supplied, the `&quot;progress&quot;` field will be included. This</span>
+<span class="sd">    field represents the &#39;normalized&#39; amount of time that the class label has existed</span>
+<span class="sd">    temporally. See</span>
+<span class="sd">    tests/data/datasets/utils/test_video.py:test_fetch_frame_with_progress for examples.</span>
+
+<span class="sd">    This fetching function can be used for (per-frame) video classification pipelines.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        class_label_name: The field name in `rectangles_dict` that maps to the class</span>
+<span class="sd">            label.</span>
+<span class="sd">        timestamps: A list of timestamps to fectch label from.</span>
+<span class="sd">        rectangles_dict: (See docstring at top of file.)</span>
+<span class="sd">        interpolation_cutoff_threshold_sec: Threshold under which we allow</span>
+<span class="sd">            interpolation. In some `rectangles_dict`s, the labels (within the</span>
+<span class="sd">            same track) are so far apart (e.g. 10 seconds) that interpolation is</span>
+<span class="sd">            non-sensical. Thus this value prevents unrelated labels from being</span>
+<span class="sd">            interpolated.</span>
+<span class="sd">        progressible_labels: Set of labels for which to calculate `&quot;progress&quot;` for the</span>
+<span class="sd">            resulting bounding boxes. If None, no `&quot;progress&quot;` field will be included.</span>
+<span class="sd">        carry_over_keys: A list of keywords that specifies which keys should be carried</span>
+<span class="sd">            over from the previous rectangle during interpolation. Defaults to None.</span>
+<span class="sd">        required_keys: A list of keywords that specifies which keywords need to be</span>
+<span class="sd">            included in a new bounding_box in addition to the class_label_name. Defaults</span>
+<span class="sd">            to None.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict containing the labels, still indexable by track id.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ret</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">track_label</span><span class="p">,</span> <span class="n">track_rectangles</span> <span class="ow">in</span> <span class="n">rectangles_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">all_times</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="p">[</span><span class="s2">&quot;timestamp&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">track_rectangles</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">all_times</span><span class="p">)</span> <span class="o">==</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">all_times</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;all_times should be sorted.&quot;</span><span class="p">)</span>
+
+        <span class="n">numpy_times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">all_times</span><span class="p">)</span>
+
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">numpy_times</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">_before</span><span class="p">(</span><span class="n">timestamp</span><span class="p">,</span> <span class="n">numpy_times</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">or</span> <span class="n">_before</span><span class="p">(</span><span class="n">numpy_times</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">timestamp</span><span class="p">):</span>
+            <span class="c1"># The track doesn&#39;t exist or has ceased to exist.</span>
+            <span class="n">ret</span><span class="p">[</span><span class="n">track_label</span><span class="p">]</span> <span class="o">=</span> <span class="n">_make_fake_bbox</span><span class="p">(</span>
+                <span class="n">rectangles_dict</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">progressible_labels</span><span class="p">,</span> <span class="n">required_keys</span>
+            <span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># @before_idx must be positive. If np.searchsorted() returned 0, the above &quot;if&quot;</span>
+        <span class="c1"># statement would have been triggered.</span>
+        <span class="n">before_idx</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="n">before_idx</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;index should be positive&quot;</span>
+        <span class="n">before_time</span> <span class="o">=</span> <span class="n">numpy_times</span><span class="p">[</span><span class="n">before_idx</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">numpy_times</span><span class="p">):</span>
+            <span class="n">after_idx</span> <span class="o">=</span> <span class="n">before_idx</span>
+            <span class="n">after_time</span> <span class="o">=</span> <span class="n">before_time</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">after_idx</span> <span class="o">=</span> <span class="n">idx</span>
+            <span class="n">after_time</span> <span class="o">=</span> <span class="n">numpy_times</span><span class="p">[</span><span class="n">after_idx</span><span class="p">]</span>
+
+        <span class="c1"># Either box for interpolation is invisible.</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="n">track_rectangles</span><span class="p">[</span><span class="n">before_idx</span><span class="p">][</span><span class="s2">&quot;is_visible&quot;</span><span class="p">]</span>
+            <span class="ow">or</span> <span class="ow">not</span> <span class="n">track_rectangles</span><span class="p">[</span><span class="n">after_idx</span><span class="p">][</span><span class="s2">&quot;is_visible&quot;</span><span class="p">]</span>
+        <span class="p">):</span>
+            <span class="c1"># We make a fake annotation for invisible boxes.</span>
+            <span class="n">ret</span><span class="p">[</span><span class="n">track_label</span><span class="p">]</span> <span class="o">=</span> <span class="n">_make_fake_bbox</span><span class="p">(</span>
+                <span class="n">rectangles_dict</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">progressible_labels</span>
+            <span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Boxes for interpolation are too far away.</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">interpolation_cutoff_threshold_sec</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="n">after_time</span> <span class="o">-</span> <span class="n">before_time</span> <span class="o">&gt;</span> <span class="n">interpolation_cutoff_threshold_sec</span>
+        <span class="p">):</span>
+            <span class="n">ret</span><span class="p">[</span><span class="n">track_label</span><span class="p">]</span> <span class="o">=</span> <span class="n">_make_fake_bbox</span><span class="p">(</span>
+                <span class="n">rectangles_dict</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">progressible_labels</span><span class="p">,</span> <span class="n">required_keys</span>
+            <span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># pylint: disable=unbalanced-tuple-unpacking</span>
+        <span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">y1</span> <span class="o">=</span> <span class="n">_interpolate_bounding_box</span><span class="p">(</span>
+            <span class="n">track_rectangles</span><span class="p">[</span><span class="n">before_idx</span><span class="p">],</span>
+            <span class="n">track_rectangles</span><span class="p">[</span><span class="n">after_idx</span><span class="p">],</span>
+            <span class="n">timestamp</span> <span class="o">-</span> <span class="n">before_time</span><span class="p">,</span>
+            <span class="n">after_time</span> <span class="o">-</span> <span class="n">before_time</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">new_label</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">carry_over_keys</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">new_label</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">key</span><span class="p">:</span> <span class="n">track_rectangles</span><span class="p">[</span><span class="n">before_idx</span><span class="p">][</span><span class="n">key</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">carry_over_keys</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">track_rectangles</span><span class="p">[</span><span class="n">before_idx</span><span class="p">]</span>
+            <span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">required_keys</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">required_keys</span><span class="p">:</span>
+                <span class="n">new_label</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">track_rectangles</span><span class="p">[</span><span class="n">before_idx</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># New label will have updated coordinates and timestamp.</span>
+        <span class="n">new_label</span><span class="p">[</span><span class="s2">&quot;x0&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">x0</span>
+        <span class="n">new_label</span><span class="p">[</span><span class="s2">&quot;x1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">x1</span>
+        <span class="n">new_label</span><span class="p">[</span><span class="s2">&quot;y0&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">y0</span>
+        <span class="n">new_label</span><span class="p">[</span><span class="s2">&quot;y1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">y1</span>
+        <span class="n">new_label</span><span class="p">[</span><span class="s2">&quot;timestamp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timestamp</span>
+
+        <span class="k">if</span> <span class="n">progressible_labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">progress</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+            <span class="k">if</span> <span class="n">track_rectangles</span><span class="p">[</span><span class="n">before_idx</span><span class="p">][</span><span class="n">class_label_name</span><span class="p">]</span> <span class="ow">in</span> <span class="n">progressible_labels</span><span class="p">:</span>
+                <span class="n">search_fn</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+                    <span class="n">_search_for_label_edge_timestamp</span><span class="p">,</span>
+                    <span class="n">class_label_name</span><span class="p">,</span>
+                    <span class="n">track_rectangles</span><span class="p">,</span>
+                    <span class="n">before_idx</span><span class="p">,</span>
+                    <span class="n">interpolation_cutoff_threshold_sec</span><span class="o">=</span><span class="n">interpolation_cutoff_threshold_sec</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">start_timestamp</span> <span class="o">=</span> <span class="n">search_fn</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">end_timestamp</span> <span class="o">=</span> <span class="n">search_fn</span><span class="p">(</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">progress</span> <span class="o">=</span> <span class="p">(</span><span class="n">timestamp</span> <span class="o">-</span> <span class="n">start_timestamp</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
+                    <span class="n">end_timestamp</span> <span class="o">-</span> <span class="n">start_timestamp</span>
+                <span class="p">)</span>
+            <span class="n">new_label</span><span class="p">[</span><span class="s2">&quot;progress&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">progress</span>
+
+        <span class="n">_assert_progress_repr</span><span class="p">(</span><span class="n">class_label_name</span><span class="p">,</span> <span class="n">progressible_labels</span><span class="p">,</span> <span class="n">new_label</span><span class="p">)</span>
+        <span class="n">ret</span><span class="p">[</span><span class="n">track_label</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_label</span>
+
+    <span class="k">return</span> <span class="n">ret</span>
+
+
+<span class="k">def</span> <span class="nf">_assert_progress_repr</span><span class="p">(</span>
+    <span class="n">class_label_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">progressible_labels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Collection</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span>
+    <span class="n">new_label</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">progressible_labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="s2">&quot;progress&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">new_label</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="s2">&quot;progress&quot;</span> <span class="ow">in</span> <span class="n">new_label</span>
+        <span class="k">if</span> <span class="n">new_label</span><span class="p">[</span><span class="n">class_label_name</span><span class="p">]</span> <span class="ow">in</span> <span class="n">progressible_labels</span><span class="p">:</span>
+            <span class="c1"># We shouldn&#39;t ever return a &#39;progressible label&#39; while not returning the</span>
+            <span class="c1"># `&quot;progress&quot;` field.</span>
+            <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">new_label</span><span class="p">[</span><span class="s2">&quot;progress&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mf">1.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># We shouldn&#39;t ever return the `&quot;progress&quot;` field while not returning a</span>
+            <span class="c1"># &#39;progressible label&#39;.</span>
+            <span class="k">assert</span> <span class="n">new_label</span><span class="p">[</span><span class="s2">&quot;progress&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mf">1.0</span>
+
+
+<span class="k">def</span> <span class="nf">_search_for_label_edge_timestamp</span><span class="p">(</span>
+    <span class="n">class_label_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">track_rectangles</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">cur_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">step</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">interpolation_cutoff_threshold_sec</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Find the timestamp of the furthest invisible annotation that has the same label</span>
+<span class="sd">    with `class_label_name`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        class_label_name: The string name of the target class&#39;s annotation to search.</span>
+<span class="sd">        track_rectangles: The annotation of an identity across time.</span>
+<span class="sd">        cur_idx: The index of the annotation in `track_rectangles` to start searching.</span>
+<span class="sd">        step: The step to search for the timetamp. A positive step indicates the</span>
+<span class="sd">            timstamp should be after `cur_idx`&#39;s; while a negative step indicates the</span>
+<span class="sd">            timestamp should be before `cur_idx`&#39;s.</span>
+<span class="sd">        interpolation_cutoff_threshold_sec: The threshold of timestamp difference where</span>
+<span class="sd">            the label value changes.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The edge timestamp.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">label</span> <span class="o">=</span> <span class="n">track_rectangles</span><span class="p">[</span><span class="n">cur_idx</span><span class="p">][</span><span class="n">class_label_name</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">in_bounds</span><span class="p">(</span><span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">track_rectangles</span><span class="p">)</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">cur_idx</span> <span class="o">+=</span> <span class="n">step</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">in_bounds</span><span class="p">(</span><span class="n">cur_idx</span><span class="p">):</span>
+            <span class="c1"># If the original video clips were split into smaller clips before running</span>
+            <span class="c1"># this pipeline (which occurs with some datasets), then there is a chance</span>
+            <span class="c1"># that this annotation was split into two separate clips. However, since the</span>
+            <span class="c1"># label is at the edge of the clip, we don&#39;t know if it was split, or if the</span>
+            <span class="c1"># label just coinciedentally starts/ends at this edge of the video.</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Annotation is potentially split across video clips. This &quot;</span>
+                <span class="s2">&quot;makes the &#39;progress&#39; calculation inherently unreliable.&quot;</span>
+            <span class="p">)</span>
+            <span class="k">break</span>
+        <span class="n">cur_rectangle</span> <span class="o">=</span> <span class="n">track_rectangles</span><span class="p">[</span><span class="n">cur_idx</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">cur_rectangle</span><span class="p">[</span><span class="n">class_label_name</span><span class="p">]</span> <span class="o">!=</span> <span class="n">label</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">cur_rectangle</span><span class="p">[</span><span class="s2">&quot;is_visible&quot;</span><span class="p">]:</span>
+            <span class="k">break</span>
+
+    <span class="n">outside_idx</span> <span class="o">=</span> <span class="n">cur_idx</span>  <span class="c1"># First encountered outside label idx.</span>
+    <span class="n">inside_idx</span> <span class="o">=</span> <span class="n">cur_idx</span> <span class="o">-</span> <span class="n">step</span>  <span class="c1"># Last known &#39;inside&#39; label idx.</span>
+    <span class="n">inside_timestamp</span> <span class="o">=</span> <span class="n">track_rectangles</span><span class="p">[</span><span class="n">inside_idx</span><span class="p">][</span><span class="s2">&quot;timestamp&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">in_bounds</span><span class="p">(</span><span class="n">outside_idx</span><span class="p">):</span>
+        <span class="c1"># Since we know that the label at `outside_idx` is valid, but different than the</span>
+        <span class="c1"># relevant action, we can interpolate halfway between (of course, only if the</span>
+        <span class="c1"># labels are within the threshold).</span>
+        <span class="n">outside_timestamp</span> <span class="o">=</span> <span class="n">track_rectangles</span><span class="p">[</span><span class="n">outside_idx</span><span class="p">][</span><span class="s2">&quot;timestamp&quot;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">step</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="n">interpolation_cutoff_threshold_sec</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="ow">or</span> <span class="p">(</span>
+                <span class="nb">abs</span><span class="p">(</span><span class="n">inside_timestamp</span> <span class="o">-</span> <span class="n">outside_timestamp</span><span class="p">)</span>
+                <span class="o">&lt;</span> <span class="n">interpolation_cutoff_threshold_sec</span>
+            <span class="p">)</span>
+        <span class="p">):</span>
+            <span class="c1"># In this case, `outside_idx` is at the first timestamp which has a</span>
+            <span class="c1"># differing label. Since we use the &quot;floor&quot; convention for computing the</span>
+            <span class="c1"># label, `outside_timestamp` is our upper bound.</span>
+            <span class="k">return</span> <span class="n">outside_timestamp</span>
+
+    <span class="k">return</span> <span class="n">inside_timestamp</span>
+
+
+<span class="k">def</span> <span class="nf">_interpolate_bounding_box</span><span class="p">(</span>
+    <span class="n">before</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">after</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">delta</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">range_delta</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Given two adjacent bounding box annotations, return an interpolated label.</span>
+
+<span class="sd">    Note that @delta and @range_delta must be positive, and @delta must be between 0 and</span>
+<span class="sd">    `range_delta`, inclusively.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        before: Bounding box label with lesser timestamp.</span>
+<span class="sd">        after: Bounding box label with greater timestamp.</span>
+<span class="sd">        delta: Time after `before` to compute label.</span>
+<span class="sd">        range_delta: Time separating `before` and `after`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Bounding box label that is linearly interpolated between `before` and `after`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">range_delta</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;@range_delta must be positive. Got range_delta=</span><span class="si">{</span><span class="n">range_delta</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">delta</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">delta</span> <span class="o">-</span> <span class="n">range_delta</span> <span class="o">&gt;</span> <span class="n">EPS</span><span class="p">:</span>
+        <span class="c1"># Some floating point arithmatic causes delta-range_delta to be a small value</span>
+        <span class="c1"># above zero even if they&#39;re equal. Hence the epsilon.</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;@delta must be between 0 and @range_delta, inclusively. Got delta=</span><span class="si">{</span><span class="n">delta</span><span class="si">}</span><span class="s2">,&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;range_delta=</span><span class="si">{</span><span class="n">range_delta</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;x0&quot;</span><span class="p">,</span> <span class="s2">&quot;x1&quot;</span><span class="p">,</span> <span class="s2">&quot;y0&quot;</span><span class="p">,</span> <span class="s2">&quot;y1&quot;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">range_delta</span> <span class="o">&lt;</span> <span class="mf">1e-5</span><span class="p">:</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">before</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">alpha</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">delta</span> <span class="o">/</span> <span class="n">range_delta</span>
+            <span class="n">interpolated_value</span> <span class="o">=</span> <span class="n">before</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">*</span> <span class="n">alpha</span> <span class="o">+</span> <span class="n">after</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">interpolated_value</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

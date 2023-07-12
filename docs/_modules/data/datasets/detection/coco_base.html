@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>data.datasets.detection.coco_base &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../datasets.html">data.datasets</a></li>
+      <li class="breadcrumb-item active">data.datasets.detection.coco_base</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for data.datasets.detection.coco_base</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">pycocotools</span> <span class="kn">import</span> <span class="n">mask</span> <span class="k">as</span> <span class="n">coco_mask</span>
+<span class="kn">from</span> <span class="nn">pycocotools.coco</span> <span class="kn">import</span> <span class="n">COCO</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
+
+<span class="kn">from</span> <span class="nn">data.datasets</span> <span class="kn">import</span> <span class="n">DATASET_REGISTRY</span>
+<span class="kn">from</span> <span class="nn">data.datasets.detection.base_detection</span> <span class="kn">import</span> <span class="n">BaseDetectionDataset</span>
+<span class="kn">from</span> <span class="nn">data.transforms</span> <span class="kn">import</span> <span class="n">image_pil</span> <span class="k">as</span> <span class="n">T</span>
+<span class="kn">from</span> <span class="nn">data.transforms.common</span> <span class="kn">import</span> <span class="n">Compose</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+
+
+<div class="viewcode-block" id="COCODetection"><a class="viewcode-back" href="../../../../autogen/data.datasets.detection.html#data.datasets.detection.coco_base.COCODetection">[docs]</a><span class="nd">@DATASET_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;coco&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;detection&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">COCODetection</span><span class="p">(</span><span class="n">BaseDetectionDataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for the MS COCO Object Detection Dataset. Sub-classes should implement</span>
+<span class="sd">    training and validation transform functions.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: command-line arguments</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        This class implements basic functions (e.g., reading image and annotations), and does not implement</span>
+<span class="sd">        training/validation transforms. Detector specific sub-classes should extend this class and implement those</span>
+<span class="sd">        methods. See `coco_ssd.py` as an example for SSD.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="COCODetection.__init__"><a class="viewcode-back" href="../../../../autogen/data.datasets.detection.html#data.datasets.detection.coco_base.COCODetection.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">opts</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="n">split</span> <span class="o">=</span> <span class="s2">&quot;train&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_training</span> <span class="k">else</span> <span class="s2">&quot;val&quot;</span>
+        <span class="n">year</span> <span class="o">=</span> <span class="mi">2017</span>
+        <span class="n">ann_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;annotations/instances_</span><span class="si">{}{}</span><span class="s2">.json&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">split</span><span class="p">,</span> <span class="n">year</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># disable printing, so that pycocotools print statements are not printed</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">disable_printing</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">coco</span> <span class="o">=</span> <span class="n">COCO</span><span class="p">(</span><span class="n">ann_file</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;images/</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">split</span><span class="p">,</span> <span class="n">year</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coco</span><span class="o">.</span><span class="n">imgToAnns</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_training</span>
+            <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coco</span><span class="o">.</span><span class="n">imgs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="p">)</span>
+
+        <span class="n">coco_categories</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coco</span><span class="o">.</span><span class="n">getCatIds</span><span class="p">())</span>
+        <span class="n">background_idx</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.detection.no_background_id&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coco_id_to_contiguous_id</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">coco_id</span><span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">background_idx</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">coco_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">coco_categories</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">contiguous_id_to_coco_id</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">v</span><span class="p">:</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coco_id_to_contiguous_id</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">contiguous_id_to_coco_id</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">+</span> <span class="n">background_idx</span>
+
+        <span class="c1"># enable printing</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">enable_printing</span><span class="p">()</span>
+
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.detection.n_classes&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="COCODetection.share_dataset_arguments"><a class="viewcode-back" href="../../../../autogen/data.datasets.detection.html#data.datasets.detection.coco_base.COCODetection.share_dataset_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">share_dataset_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the number of classes in detection dataset along with super-class arguments.&quot;&quot;&quot;</span>
+        <span class="n">share_dataset_specific_opts</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">share_dataset_arguments</span><span class="p">()</span>
+        <span class="n">share_dataset_specific_opts</span><span class="p">[</span><span class="s2">&quot;model.detection.n_classes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span>
+        <span class="k">return</span> <span class="n">share_dataset_specific_opts</span></div>
+
+<div class="viewcode-block" id="COCODetection.add_arguments"><a class="viewcode-back" href="../../../../autogen/data.datasets.detection.html#data.datasets.detection.coco_base.COCODetection.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">cls</span> <span class="o">!=</span> <span class="n">COCODetection</span><span class="p">:</span>
+            <span class="c1"># Don&#39;t re-register arguments in subclasses that don&#39;t override `add_arguments()`.</span>
+            <span class="k">return</span> <span class="n">parser</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--dataset.detection.no-background-id&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Do not include background id in detection class labels. Defaults to False.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+    <span class="k">def</span> <span class="nf">_evaluation_transforms</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="o">.</span><span class="n">BaseTransformation</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluation or Inference transforms (Resize (Optional) --&gt; Tensor).</span>
+
+<span class="sd">        .. note::</span>
+<span class="sd">            Resizing the input to the same resolution as the detector&#39;s input is not enabled by default.</span>
+<span class="sd">            It can be enabled by passing **--evaluation.detection.resize-input-images** flag.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">aug_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;evaluation.detection.resize_input_images&quot;</span><span class="p">):</span>
+            <span class="n">aug_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">Resize</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="n">img_size</span><span class="o">=</span><span class="n">size</span><span class="p">))</span>
+
+        <span class="n">aug_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">Compose</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="n">img_transforms</span><span class="o">=</span><span class="n">aug_list</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">sample_size_and_index</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the sample corresponding to the input sample index. Returned sample is transformed</span>
+<span class="sd">        into the size specified by the input.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            sample_size_and_index: Tuple of the form (crop_size_h, crop_size_w, sample_index)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A dictionary with `samples` and `targets` as keys corresponding to input and labels of</span>
+<span class="sd">            a sample, respectively.</span>
+
+<span class="sd">        Shapes:</span>
+<span class="sd">            The shape of values in output dictionary, output_data, are as follows:</span>
+
+<span class="sd">            output_data[&quot;samples&quot;][&quot;image&quot;]: Shape is [Channels, Height, Width]</span>
+<span class="sd">            output_data[&quot;targets&quot;][&quot;box_labels&quot;]: Shape is [Num of boxes]</span>
+<span class="sd">            output_data[&quot;targets&quot;][&quot;box_coordinates&quot;]: Shape is [Num of boxes, 4]</span>
+<span class="sd">            output_data[&quot;targets&quot;][&quot;image_id&quot;]: Shape is [1]</span>
+<span class="sd">            output_data[&quot;targets&quot;][&quot;image_width&quot;]: Shape is [1]</span>
+<span class="sd">            output_data[&quot;targets&quot;][&quot;image_height&quot;]: Shape is [1]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">crop_size_h</span><span class="p">,</span> <span class="n">crop_size_w</span><span class="p">,</span> <span class="n">img_index</span> <span class="o">=</span> <span class="n">sample_size_and_index</span>
+
+        <span class="n">transform_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_augmentation_transforms</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">crop_size_h</span><span class="p">,</span> <span class="n">crop_size_w</span><span class="p">))</span>
+
+        <span class="n">image_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">[</span><span class="n">img_index</span><span class="p">]</span>
+
+        <span class="n">image</span><span class="p">,</span> <span class="n">img_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_image</span><span class="p">(</span><span class="n">image_id</span><span class="o">=</span><span class="n">image_id</span><span class="p">)</span>
+        <span class="n">im_width</span><span class="p">,</span> <span class="n">im_height</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">size</span>
+
+        <span class="n">boxes</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_boxes_and_labels</span><span class="p">(</span>
+            <span class="n">image_id</span><span class="o">=</span><span class="n">image_id</span><span class="p">,</span>
+            <span class="n">image_width</span><span class="o">=</span><span class="n">im_width</span><span class="p">,</span>
+            <span class="n">image_height</span><span class="o">=</span><span class="n">im_height</span><span class="p">,</span>
+            <span class="n">include_masks</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">image</span><span class="p">,</span>
+            <span class="s2">&quot;box_labels&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="p">,</span>
+            <span class="s2">&quot;box_coordinates&quot;</span><span class="p">:</span> <span class="n">boxes</span><span class="p">,</span>
+            <span class="s2">&quot;mask&quot;</span><span class="p">:</span> <span class="n">mask</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">transform_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">transform_fn</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="n">output_data</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;samples&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">],</span>
+            <span class="p">},</span>
+            <span class="s2">&quot;targets&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;box_labels&quot;</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;box_labels&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;box_coordinates&quot;</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;box_coordinates&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;mask&quot;</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;image_id&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">image_id</span><span class="p">),</span>
+                <span class="s2">&quot;image_width&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">im_width</span><span class="p">),</span>
+                <span class="s2">&quot;image_height&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">im_height</span><span class="p">),</span>
+            <span class="p">},</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">output_data</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">)</span>
+
+<div class="viewcode-block" id="COCODetection.get_boxes_and_labels"><a class="viewcode-back" href="../../../../autogen/data.datasets.detection.html#data.datasets.detection.coco_base.COCODetection.get_boxes_and_labels">[docs]</a>    <span class="k">def</span> <span class="nf">get_boxes_and_labels</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">image_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">image_width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">image_height</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="n">include_masks</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the boxes and label information for a given image_id</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            image_id: Image ID</span>
+<span class="sd">            image_width: Width of the image</span>
+<span class="sd">            image_height: Height of the image</span>
+<span class="sd">            include_masks: Return instance masks or not</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A tuple of length 3:</span>
+<span class="sd">                * Numpy array containing bounding box information in xyxy format.</span>
+<span class="sd">                    The shape of array is [Num_of_boxes, 4].</span>
+<span class="sd">                * Numpy array containing labels for each of the box. The shape of array is [Num_of_boxes]</span>
+<span class="sd">                * When include_masks is enabled, a numpy array of instance masks is returned. The shape of the</span>
+<span class="sd">                    array is [Num_of_boxes, image_height, image_width]</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ann_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coco</span><span class="o">.</span><span class="n">getAnnIds</span><span class="p">(</span><span class="n">imgIds</span><span class="o">=</span><span class="n">image_id</span><span class="p">)</span>
+        <span class="n">ann</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coco</span><span class="o">.</span><span class="n">loadAnns</span><span class="p">(</span><span class="n">ann_ids</span><span class="p">)</span>
+
+        <span class="c1"># filter crowd annotations</span>
+        <span class="n">ann</span> <span class="o">=</span> <span class="p">[</span><span class="n">obj</span> <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">ann</span> <span class="k">if</span> <span class="n">obj</span><span class="p">[</span><span class="s2">&quot;iscrowd&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">boxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_xywh2xyxy</span><span class="p">(</span><span class="n">obj</span><span class="p">[</span><span class="s2">&quot;bbox&quot;</span><span class="p">],</span> <span class="n">image_width</span><span class="p">,</span> <span class="n">image_height</span><span class="p">)</span> <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">ann</span><span class="p">],</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">coco_id_to_contiguous_id</span><span class="p">[</span><span class="n">obj</span><span class="p">[</span><span class="s2">&quot;category_id&quot;</span><span class="p">]]</span> <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">ann</span><span class="p">],</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
+        <span class="c1"># remove invalid boxes</span>
+        <span class="n">keep</span> <span class="o">=</span> <span class="p">(</span><span class="n">boxes</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">boxes</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">boxes</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">boxes</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+        <span class="n">boxes</span> <span class="o">=</span> <span class="n">boxes</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+
+        <span class="n">masks</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">include_masks</span><span class="p">:</span>
+            <span class="n">masks</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">ann</span><span class="p">:</span>
+                <span class="n">rle</span> <span class="o">=</span> <span class="n">coco_mask</span><span class="o">.</span><span class="n">frPyObjects</span><span class="p">(</span>
+                    <span class="n">obj</span><span class="p">[</span><span class="s2">&quot;segmentation&quot;</span><span class="p">],</span> <span class="n">image_height</span><span class="p">,</span> <span class="n">image_width</span>
+                <span class="p">)</span>
+                <span class="n">m</span> <span class="o">=</span> <span class="n">coco_mask</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">rle</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+                    <span class="n">mask</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+                <span class="n">masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">masks</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">masks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">masks</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">masks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">image_height</span><span class="p">,</span> <span class="n">image_width</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+            <span class="n">masks</span> <span class="o">=</span> <span class="n">masks</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+            <span class="n">masks</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">masks</span><span class="p">)</span>
+            <span class="n">masks</span> <span class="o">=</span> <span class="n">masks</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">boxes</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">masks</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">boxes</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">masks</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">boxes</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="kc">None</span></div>
+
+    <span class="k">def</span> <span class="nf">_xywh2xyxy</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">box</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">image_width</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">image_height</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert boxes from xywh format to xyxy format&quot;&quot;&quot;</span>
+        <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">box</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">x1</span><span class="p">),</span>
+            <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">y1</span><span class="p">),</span>
+            <span class="nb">min</span><span class="p">(</span><span class="n">x1</span> <span class="o">+</span> <span class="n">w</span><span class="p">,</span> <span class="n">image_width</span><span class="p">),</span>
+            <span class="nb">min</span><span class="p">(</span><span class="n">y1</span> <span class="o">+</span> <span class="n">h</span><span class="p">,</span> <span class="n">image_height</span><span class="p">),</span>
+        <span class="p">]</span>
+
+<div class="viewcode-block" id="COCODetection.get_image"><a class="viewcode-back" href="../../../../autogen/data.datasets.detection.html#data.datasets.detection.coco_base.COCODetection.get_image">[docs]</a>    <span class="k">def</span> <span class="nf">get_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the PIL image for a given image id&quot;&quot;&quot;</span>
+        <span class="n">file_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coco</span><span class="o">.</span><span class="n">loadImgs</span><span class="p">(</span><span class="n">image_id</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;file_name&quot;</span><span class="p">]</span>
+        <span class="n">image_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_dir</span><span class="p">,</span> <span class="n">file_name</span><span class="p">)</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_image_pil</span><span class="p">(</span><span class="n">image_file</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">image</span><span class="p">,</span> <span class="n">file_name</span></div>
+
+<div class="viewcode-block" id="COCODetection.extra_repr"><a class="viewcode-back" href="../../../../autogen/data.datasets.detection.html#data.datasets.detection.coco_base.COCODetection.extra_repr">[docs]</a>    <span class="k">def</span> <span class="nf">extra_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">extra_repr</span><span class="p">()</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> num_classes=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+<div class="viewcode-block" id="COCODetection.class_names"><a class="viewcode-back" href="../../../../autogen/data.datasets.detection.html#data.datasets.detection.coco_base.COCODetection.class_names">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">class_names</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Name of the classes in the COCO dataset&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="s2">&quot;background&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;person&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bicycle&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;car&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;motorcycle&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;airplane&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bus&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;train&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;truck&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;boat&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;traffic light&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;fire hydrant&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;stop sign&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;parking meter&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bench&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bird&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;cat&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;dog&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;horse&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sheep&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;cow&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;elephant&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bear&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;zebra&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;giraffe&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;backpack&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;umbrella&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;handbag&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;tie&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;suitcase&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;frisbee&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;skis&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;snowboard&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sports ball&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;kite&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;baseball bat&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;baseball glove&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;skateboard&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;surfboard&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;tennis racket&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bottle&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;wine glass&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;cup&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;fork&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;knife&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;spoon&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bowl&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;banana&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;apple&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sandwich&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;orange&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;broccoli&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;carrot&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;hot dog&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;pizza&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;donut&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;cake&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;chair&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;couch&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;potted plant&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;bed&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;dining table&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;toilet&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;tv&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;laptop&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;mouse&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;remote&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;keyboard&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;cell phone&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;microwave&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;oven&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;toaster&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sink&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;refrigerator&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;book&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;clock&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;vase&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;scissors&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;teddy bear&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;hair drier&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;toothbrush&quot;</span><span class="p">,</span>
+        <span class="p">]</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

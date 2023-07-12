@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>options.utils &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">options.utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for options.utils</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">import</span> <span class="nn">yaml</span>
+
+<span class="kn">from</span> <span class="nn">options.errors</span> <span class="kn">import</span> <span class="n">UnrecognizedYamlConfigEntry</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">from</span> <span class="nn">utils.ddp_utils</span> <span class="kn">import</span> <span class="n">is_master</span>
+<span class="kn">from</span> <span class="nn">utils.download_utils</span> <span class="kn">import</span> <span class="n">get_local_path</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="c1"># Workaround for DeprecationWarning when importing Collections</span>
+    <span class="n">collections_abc</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span>
+<span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+    <span class="n">collections_abc</span> <span class="o">=</span> <span class="n">collections</span>
+
+<span class="n">DEFAULT_CONFIG_DIR</span> <span class="o">=</span> <span class="s2">&quot;config&quot;</span>
+<span class="n">META_PARAMS_REGEX</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;tasks|include_configs&quot;</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">internal.utils.opts</span> <span class="kn">import</span> <span class="n">META_PARAMS_REGEX</span> <span class="k">as</span> <span class="n">INTERNAL_META_PARAMS_REGEX</span>
+<span class="k">except</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>
+    <span class="k">pass</span>  <span class="c1"># public version does not contain &quot;internal&quot;</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">META_PARAMS_REGEX</span> <span class="o">+=</span> <span class="s2">&quot;|&quot;</span> <span class="o">+</span> <span class="n">INTERNAL_META_PARAMS_REGEX</span>
+
+
+<div class="viewcode-block" id="flatten_yaml_as_dict"><a class="viewcode-back" href="../../autogen/options.html#options.utils.flatten_yaml_as_dict">[docs]</a><span class="k">def</span> <span class="nf">flatten_yaml_as_dict</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">parent_key</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
+    <span class="n">items</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">new_key</span> <span class="o">=</span> <span class="n">parent_key</span> <span class="o">+</span> <span class="n">sep</span> <span class="o">+</span> <span class="n">k</span> <span class="k">if</span> <span class="n">parent_key</span> <span class="k">else</span> <span class="n">k</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">collections_abc</span><span class="o">.</span><span class="n">MutableMapping</span><span class="p">):</span>
+            <span class="n">items</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">flatten_yaml_as_dict</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">new_key</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">new_key</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">items</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="load_config_file"><a class="viewcode-back" href="../../autogen/options.html#options.utils.load_config_file">[docs]</a><span class="k">def</span> <span class="nf">load_config_file</span><span class="p">(</span><span class="n">opts</span><span class="p">):</span>
+    <span class="n">config_file_name</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.config_file&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">config_file_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">opts</span>
+    <span class="n">is_master_node</span> <span class="o">=</span> <span class="n">is_master</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">is_master_node</span><span class="p">:</span>
+        <span class="n">config_file_name</span> <span class="o">=</span> <span class="n">get_local_path</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">config_file_name</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">config_file_name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">config_file_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">))</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># loading files from default config folder</span>
+            <span class="n">new_config_file_name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">DEFAULT_CONFIG_DIR</span><span class="p">,</span> <span class="n">config_file_name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">new_config_file_name</span><span class="p">)</span> <span class="ow">and</span> <span class="n">is_master_node</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s2">&quot;Configuration file neither exists at </span><span class="si">{}</span><span class="s2"> nor at </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">config_file_name</span><span class="p">,</span> <span class="n">new_config_file_name</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">config_file_name</span> <span class="o">=</span> <span class="n">new_config_file_name</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># If absolute path of the file is passed</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">config_file_name</span><span class="p">)</span> <span class="ow">and</span> <span class="n">is_master_node</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s2">&quot;Configuration file does not exists at </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">config_file_name</span><span class="p">)</span>
+                <span class="p">)</span>
+
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.config_file&quot;</span><span class="p">,</span> <span class="n">config_file_name</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file_name</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">yaml_file</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cfg</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">yaml_file</span><span class="p">,</span> <span class="n">Loader</span><span class="o">=</span><span class="n">yaml</span><span class="o">.</span><span class="n">FullLoader</span><span class="p">)</span>
+            <span class="n">flat_cfg</span> <span class="o">=</span> <span class="n">flatten_yaml_as_dict</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">flat_cfg</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+                    <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="s2">&quot;local_&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">k</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">META_PARAMS_REGEX</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">UnrecognizedYamlConfigEntry</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+        <span class="k">except</span> <span class="n">yaml</span><span class="o">.</span><span class="n">YAMLError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">is_master_node</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s2">&quot;Error while loading config file: </span><span class="si">{}</span><span class="s2">. Error message: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">config_file_name</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+
+    <span class="c1"># override arguments</span>
+    <span class="n">override_args</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;override_args&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">override_args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">override_k</span><span class="p">,</span> <span class="n">override_v</span> <span class="ow">in</span> <span class="n">override_args</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">override_k</span><span class="p">):</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">override_k</span><span class="p">,</span> <span class="n">override_v</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;local_&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">k</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">META_PARAMS_REGEX</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">UnrecognizedYamlConfigEntry</span><span class="p">(</span><span class="n">override_k</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">opts</span></div>
+
+
+<div class="viewcode-block" id="extend_selected_args_with_prefix"><a class="viewcode-back" href="../../autogen/options.html#options.utils.extend_selected_args_with_prefix">[docs]</a><span class="k">def</span> <span class="nf">extend_selected_args_with_prefix</span><span class="p">(</span>
+    <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">,</span> <span class="n">match_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">additional_prefix</span><span class="p">:</span> <span class="nb">str</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Helper function to select arguments with certain prefix and duplicate them with a replaced prefix.</span>
+<span class="sd">    An example use case is distillation, where we want to add --teacher.model.* as a prefix to all --model.* arguments.</span>
+
+<span class="sd">    In that case, we provide the following arguments:</span>
+<span class="sd">    * match_prefix=&quot;--model.&quot;</span>
+<span class="sd">    * additional_prefix=&quot;--teacher.model.&quot;</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        match_prefix: Prefix to select arguments for duplication.</span>
+<span class="sd">            The value should start with &quot;--&quot;, contain no underscores, and with &quot;.&quot;.</span>
+<span class="sd">        additional_prefix: Prefix to replace the @match_prefix in duplicated arguments.</span>
+<span class="sd">            The value should start with &quot;--&quot;, contain no underscores, and with &quot;.&quot;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># all arguments are stored as actions</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">_actions</span>
+
+    <span class="n">regexp</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;--[^_]+\.&quot;</span>
+    <span class="k">assert</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span>
+        <span class="n">regexp</span><span class="p">,</span> <span class="n">match_prefix</span>
+    <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;match prefix &#39;</span><span class="si">{</span><span class="n">match_prefix</span><span class="si">}</span><span class="s2">&#39; should match regexp &#39;</span><span class="si">{</span><span class="n">regexp</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+    <span class="k">assert</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span>
+        <span class="n">regexp</span><span class="p">,</span> <span class="n">additional_prefix</span>
+    <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;additional prefix &#39;</span><span class="si">{</span><span class="n">additional_prefix</span><span class="si">}</span><span class="s2">&#39; should match regexp &#39;</span><span class="si">{</span><span class="n">regexp</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+
+    <span class="k">for</span> <span class="n">option</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span>
+        <span class="n">option_strings</span> <span class="o">=</span> <span class="n">option</span><span class="o">.</span><span class="n">option_strings</span>
+        <span class="c1"># option strings are stored as a list</span>
+        <span class="k">for</span> <span class="n">option_string</span> <span class="ow">in</span> <span class="n">option_strings</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">option_string</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">match_prefix</span><span class="p">):</span>
+                <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+                    <span class="n">option_string</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">match_prefix</span><span class="p">,</span> <span class="n">additional_prefix</span><span class="p">),</span>
+                    <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;?&quot;</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">option</span><span class="p">,</span> <span class="n">argparse</span><span class="o">.</span><span class="n">_StoreTrueAction</span><span class="p">)</span>
+                    <span class="k">else</span> <span class="n">option</span><span class="o">.</span><span class="n">nargs</span><span class="p">,</span>
+                    <span class="n">const</span><span class="o">=</span><span class="n">option</span><span class="o">.</span><span class="n">const</span><span class="p">,</span>
+                    <span class="n">default</span><span class="o">=</span><span class="n">option</span><span class="o">.</span><span class="n">default</span><span class="p">,</span>
+                    <span class="nb">type</span><span class="o">=</span><span class="n">option</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+                    <span class="n">choices</span><span class="o">=</span><span class="n">option</span><span class="o">.</span><span class="n">choices</span><span class="p">,</span>
+                    <span class="n">help</span><span class="o">=</span><span class="n">option</span><span class="o">.</span><span class="n">help</span><span class="p">,</span>
+                    <span class="n">metavar</span><span class="o">=</span><span class="n">option</span><span class="o">.</span><span class="n">metavar</span><span class="p">,</span>
+                <span class="p">)</span>
+    <span class="k">return</span> <span class="n">parser</span></div>
+
+
+<div class="viewcode-block" id="extract_opts_with_prefix_replacement"><a class="viewcode-back" href="../../autogen/options.html#options.utils.extract_opts_with_prefix_replacement">[docs]</a><span class="k">def</span> <span class="nf">extract_opts_with_prefix_replacement</span><span class="p">(</span>
+    <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
+    <span class="n">match_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">replacement_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Helper function to extract a copy options with certain prefix and return them with an alternative prefix.</span>
+<span class="sd">    An example usage is distillation, when we have used @extend_selected_args_with_prefix to add --teacher.model.*</span>
+<span class="sd">        arguments to argparser, and now we want to re-use the handlers of model.* opts by teacher.model.* opts</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        match_prefix: Prefix to select opts for extraction.</span>
+<span class="sd">            The value should not contain dashes and should end with &quot;.&quot;</span>
+<span class="sd">        replacement_prefix: Prefix to replace the @match_prefix</span>
+<span class="sd">            The value should not contain dashes and should end with &quot;.&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">regexp</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;[^-]+\.&quot;</span>
+    <span class="k">assert</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span>
+        <span class="n">regexp</span><span class="p">,</span> <span class="n">match_prefix</span>
+    <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;match prefix &#39;</span><span class="si">{</span><span class="n">match_prefix</span><span class="si">}</span><span class="s2">&#39; should match regexp &#39;</span><span class="si">{</span><span class="n">regexp</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+    <span class="k">assert</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span>
+        <span class="n">regexp</span><span class="p">,</span> <span class="n">replacement_prefix</span>
+    <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;replacement prefix &#39;</span><span class="si">{</span><span class="n">replacement_prefix</span><span class="si">}</span><span class="s2">&#39; should match regexp &#39;</span><span class="si">{</span><span class="n">regexp</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+
+    <span class="n">opts_dict</span> <span class="o">=</span> <span class="nb">vars</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+    <span class="n">result_dict</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="c1"># replace teacher with empty string in &quot;teacher.model.*&quot; to get model.*</span>
+        <span class="n">key</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">match_prefix</span><span class="p">,</span> <span class="n">replacement_prefix</span><span class="p">):</span> <span class="n">value</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">opts_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="c1"># filter keys related to teacher</span>
+        <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">match_prefix</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">(</span><span class="o">**</span><span class="n">result_dict</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

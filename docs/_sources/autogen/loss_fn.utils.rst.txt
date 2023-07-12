@@ -1,0 +1,29 @@
+loss\_fn.utils package
+======================
+
+Submodules
+----------
+
+loss\_fn.utils.build\_helper module
+-----------------------------------
+
+.. automodule:: loss_fn.utils.build_helper
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+loss\_fn.utils.class\_weighting module
+--------------------------------------
+
+.. automodule:: loss_fn.utils.class_weighting
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: loss_fn.utils
+   :members:
+   :undoc-members:
+   :show-inheritance:

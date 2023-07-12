@@ -1,0 +1,198 @@
+cvnets.layers package
+=====================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   cvnets.layers.activation
+   cvnets.layers.normalization
+
+Submodules
+----------
+
+cvnets.layers.adaptive\_pool module
+-----------------------------------
+
+.. automodule:: cvnets.layers.adaptive_pool
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.base\_layer module
+--------------------------------
+
+.. automodule:: cvnets.layers.base_layer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.conv\_layer module
+--------------------------------
+
+.. automodule:: cvnets.layers.conv_layer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.dropout module
+----------------------------
+
+.. automodule:: cvnets.layers.dropout
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.embedding module
+------------------------------
+
+.. automodule:: cvnets.layers.embedding
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.flatten module
+----------------------------
+
+.. automodule:: cvnets.layers.flatten
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.global\_pool module
+---------------------------------
+
+.. automodule:: cvnets.layers.global_pool
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.identity module
+-----------------------------
+
+.. automodule:: cvnets.layers.identity
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.linear\_attention module
+--------------------------------------
+
+.. automodule:: cvnets.layers.linear_attention
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.linear\_layer module
+----------------------------------
+
+.. automodule:: cvnets.layers.linear_layer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.multi\_head\_attention module
+-------------------------------------------
+
+.. automodule:: cvnets.layers.multi_head_attention
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.normalization\_layers module
+------------------------------------------
+
+.. automodule:: cvnets.layers.normalization_layers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.pixel\_shuffle module
+-----------------------------------
+
+.. automodule:: cvnets.layers.pixel_shuffle
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.pooling module
+----------------------------
+
+.. automodule:: cvnets.layers.pooling
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.positional\_embedding module
+------------------------------------------
+
+.. automodule:: cvnets.layers.positional_embedding
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.positional\_encoding module
+-----------------------------------------
+
+.. automodule:: cvnets.layers.positional_encoding
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.random\_layers module
+-----------------------------------
+
+.. automodule:: cvnets.layers.random_layers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.single\_head\_attention module
+--------------------------------------------
+
+.. automodule:: cvnets.layers.single_head_attention
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.softmax module
+----------------------------
+
+.. automodule:: cvnets.layers.softmax
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.stochastic\_depth module
+--------------------------------------
+
+.. automodule:: cvnets.layers.stochastic_depth
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.token\_merging module
+-----------------------------------
+
+.. automodule:: cvnets.layers.token_merging
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.layers.upsample module
+-----------------------------
+
+.. automodule:: cvnets.layers.upsample
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cvnets.layers
+   :members:
+   :undoc-members:
+   :show-inheritance:

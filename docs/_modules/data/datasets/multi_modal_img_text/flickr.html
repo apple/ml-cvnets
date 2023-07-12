@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>data.datasets.multi_modal_img_text.flickr &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../datasets.html">data.datasets</a></li>
+          <li class="breadcrumb-item"><a href="../multi_modal_img_text.html">data.datasets.multi_modal_img_text</a></li>
+      <li class="breadcrumb-item active">data.datasets.multi_modal_img_text.flickr</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for data.datasets.multi_modal_img_text.flickr</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">from</span> <span class="nn">data.datasets</span> <span class="kn">import</span> <span class="n">DATASET_REGISTRY</span>
+<span class="kn">from</span> <span class="nn">data.datasets.multi_modal_img_text.base_multi_modal_img_text</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BaseMultiModalImgText</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">from</span> <span class="nn">utils.ddp_utils</span> <span class="kn">import</span> <span class="n">is_master</span>
+
+
+<div class="viewcode-block" id="FlickrDataset"><a class="viewcode-back" href="../../../../autogen/data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.flickr.FlickrDataset">[docs]</a><span class="nd">@DATASET_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;flickr&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;multi_modal_image_text&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">FlickrDataset</span><span class="p">(</span><span class="n">BaseMultiModalImgText</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Dataset loader for Flickr-30k and Flickr-8k datasets.</span>
+
+<span class="sd">    For more info see:</span>
+<span class="sd">        http://hockenmaier.cs.illinois.edu/8k-pictures.html</span>
+<span class="sd">        https://shannon.cs.illinois.edu/DenotationGraph/</span>
+
+<span class="sd">    Splits: train, val, and test</span>
+<span class="sd">        Also known in literature as Karpathy splits</span>
+<span class="sd">        https://cs.stanford.edu/people/karpathy/deepimagesent/</span>
+
+<span class="sd">    Tracking license info:</span>
+<span class="sd">        Captions have CC BY 3.0 license (see links above).</span>
+<span class="sd">        Splits are under BSD License (see Github of NeuralTalk by Karpathy et. al.).</span>
+<span class="sd">        Images are from Flickr. We do not own them and are only used for research purposes.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: command-line arguments</span>
+<span class="sd">        is_training (Optional[bool]): A flag used to indicate training or</span>
+<span class="sd">            validation mode. Default: True</span>
+<span class="sd">        is_evaluation (Optional[bool]): A flag used to indicate evaluation (or</span>
+<span class="sd">            inference) mode. Default: False</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FlickrDataset.get_dataset"><a class="viewcode-back" href="../../../../autogen/data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.flickr.FlickrDataset.get_dataset">[docs]</a>    <span class="k">def</span> <span class="nf">get_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The data under `self.root` is expected to consist of:</span>
+
+<span class="sd">            dataset.json   # Karpathy splits + captions</span>
+<span class="sd">            images/        # Raw images</span>
+
+<span class="sd">        The metdatadata cap be downloaded from:</span>
+<span class="sd">            https://cs.stanford.edu/people/karpathy/deepimagesent/flickr30k.zip</span>
+
+<span class="sd">        Images can be obtained from:</span>
+<span class="sd">            Flickr-8k:  http://hockenmaier.cs.illinois.edu/8k-pictures.html</span>
+<span class="sd">            Flickr-30k: https://shannon.cs.illinois.edu/DenotationGraph/</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">metadata_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;dataset.json&quot;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">metadata_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">metadata_file</span><span class="p">:</span>
+            <span class="n">metadata</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">metadata_file</span><span class="p">)[</span><span class="s2">&quot;images&quot;</span><span class="p">]</span>
+
+        <span class="n">split</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;image_name&quot;</span><span class="p">:</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;filename&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;captions&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;raw&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;sentences&quot;</span><span class="p">]],</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">metadata</span>
+            <span class="k">if</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;split&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">split</span>
+        <span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_training</span><span class="p">:</span>
+            <span class="c1"># For training, flatten the captions by copying each image multiple times</span>
+            <span class="c1"># This way at each epoch, each caption will be seen 1 time but each image</span>
+            <span class="c1"># will be seen #num_captions (= 5) times.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">{</span><span class="s2">&quot;image_name&quot;</span><span class="p">:</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;image_name&quot;</span><span class="p">],</span> <span class="s2">&quot;captions&quot;</span><span class="p">:</span> <span class="n">caption</span><span class="p">}</span>
+                <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span>
+                <span class="k">for</span> <span class="n">caption</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;captions&quot;</span><span class="p">]</span>
+            <span class="p">]</span></div>
+            <span class="c1"># No need for shuffling, since dataloader takes care of it</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_indexes_tup</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the sample given an index, a pre-specified height and width.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            batch_indexes_tup: Tuple of (crop size height, crop size width, image index)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A dict like:</span>
+<span class="sd">            {</span>
+<span class="sd">                &quot;samples&quot;: {</span>
+<span class="sd">                    &quot;image&quot;: FloatTensor of shape [C, H, W] -&gt; [B, C, H, W] after collate</span>
+<span class="sd">                    &quot;text&quot;: LongTensor of shape</span>
+<span class="sd">                        if is_training: [num_tokens]  -&gt; [B, T] after collate</span>
+<span class="sd">                        o.w.:           [num_captions, num_tokens] -&gt; [B, N, T] after collate</span>
+<span class="sd">                    &quot;padding_mask&quot;: Optional; same size as text</span>
+<span class="sd">                    &quot;max_seq_len&quot;: int indicating the maximum caption length (T)</span>
+<span class="sd">                        Gets removed after collate</span>
+<span class="sd">                },</span>
+<span class="sd">                &quot;targets&quot;: -1</span>
+<span class="sd">            }</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">crop_size_h</span><span class="p">,</span> <span class="n">crop_size_w</span><span class="p">,</span> <span class="n">img_index</span> <span class="o">=</span> <span class="n">batch_indexes_tup</span>
+        <span class="n">crop_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">crop_size_h</span><span class="p">,</span> <span class="n">crop_size_w</span><span class="p">)</span>
+
+        <span class="n">transform_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_augmentation_transforms</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">crop_size</span><span class="p">)</span>
+
+        <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="p">[</span><span class="n">img_index</span><span class="p">]</span>
+
+        <span class="n">img_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;images&quot;</span><span class="p">,</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;image_name&quot;</span><span class="p">])</span>
+        <span class="n">captions</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;captions&quot;</span><span class="p">]</span>
+
+        <span class="n">input_img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_image_pil</span><span class="p">(</span><span class="n">img_path</span><span class="p">)</span>
+
+        <span class="n">img_tensor</span><span class="p">,</span> <span class="n">captions_tensor</span><span class="p">,</span> <span class="n">max_seq_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_img_caption</span><span class="p">(</span>
+            <span class="n">input_img</span><span class="o">=</span><span class="n">input_img</span><span class="p">,</span>
+            <span class="n">captions_str</span><span class="o">=</span><span class="n">captions</span><span class="p">,</span>
+            <span class="n">img_transform_fn</span><span class="o">=</span><span class="n">transform_fn</span><span class="p">,</span>
+            <span class="n">zero_shot</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">zero_shot_dataset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;samples&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;image&quot;</span><span class="p">:</span> <span class="n">img_tensor</span><span class="p">,</span>
+                <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="n">captions_tensor</span><span class="p">,</span>
+                <span class="s2">&quot;padding_mask&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">captions_tensor</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding_index</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;max_seq_len&quot;</span><span class="p">:</span> <span class="n">max_seq_len</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s2">&quot;targets&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">data</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">(</span><span class="se">\n\t</span><span class="s2">root=</span><span class="si">{}</span><span class="se">\n\t</span><span class="s2">is_training=</span><span class="si">{}</span><span class="se">\n\t</span><span class="s2">samples=</span><span class="si">{}</span><span class="se">\n</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">is_training</span><span class="p">,</span>
+            <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+        <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

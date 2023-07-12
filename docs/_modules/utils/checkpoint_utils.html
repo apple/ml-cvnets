@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>utils.checkpoint_utils &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">utils.checkpoint_utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for utils.checkpoint_utils</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">glob</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">from</span> <span class="nn">cvnets</span> <span class="kn">import</span> <span class="n">EMA</span>
+<span class="kn">from</span> <span class="nn">optim</span> <span class="kn">import</span> <span class="n">BaseOptim</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">from</span> <span class="nn">utils.common_utils</span> <span class="kn">import</span> <span class="n">unwrap_model_fn</span>
+<span class="kn">from</span> <span class="nn">utils.ddp_utils</span> <span class="kn">import</span> <span class="n">is_master</span>
+<span class="kn">from</span> <span class="nn">utils.download_utils</span> <span class="kn">import</span> <span class="n">get_local_path</span>
+
+<span class="n">CHECKPOINT_EXTN</span> <span class="o">=</span> <span class="s2">&quot;pt&quot;</span>
+
+
+<div class="viewcode-block" id="get_model_state_dict"><a class="viewcode-back" href="../../autogen/utils.html#utils.checkpoint_utils.get_model_state_dict">[docs]</a><span class="k">def</span> <span class="nf">get_model_state_dict</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns `state_dict` of a given model.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model: A torch model (it can be also a wrapped model, e.g., with DDP).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        `state_dict` of the model. If model is an EMA instance, the `state_dict` corresponding to EMA parameters is</span>
+<span class="sd">            returned.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">EMA</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">get_model_state_dict</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">ema_model</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">unwrapped_model</span> <span class="o">=</span> <span class="n">unwrap_model_fn</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">unwrapped_model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="load_state_dict"><a class="viewcode-back" href="../../autogen/utils.html#utils.checkpoint_utils.load_state_dict">[docs]</a><span class="k">def</span> <span class="nf">load_state_dict</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load the given `state_dict` into the model.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model: A torch model (it can be also a wrapped model, e.g., with DDP).</span>
+<span class="sd">        state_dict: A state dict dictionary to load model parameters from.</span>
+<span class="sd">        strict: whether to strictly enforce that the keys in `state_dict` match the keys returned by this module&#39;s</span>
+<span class="sd">            `state_dict` function. Default: ``True``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        model loaded with parameters from the given state_dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;module&quot;</span><span class="p">):</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">model</span></div>
+
+
+<div class="viewcode-block" id="average_ckpts"><a class="viewcode-back" href="../../autogen/utils.html#utils.checkpoint_utils.average_ckpts">[docs]</a><span class="k">def</span> <span class="nf">average_ckpts</span><span class="p">(</span><span class="n">ckpt_loc_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute averaged parameters from a list of checkpoints.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        ckpt_loc_list: List of paths to model checkpoints to be averaged.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        `state_dict` corresponding to the averaged parameters.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">avg_state_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="n">key_count</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="n">key_dtype</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">ckpt_loc_list</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">c</span><span class="p">):</span>
+            <span class="k">pass</span>
+        <span class="n">ckpt_state_dict</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">ckpt_state_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">avg_state_dict</span><span class="p">:</span>
+                <span class="n">key_dtype</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">dtype</span>
+                <span class="n">avg_state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+                <span class="n">key_count</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">avg_state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">+=</span> <span class="n">v</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+                <span class="n">key_count</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">1.0</span>
+
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">avg_state_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">avg_state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">key_count</span><span class="p">[</span><span class="n">k</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">key_dtype</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">avg_state_dict</span></div>
+
+
+<div class="viewcode-block" id="avg_and_save_k_checkpoints"><a class="viewcode-back" href="../../autogen/utils.html#utils.checkpoint_utils.avg_and_save_k_checkpoints">[docs]</a><span class="k">def</span> <span class="nf">avg_and_save_k_checkpoints</span><span class="p">(</span>
+    <span class="n">model_state</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span>
+    <span class="n">best_metric</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">k_best_checkpoints</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">max_ckpt_metric</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">ckpt_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Save top-k checkpoints and their average.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model_state: `state_dict` containing model parameters.</span>
+<span class="sd">        best_metric: Best observed value of the tracking validation metric. For example, best top-1 validation accuracy</span>
+<span class="sd">            that is observed until the current iteration.</span>
+<span class="sd">        k_best_checkpoints: An integer k determining number of top (based on validation metric) checkpoints to keep.</span>
+<span class="sd">            If `k_best_checkpoints` is smaller than 1, only best checkpoint is stored.</span>
+<span class="sd">        max_ckpt_metric: A boolean demonstrating whether the tracking validation metric is higher the better, or lower</span>
+<span class="sd">            the better.</span>
+<span class="sd">        ckpt_str: String determining path prefix for checkpoints to be saved.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">ckpt_fname</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_score_</span><span class="si">{:.4f}</span><span class="s2">.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ckpt_str</span><span class="p">,</span> <span class="n">best_metric</span><span class="p">,</span> <span class="n">CHECKPOINT_EXTN</span><span class="p">)</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model_state</span><span class="p">,</span> <span class="n">ckpt_fname</span><span class="p">)</span>
+
+        <span class="n">best_fnames</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_score_*&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ckpt_str</span><span class="p">))</span>
+        <span class="n">best_scores</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="nb">float</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_score_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">CHECKPOINT_EXTN</span><span class="p">),</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">best_fnames</span>
+        <span class="p">]</span>
+
+        <span class="n">best_scores_keep</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">best_scores</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">k_best_checkpoints</span><span class="p">:</span>
+            <span class="n">best_scores</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">best_scores</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">max_ckpt_metric</span><span class="p">:</span>
+                <span class="n">best_scores</span> <span class="o">=</span> <span class="n">best_scores</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">best_scores_keep</span> <span class="o">=</span> <span class="n">best_scores</span><span class="p">[</span><span class="o">-</span><span class="n">k_best_checkpoints</span><span class="p">:]</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">best_scores</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">best_scores_keep</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">rm_ckpt</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_score_</span><span class="si">{:.4f}</span><span class="s2">.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ckpt_str</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">CHECKPOINT_EXTN</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">rm_ckpt</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Deleting checkpoint: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rm_ckpt</span><span class="p">))</span>
+        <span class="c1">#</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">best_scores_keep</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">avg_fnames</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_score_</span><span class="si">{:.4f}</span><span class="s2">.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ckpt_str</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">CHECKPOINT_EXTN</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">best_scores_keep</span>
+            <span class="p">]</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+                <span class="s2">&quot;Averaging checkpoints: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">avg_fnames</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="c1"># save the average model</span>
+            <span class="n">avg_model_state</span> <span class="o">=</span> <span class="n">average_ckpts</span><span class="p">(</span><span class="n">ckpt_loc_list</span><span class="o">=</span><span class="n">avg_fnames</span><span class="p">)</span>
+            <span class="n">ckpt_fname</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_avg.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ckpt_str</span><span class="p">,</span> <span class="n">CHECKPOINT_EXTN</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">avg_model_state</span><span class="p">:</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">avg_model_state</span><span class="p">,</span> <span class="n">ckpt_fname</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Averaged checkpoint saved at: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ckpt_fname</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Error in k-best-checkpoint&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="save_interval_checkpoint"><a class="viewcode-back" href="../../autogen/utils.html#utils.checkpoint_utils.save_interval_checkpoint">[docs]</a><span class="k">def</span> <span class="nf">save_interval_checkpoint</span><span class="p">(</span>
+    <span class="n">iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">optimizer</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">BaseOptim</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">],</span>
+    <span class="n">best_metric</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">save_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">gradient_scaler</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">amp</span><span class="o">.</span><span class="n">GradScaler</span><span class="p">,</span>
+    <span class="n">model_ema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Save current iteration training checkpoint.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        iterations: An integer denoting training iteration number. Each iteration corresponds to forward-backward passes</span>
+<span class="sd">        on a batch with all GPUs.</span>
+<span class="sd">        epoch: An integer denoting epoch number.</span>
+<span class="sd">        model: The model being trained.</span>
+<span class="sd">        optimizer: Optimizer object, which possibly store training optimization state variables.</span>
+<span class="sd">        best_metric: Best observed value of the tracking validation metric. For example, best top-1 validation accuracy</span>
+<span class="sd">            that is observed until the current iteration.</span>
+<span class="sd">        save_dir: Path to a directory to save checkpoints.</span>
+<span class="sd">        gradient_scaler: `GradScaler` object storing required automatic mixed precision state.</span>
+<span class="sd">        model_ema: EMA model to be stored in the checkpoint.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">checkpoint</span> <span class="o">=</span> <span class="n">get_training_state</span><span class="p">(</span>
+        <span class="n">iterations</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">best_metric</span><span class="p">,</span> <span class="n">gradient_scaler</span><span class="p">,</span> <span class="n">model_ema</span>
+    <span class="p">)</span>
+    <span class="n">ckpt_str</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/training_checkpoint&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">save_dir</span><span class="p">)</span>
+    <span class="n">ckpt_fname</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ckpt_str</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">iterations</span><span class="p">,</span> <span class="n">CHECKPOINT_EXTN</span><span class="p">)</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">,</span> <span class="n">ckpt_fname</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_training_state"><a class="viewcode-back" href="../../autogen/utils.html#utils.checkpoint_utils.get_training_state">[docs]</a><span class="k">def</span> <span class="nf">get_training_state</span><span class="p">(</span>
+    <span class="n">iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">optimizer</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">BaseOptim</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">],</span>
+    <span class="n">best_metric</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">gradient_scaler</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">amp</span><span class="o">.</span><span class="n">GradScaler</span><span class="p">,</span>
+    <span class="n">model_ema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a checkpoint dictionary that includes all required states to resume the training from its current state.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        iterations: An integer denoting training iteration number. Each iteration corresponds to forward-backward passes</span>
+<span class="sd">            on a batch with all GPUs.</span>
+<span class="sd">        epoch: An integer denoting epoch number.</span>
+<span class="sd">        model: The model being trained.</span>
+<span class="sd">        optimizer: Optimizer object, which possibly store training optimization state variables.</span>
+<span class="sd">        best_metric: Best observed value of the tracking validation metric. For example, best top-1 validation accuracy</span>
+<span class="sd">            that is observed until the current iteration.</span>
+<span class="sd">        gradient_scaler: `GradScaler` object storing required automatic mixed precision state.</span>
+<span class="sd">        model_ema: EMA model to be stored in the checkpoint.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A dictionary that includes all required states to resume the training from its current state.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model_state</span> <span class="o">=</span> <span class="n">get_model_state_dict</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+    <span class="n">training_state</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;iterations&quot;</span><span class="p">:</span> <span class="n">iterations</span><span class="p">,</span>
+        <span class="s2">&quot;epoch&quot;</span><span class="p">:</span> <span class="n">epoch</span><span class="p">,</span>
+        <span class="s2">&quot;model_state_dict&quot;</span><span class="p">:</span> <span class="n">model_state</span><span class="p">,</span>
+        <span class="s2">&quot;optim_state_dict&quot;</span><span class="p">:</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span>
+        <span class="s2">&quot;best_metric&quot;</span><span class="p">:</span> <span class="n">best_metric</span><span class="p">,</span>
+        <span class="s2">&quot;gradient_scaler_state_dict&quot;</span><span class="p">:</span> <span class="n">gradient_scaler</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="n">model_ema</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">training_state</span><span class="p">[</span><span class="s2">&quot;ema_state_dict&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_model_state_dict</span><span class="p">(</span><span class="n">model_ema</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">training_state</span></div>
+
+
+<div class="viewcode-block" id="save_checkpoint"><a class="viewcode-back" href="../../autogen/utils.html#utils.checkpoint_utils.save_checkpoint">[docs]</a><span class="k">def</span> <span class="nf">save_checkpoint</span><span class="p">(</span>
+    <span class="n">iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">optimizer</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">BaseOptim</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">],</span>
+    <span class="n">best_metric</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">is_best</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">save_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">gradient_scaler</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">amp</span><span class="o">.</span><span class="n">GradScaler</span><span class="p">,</span>
+    <span class="n">model_ema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">is_ema_best</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">ema_best_metric</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">max_ckpt_metric</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">k_best_checkpoints</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">save_all_checkpoints</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Save checkpoints corresponding to the current state of the training.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        iterations: An integer denoting training iteration number. Each iteration corresponds to forward-backward passes</span>
+<span class="sd">            on a batch with all GPUs.</span>
+<span class="sd">        epoch: An integer denoting epoch number.</span>
+<span class="sd">        model: The model being trained.</span>
+<span class="sd">        optimizer: Optimizer object, which possibly store training optimization state variables.</span>
+<span class="sd">        best_metric: Best observed value of the tracking validation metric. For example, best top-1 validation accuracy</span>
+<span class="sd">            that is observed until the current iteration.</span>
+<span class="sd">        is_best: A boolean demonstrating whether the current model obtains the best validation metric compared</span>
+<span class="sd">            to the previously saved checkpoints.</span>
+<span class="sd">        save_dir: Path to a directory to save checkpoints.</span>
+<span class="sd">        gradient_scaler: `GradScaler` object storing required automatic mixed precision state.</span>
+<span class="sd">        model_ema: EMA model to be stored in the checkpoint.</span>
+<span class="sd">        is_ema_best: A boolean demonstrating whether the current EMA model obtains the best validation metric compared</span>
+<span class="sd">            to the previously saved checkpoints.</span>
+<span class="sd">        ema_best_metric: Best observed value of the tracking validation metric by the EMA model.</span>
+<span class="sd">        max_ckpt_metric: A boolean demonstrating whether the tracking validation metric is higher the better, or lower</span>
+<span class="sd">            the better.</span>
+<span class="sd">        k_best_checkpoints: An integer k determining number of top (based on validation metric) checkpoints to keep.</span>
+<span class="sd">            If `k_best_checkpoints` is smaller than 1, only best checkpoint is stored.</span>
+<span class="sd">        save_all_checkpoints: If True, will save model_state checkpoints (main model and its EMA) for all epochs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">checkpoint</span> <span class="o">=</span> <span class="n">get_training_state</span><span class="p">(</span>
+        <span class="n">iterations</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">best_metric</span><span class="p">,</span> <span class="n">gradient_scaler</span><span class="p">,</span> <span class="n">model_ema</span>
+    <span class="p">)</span>
+    <span class="n">model_state</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;model_state_dict&quot;</span><span class="p">)</span>
+    <span class="n">ckpt_str</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/checkpoint&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">save_dir</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">is_best</span><span class="p">:</span>
+        <span class="n">best_model_fname</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_best.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ckpt_str</span><span class="p">,</span> <span class="n">CHECKPOINT_EXTN</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">best_model_fname</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">best_model_fname</span><span class="p">)</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model_state</span><span class="p">,</span> <span class="n">best_model_fname</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+            <span class="s2">&quot;Best checkpoint with score </span><span class="si">{:.2f}</span><span class="s2"> saved at </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">best_metric</span><span class="p">,</span> <span class="n">best_model_fname</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">k_best_checkpoints</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">avg_and_save_k_checkpoints</span><span class="p">(</span>
+                <span class="n">model_state</span><span class="p">,</span> <span class="n">best_metric</span><span class="p">,</span> <span class="n">k_best_checkpoints</span><span class="p">,</span> <span class="n">max_ckpt_metric</span><span class="p">,</span> <span class="n">ckpt_str</span>
+            <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">model_ema</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ema_fname</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_ema_last.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ckpt_str</span><span class="p">,</span> <span class="n">CHECKPOINT_EXTN</span><span class="p">)</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;ema_state_dict&quot;</span><span class="p">],</span> <span class="n">ema_fname</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">save_all_checkpoints</span><span class="p">:</span>
+            <span class="n">ema_fname</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_ema_epoch</span><span class="si">{}</span><span class="s2">.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ckpt_str</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">CHECKPOINT_EXTN</span><span class="p">)</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;ema_state_dict&quot;</span><span class="p">],</span> <span class="n">ema_fname</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">is_ema_best</span><span class="p">:</span>
+            <span class="n">ema_best_fname</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_ema_best.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ckpt_str</span><span class="p">,</span> <span class="n">CHECKPOINT_EXTN</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">ema_best_fname</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">ema_best_fname</span><span class="p">)</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;ema_state_dict&quot;</span><span class="p">],</span> <span class="n">ema_best_fname</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+                <span class="s2">&quot;Best EMA checkpoint with score </span><span class="si">{:.2f}</span><span class="s2"> saved at </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">ema_best_metric</span><span class="p">,</span> <span class="n">ema_best_fname</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">k_best_checkpoints</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">ema_best_metric</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">avg_and_save_k_checkpoints</span><span class="p">(</span>
+                    <span class="n">model_state</span><span class="o">=</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;ema_state_dict&quot;</span><span class="p">],</span>
+                    <span class="n">best_metric</span><span class="o">=</span><span class="n">ema_best_metric</span><span class="p">,</span>
+                    <span class="n">k_best_checkpoints</span><span class="o">=</span><span class="n">k_best_checkpoints</span><span class="p">,</span>
+                    <span class="n">max_ckpt_metric</span><span class="o">=</span><span class="n">max_ckpt_metric</span><span class="p">,</span>
+                    <span class="n">ckpt_str</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_ema&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ckpt_str</span><span class="p">),</span>
+                <span class="p">)</span>
+
+    <span class="n">ckpt_fname</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/training_checkpoint_last.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">save_dir</span><span class="p">,</span> <span class="n">CHECKPOINT_EXTN</span><span class="p">)</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">,</span> <span class="n">ckpt_fname</span><span class="p">)</span>
+
+    <span class="n">ckpt_fname</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_last.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ckpt_str</span><span class="p">,</span> <span class="n">CHECKPOINT_EXTN</span><span class="p">)</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model_state</span><span class="p">,</span> <span class="n">ckpt_fname</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">save_all_checkpoints</span><span class="p">:</span>
+        <span class="n">ckpt_fname</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_epoch</span><span class="si">{}</span><span class="s2">.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ckpt_str</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">CHECKPOINT_EXTN</span><span class="p">)</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model_state</span><span class="p">,</span> <span class="n">ckpt_fname</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="load_checkpoint"><a class="viewcode-back" href="../../autogen/utils.html#utils.checkpoint_utils.load_checkpoint">[docs]</a><span class="k">def</span> <span class="nf">load_checkpoint</span><span class="p">(</span>
+    <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">optimizer</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">BaseOptim</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">],</span>
+    <span class="n">gradient_scaler</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">amp</span><span class="o">.</span><span class="n">GradScaler</span><span class="p">,</span>
+    <span class="n">model_ema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">Union</span><span class="p">[</span><span class="n">BaseOptim</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">],</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">amp</span><span class="o">.</span><span class="n">GradScaler</span><span class="p">,</span>
+    <span class="nb">int</span><span class="p">,</span>
+    <span class="nb">int</span><span class="p">,</span>
+    <span class="nb">float</span><span class="p">,</span>
+    <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">],</span>
+<span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load a training checkpoint to resume training.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: Input arguments.</span>
+<span class="sd">        model: The model to be loaded with `model_state_dict` from the checkpoint.</span>
+<span class="sd">        optimizer: Optimizer object to be loaded with `optim_state_dict` from the checkpoint.</span>
+<span class="sd">        gradient_scaler: A `GradScaler` object to be loaded with `gradient_scaler_state_dict`  from the checkpoint.</span>
+<span class="sd">        model_ema: (Optional) EMA model to be loaded with `ema_state_dict` from the checkpoint.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple of loaded objects and value:</span>
+<span class="sd">        (model, optimizer, gradient_scaler, start_epoch, start_iteration, best_metric, model_ema)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">resume_loc</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.resume&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">dev_id</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dev.device_id&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dev.device&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">))</span>
+    <span class="n">start_epoch</span> <span class="o">=</span> <span class="n">start_iteration</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">best_metric</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="mf">0.0</span> <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;stats.checkpoint_metric_max&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span> <span class="k">else</span> <span class="n">math</span><span class="o">.</span><span class="n">inf</span>
+    <span class="p">)</span>
+    <span class="n">auto_resume</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.auto_resume&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">exp_dir</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.exp_loc&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">is_master_node</span> <span class="o">=</span> <span class="n">is_master</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">resume_loc</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">auto_resume</span> <span class="ow">and</span> <span class="n">exp_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">resume_loc</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/training_checkpoint_last.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">exp_dir</span><span class="p">,</span> <span class="n">CHECKPOINT_EXTN</span><span class="p">)</span>
+
+    <span class="n">resume_loc</span> <span class="o">=</span> <span class="n">get_local_path</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">resume_loc</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">resume_loc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">resume_loc</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">dev_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">checkpoint</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">resume_loc</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">checkpoint</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">resume_loc</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="s2">&quot;cuda:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dev_id</span><span class="p">))</span>
+
+        <span class="n">start_epoch</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;epoch&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">start_iteration</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;iterations&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">best_metric</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;best_metric&quot;</span><span class="p">]</span>
+
+        <span class="n">model</span> <span class="o">=</span> <span class="n">load_state_dict</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;model_state_dict&quot;</span><span class="p">])</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;optim_state_dict&quot;</span><span class="p">])</span>
+        <span class="n">gradient_scaler</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;gradient_scaler_state_dict&quot;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">model_ema</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;ema_state_dict&quot;</span> <span class="ow">in</span> <span class="n">checkpoint</span><span class="p">:</span>
+            <span class="n">model_ema</span><span class="o">.</span><span class="n">ema_model</span> <span class="o">=</span> <span class="n">load_state_dict</span><span class="p">(</span>
+                <span class="n">model_ema</span><span class="o">.</span><span class="n">ema_model</span><span class="p">,</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;ema_state_dict&quot;</span><span class="p">]</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">is_master_node</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Loaded checkpoint from </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">resume_loc</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Resuming training for epoch </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">start_epoch</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">is_master_node</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;No checkpoint found at &#39;</span><span class="si">{}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">resume_loc</span><span class="p">))</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">optimizer</span><span class="p">,</span>
+        <span class="n">gradient_scaler</span><span class="p">,</span>
+        <span class="n">start_epoch</span><span class="p">,</span>
+        <span class="n">start_iteration</span><span class="p">,</span>
+        <span class="n">best_metric</span><span class="p">,</span>
+        <span class="n">model_ema</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="load_model_state"><a class="viewcode-back" href="../../autogen/utils.html#utils.checkpoint_utils.load_model_state">[docs]</a><span class="k">def</span> <span class="nf">load_model_state</span><span class="p">(</span>
+    <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">model_ema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load the model (and optionally the EMA model) for finetuning.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: Input arguments.</span>
+<span class="sd">        model: The model to be loaded with checkpoint at `common.finetune`.</span>
+<span class="sd">        model_ema: The EMA model to be loaded with checkpoint at `common.finetune_ema`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple of loaded model and EMA model. The second returned value is None when model_ema is not passed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dev_id</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dev.device_id&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dev.device&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">))</span>
+    <span class="n">finetune_loc</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.finetune&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">finetune_ema_loc</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.finetune_ema&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">load_state</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">get_local_path</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dev_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model_state</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">model_state</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="s2">&quot;cuda:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dev_id</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">model_state</span>
+
+    <span class="k">if</span> <span class="n">finetune_loc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">finetune_loc</span><span class="p">):</span>
+        <span class="c1"># load model dict</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">load_state_dict</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">load_state</span><span class="p">(</span><span class="n">finetune_loc</span><span class="p">))</span>
+
+        <span class="c1"># load ema dict</span>
+        <span class="k">if</span> <span class="n">model_ema</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">finetune_ema_loc</span><span class="p">):</span>
+            <span class="n">model_ema</span> <span class="o">=</span> <span class="n">load_state_dict</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">load_state</span><span class="p">(</span><span class="n">finetune_ema_loc</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">model</span><span class="p">,</span> <span class="n">model_ema</span></div>
+
+
+<div class="viewcode-block" id="copy_weights"><a class="viewcode-back" href="../../autogen/utils.html#utils.checkpoint_utils.copy_weights">[docs]</a><span class="k">def</span> <span class="nf">copy_weights</span><span class="p">(</span>
+    <span class="n">model_src</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">model_tgt</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Copy `state_dict` from source model to target model.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model_src: The source model.</span>
+<span class="sd">        model_tgt: The target model.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Target model with `state_dict` loaded from model_src.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="n">model_state</span> <span class="o">=</span> <span class="n">get_model_state_dict</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">model_src</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">load_state_dict</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">model_tgt</span><span class="p">,</span> <span class="n">state_dict</span><span class="o">=</span><span class="n">model_state</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

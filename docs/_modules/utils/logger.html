@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>utils.logger &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">utils.logger</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for utils.logger</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="n">text_colors</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;logs&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[34m&quot;</span><span class="p">,</span>  <span class="c1"># 033 is the escape code and 34 is the color code</span>
+    <span class="s2">&quot;info&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[32m&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;warning&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[33m&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;debug&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[93m&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[31m&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;bold&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[1m&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;end_color&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[0m&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;light_red&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[36m&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="get_curr_time_stamp"><a class="viewcode-back" href="../../autogen/utils.html#utils.logger.get_curr_time_stamp">[docs]</a><span class="k">def</span> <span class="nf">get_curr_time_stamp</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2"> %H:%M:%S&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="error"><a class="viewcode-back" href="../../autogen/utils.html#utils.logger.error">[docs]</a><span class="k">def</span> <span class="nf">error</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">time_stamp</span> <span class="o">=</span> <span class="n">get_curr_time_stamp</span><span class="p">()</span>
+    <span class="n">error_str</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;error&quot;</span><span class="p">]</span>
+        <span class="o">+</span> <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;bold&quot;</span><span class="p">]</span>
+        <span class="o">+</span> <span class="s2">&quot;ERROR  &quot;</span>
+        <span class="o">+</span> <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;end_color&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># exiting with code -1 does not tell any information about the error (e.g., NaN encountered in the loss).</span>
+    <span class="c1"># For more descriptive error messages, we replace exit(-1) with sys.exit(ERROR_MESSAGE).</span>
+    <span class="c1"># This allows us to handle specific exceptions in the tests.</span>
+
+    <span class="c1"># print(&quot;{} - {} - {}&quot;.format(time_stamp, error_str, message), flush=True)</span>
+    <span class="c1"># print(&quot;{} - {} - {}&quot;.format(time_stamp, error_str, &quot;Exiting!!!&quot;), flush=True)</span>
+    <span class="c1"># exit(-1)</span>
+
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">traceback</span><span class="o">.</span><span class="n">print_stack</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> - </span><span class="si">{}</span><span class="s2"> - </span><span class="si">{}</span><span class="s2">. Exiting!!!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">time_stamp</span><span class="p">,</span> <span class="n">error_str</span><span class="p">,</span> <span class="n">message</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="color_text"><a class="viewcode-back" href="../../autogen/utils.html#utils.logger.color_text">[docs]</a><span class="k">def</span> <span class="nf">color_text</span><span class="p">(</span><span class="n">in_text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;light_red&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">in_text</span> <span class="o">+</span> <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;end_color&quot;</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="log"><a class="viewcode-back" href="../../autogen/utils.html#utils.logger.log">[docs]</a><span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">time_stamp</span> <span class="o">=</span> <span class="n">get_curr_time_stamp</span><span class="p">()</span>
+    <span class="n">log_str</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;logs&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;bold&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;LOGS   &quot;</span> <span class="o">+</span> <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;end_color&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> - </span><span class="si">{}</span><span class="s2"> - </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">time_stamp</span><span class="p">,</span> <span class="n">log_str</span><span class="p">,</span> <span class="n">message</span><span class="p">),</span> <span class="n">end</span><span class="o">=</span><span class="n">end</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="warning"><a class="viewcode-back" href="../../autogen/utils.html#utils.logger.warning">[docs]</a><span class="k">def</span> <span class="nf">warning</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="ne">Warning</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="ne">Warning</span><span class="p">):</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">message</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(</span><span class="si">{</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">repr</span><span class="p">,</span><span class="w"> </span><span class="n">message</span><span class="o">.</span><span class="n">args</span><span class="p">))</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="n">time_stamp</span> <span class="o">=</span> <span class="n">get_curr_time_stamp</span><span class="p">()</span>
+    <span class="n">warn_str</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;warning&quot;</span><span class="p">]</span>
+        <span class="o">+</span> <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;bold&quot;</span><span class="p">]</span>
+        <span class="o">+</span> <span class="s2">&quot;WARNING&quot;</span>
+        <span class="o">+</span> <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;end_color&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> - </span><span class="si">{}</span><span class="s2"> - </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">time_stamp</span><span class="p">,</span> <span class="n">warn_str</span><span class="p">,</span> <span class="n">message</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="ignore_exception_with_warning"><a class="viewcode-back" href="../../autogen/utils.html#utils.logger.ignore_exception_with_warning">[docs]</a><span class="k">def</span> <span class="nf">ignore_exception_with_warning</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    After catching a tolerable exception E1 (e.g. when Model.forward() fails during</span>
+<span class="sd">    profiling with try-catch, it&#39;ll be helpful to log the exception for future</span>
+<span class="sd">    investigation. But printing the error stack trace, as is, could be confusing</span>
+<span class="sd">    when an uncaught (non-tolerable) exception &quot;E2&quot; raises down the road. Then, the log</span>
+<span class="sd">    will contain two stack traces for E1, E2. When looking for errors in logs, users</span>
+<span class="sd">    should look for E2, but they may find E1.</span>
+
+<span class="sd">    This function appends &quot;(WARNING)&quot; at the end of all lines of the E1 traceback, so</span>
+<span class="sd">    that the user can distinguish E1 from uncaught exception E2.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        message: Extra explanation and context for debugging. (Note: the exception obj</span>
+<span class="sd">    will be automatically fetched from python. No need to pass it as an argument or as</span>
+<span class="sd">    message)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">:</span><span class="se">\n</span><span class="si">{</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">(WARNING)&quot;</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="info"><a class="viewcode-back" href="../../autogen/utils.html#utils.logger.info">[docs]</a><span class="k">def</span> <span class="nf">info</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">print_line</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">time_stamp</span> <span class="o">=</span> <span class="n">get_curr_time_stamp</span><span class="p">()</span>
+    <span class="n">info_str</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;info&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;bold&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;INFO   &quot;</span> <span class="o">+</span> <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;end_color&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> - </span><span class="si">{}</span><span class="s2"> - </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">time_stamp</span><span class="p">,</span> <span class="n">info_str</span><span class="p">,</span> <span class="n">message</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">print_line</span><span class="p">:</span>
+        <span class="n">double_dash_line</span><span class="p">(</span><span class="n">dashes</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="debug"><a class="viewcode-back" href="../../autogen/utils.html#utils.logger.debug">[docs]</a><span class="k">def</span> <span class="nf">debug</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">time_stamp</span> <span class="o">=</span> <span class="n">get_curr_time_stamp</span><span class="p">()</span>
+    <span class="n">log_str</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;debug&quot;</span><span class="p">]</span>
+        <span class="o">+</span> <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;bold&quot;</span><span class="p">]</span>
+        <span class="o">+</span> <span class="s2">&quot;DEBUG   &quot;</span>
+        <span class="o">+</span> <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;end_color&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> - </span><span class="si">{}</span><span class="s2"> - </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">time_stamp</span><span class="p">,</span> <span class="n">log_str</span><span class="p">,</span> <span class="n">message</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="double_dash_line"><a class="viewcode-back" href="../../autogen/utils.html#utils.logger.double_dash_line">[docs]</a><span class="k">def</span> <span class="nf">double_dash_line</span><span class="p">(</span><span class="n">dashes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">75</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;error&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="n">dashes</span> <span class="o">+</span> <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;end_color&quot;</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="singe_dash_line"><a class="viewcode-back" href="../../autogen/utils.html#utils.logger.singe_dash_line">[docs]</a><span class="k">def</span> <span class="nf">singe_dash_line</span><span class="p">(</span><span class="n">dashes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">67</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="n">dashes</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="print_header"><a class="viewcode-back" href="../../autogen/utils.html#utils.logger.print_header">[docs]</a><span class="k">def</span> <span class="nf">print_header</span><span class="p">(</span><span class="n">header</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">double_dash_line</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;info&quot;</span><span class="p">]</span>
+        <span class="o">+</span> <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;bold&quot;</span><span class="p">]</span>
+        <span class="o">+</span> <span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">50</span>
+        <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">header</span><span class="p">)</span>
+        <span class="o">+</span> <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;end_color&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">double_dash_line</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="print_header_minor"><a class="viewcode-back" href="../../autogen/utils.html#utils.logger.print_header_minor">[docs]</a><span class="k">def</span> <span class="nf">print_header_minor</span><span class="p">(</span><span class="n">header</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;warning&quot;</span><span class="p">]</span>
+        <span class="o">+</span> <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;bold&quot;</span><span class="p">]</span>
+        <span class="o">+</span> <span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">25</span>
+        <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">header</span><span class="p">)</span>
+        <span class="o">+</span> <span class="n">text_colors</span><span class="p">[</span><span class="s2">&quot;end_color&quot;</span><span class="p">]</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="disable_printing"><a class="viewcode-back" href="../../autogen/utils.html#utils.logger.disable_printing">[docs]</a><span class="k">def</span> <span class="nf">disable_printing</span><span class="p">():</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="enable_printing"><a class="viewcode-back" href="../../autogen/utils.html#utils.logger.enable_printing">[docs]</a><span class="k">def</span> <span class="nf">enable_printing</span><span class="p">():</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">__stdout__</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

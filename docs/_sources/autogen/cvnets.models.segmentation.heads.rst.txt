@@ -1,0 +1,45 @@
+cvnets.models.segmentation.heads package
+========================================
+
+Submodules
+----------
+
+cvnets.models.segmentation.heads.base\_seg\_head module
+-------------------------------------------------------
+
+.. automodule:: cvnets.models.segmentation.heads.base_seg_head
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.segmentation.heads.deeplabv3 module
+-------------------------------------------------
+
+.. automodule:: cvnets.models.segmentation.heads.deeplabv3
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.segmentation.heads.pspnet module
+----------------------------------------------
+
+.. automodule:: cvnets.models.segmentation.heads.pspnet
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.segmentation.heads.simple\_seg\_head module
+---------------------------------------------------------
+
+.. automodule:: cvnets.models.segmentation.heads.simple_seg_head
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cvnets.models.segmentation.heads
+   :members:
+   :undoc-members:
+   :show-inheritance:

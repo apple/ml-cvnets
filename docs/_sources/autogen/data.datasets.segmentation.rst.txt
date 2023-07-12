@@ -1,0 +1,45 @@
+data.datasets.segmentation package
+==================================
+
+Submodules
+----------
+
+data.datasets.segmentation.ade20k module
+----------------------------------------
+
+.. automodule:: data.datasets.segmentation.ade20k
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+data.datasets.segmentation.base\_segmentation module
+----------------------------------------------------
+
+.. automodule:: data.datasets.segmentation.base_segmentation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+data.datasets.segmentation.coco\_segmentation module
+----------------------------------------------------
+
+.. automodule:: data.datasets.segmentation.coco_segmentation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+data.datasets.segmentation.pascal\_voc module
+---------------------------------------------
+
+.. automodule:: data.datasets.segmentation.pascal_voc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: data.datasets.segmentation
+   :members:
+   :undoc-members:
+   :show-inheritance:

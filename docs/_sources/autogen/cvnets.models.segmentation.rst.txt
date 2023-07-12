@@ -1,0 +1,37 @@
+cvnets.models.segmentation package
+==================================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   cvnets.models.segmentation.heads
+
+Submodules
+----------
+
+cvnets.models.segmentation.base\_seg module
+-------------------------------------------
+
+.. automodule:: cvnets.models.segmentation.base_seg
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cvnets.models.segmentation.enc\_dec module
+------------------------------------------
+
+.. automodule:: cvnets.models.segmentation.enc_dec
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cvnets.models.segmentation
+   :members:
+   :undoc-members:
+   :show-inheritance:

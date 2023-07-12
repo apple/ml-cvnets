@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>data.datasets.utils package &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">data.datasets.utils package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/autogen/data.datasets.utils.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="data-datasets-utils-package">
+<h1>data.datasets.utils package<a class="headerlink" href="#data-datasets-utils-package" title="Permalink to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</section>
+<section id="module-data.datasets.utils.common">
+<span id="data-datasets-utils-common-module"></span><h2>data.datasets.utils.common module<a class="headerlink" href="#module-data.datasets.utils.common" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="data.datasets.utils.common.file_has_valid_image_extension">
+<span class="sig-prename descclassname"><span class="pre">data.datasets.utils.common.</span></span><span class="sig-name descname"><span class="pre">file_has_valid_image_extension</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="../_modules/data/datasets/utils/common.html#file_has_valid_image_extension"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.utils.common.file_has_valid_image_extension" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="data.datasets.utils.common.file_has_allowed_extension">
+<span class="sig-prename descclassname"><span class="pre">data.datasets.utils.common.</span></span><span class="sig-name descname"><span class="pre">file_has_allowed_extension</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extensions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="../_modules/data/datasets/utils/common.html#file_has_allowed_extension"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.utils.common.file_has_allowed_extension" title="Permalink to this definition"></a></dt>
+<dd><p>Checks if a file has an allowed extension.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> – Path to a file.</p></li>
+<li><p><strong>extensions</strong> – A string or a tuple of strings specifying the file extensions.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the filename ends with one of given extensions, else False</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="data.datasets.utils.common.get_image_paths">
+<span class="sig-prename descclassname"><span class="pre">data.datasets.utils.common.</span></span><span class="sig-name descname"><span class="pre">get_image_paths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/data/datasets/utils/common.html#get_image_paths"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.utils.common.get_image_paths" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a list of paths to all image files in the input directory and its subdirectories.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="data.datasets.utils.common.select_random_subset">
+<span class="sig-prename descclassname"><span class="pre">data.datasets.utils.common.</span></span><span class="sig-name descname"><span class="pre">select_random_subset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">random_seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_total_samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_samples_to_select</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percentage_of_samples_to_select</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/data/datasets/utils/common.html#select_random_subset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.utils.common.select_random_subset" title="Permalink to this definition"></a></dt>
+<dd><p>Randomly selects a subset of samples.</p>
+<p>Only one of <cite>num_samples_to_select</cite> and <cite>percentage_of_samples_to_select</cite> should be provided.
+Selects all the samples if neither of them are provided.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>random_seed</strong> – An integer seed to use for random selection.</p></li>
+<li><p><strong>num_total_samples</strong> – Total number of samples in the set that is being subsampled.</p></li>
+<li><p><strong>num_samples_to_select</strong> – An optional integer indicating the number of samples to select.</p></li>
+<li><p><strong>percentage_of_samples_to_select</strong> – An optional float in the range (0,100] indicating the percentage of
+samples to select.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>A list of (integer) indices of the selected samples.</p>
+<dl class="simple">
+<dt>Raises:</dt><dd><p>ValueError if both <cite>num_samples_to_select</cite> and <cite>percentage_of_samples_to_select</cite> are provided.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="data.datasets.utils.common.select_samples_by_category">
+<span class="sig-prename descclassname"><span class="pre">data.datasets.utils.common.</span></span><span class="sig-name descname"><span class="pre">select_samples_by_category</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample_category_labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_samples_per_category</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percentage_of_samples_per_category</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/data/datasets/utils/common.html#select_samples_by_category"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.utils.common.select_samples_by_category" title="Permalink to this definition"></a></dt>
+<dd><p>Randomly selects a specified number/percentage of samples from each category.</p>
+<p>Only one of <cite>num_samples_per_category</cite> and <cite>percentage_of_samples_per_category</cite> should be provided.
+Selects all the samples if neither of them are provided.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sample_category_labels</strong> – A list of category labels.</p></li>
+<li><p><strong>random_seed</strong> – An integer seed to use for random selection.</p></li>
+<li><p><strong>num_samples_per_category</strong> – An optional integer indicating the number of samples to select from each category.</p></li>
+<li><p><strong>percentage_of_samples_per_category</strong> – An optional float in the range (0, 100] indicating the percentage of
+samples to select from each category.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of (integer) indices of the selected samples.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError if both num_samples_per_category and percentage_of_samples_per_category are provided.</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-data.datasets.utils.text">
+<span id="data-datasets-utils-text-module"></span><h2>data.datasets.utils.text module<a class="headerlink" href="#module-data.datasets.utils.text" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="data.datasets.utils.text.caption_preprocessing">
+<span class="sig-prename descclassname"><span class="pre">data.datasets.utils.text.</span></span><span class="sig-name descname"><span class="pre">caption_preprocessing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">caption</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/data/datasets/utils/text.html#caption_preprocessing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.utils.text.caption_preprocessing" title="Permalink to this definition"></a></dt>
+<dd><p>Removes the unwanted tokens (e.g., HTML tokens, next line, unwanted spaces) from
+the text.</p>
+</dd></dl>
+
+</section>
+<section id="module-data.datasets.utils.video">
+<span id="data-datasets-utils-video-module"></span><h2>data.datasets.utils.video module<a class="headerlink" href="#module-data.datasets.utils.video" title="Permalink to this heading"></a></h2>
+<p>Contains helper functions for reading from video detection datasets.</p>
+<dl>
+<dt>NOTE: Annotations are stored via a &#64;rectangles_dict of the form:</dt><dd><dl class="simple">
+<dt>Dict:</dt><dd><dl class="simple">
+<dt>key -&gt; identity:</dt><dd><dl class="simple">
+<dt>Annotation list of Dicts for different timestamps:</dt><dd><dl class="simple">
+<dt>timestamp (float): The timestamp representing the seconds since the</dt><dd><p>video began, ex. 1.2 is 1.2 seconds into the video.</p>
+</dd>
+<dt>x0 (float): Normalized pixel space coordinate of top left of</dt><dd><p>bounding box.</p>
+</dd>
+<dt>y0 (float): Normalized pixel space coordinate of top left of</dt><dd><p>bounding box.</p>
+</dd>
+<dt>x1 (float): Normalized pixel space coordinate of bottom right of</dt><dd><p>bounding box.</p>
+</dd>
+<dt>y1 (float): Normalized pixel space coordinate of bottom right of</dt><dd><p>bounding box.</p>
+</dd>
+<dt>&lt;class_label_name&gt; (int): Label of the class. The key to</dt><dd><p>this field depends on the dataset.</p>
+</dd>
+<dt>is_visible (bool): []Optional] Whether bounding box is</dt><dd><p>visible.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>See <cite>tests/data/datasets/utils/video_test.py</cite> for an example of this dictionary.</p>
+</dd>
+</dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="data.datasets.utils.video.fetch_labels_from_timestamps">
+<span class="sig-prename descclassname"><span class="pre">data.datasets.utils.video.</span></span><span class="sig-name descname"><span class="pre">fetch_labels_from_timestamps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">class_label_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rectangles_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interpolation_cutoff_threshold_sec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">progressible_labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Collection</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">carry_over_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">required_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/data/datasets/utils/video.html#fetch_labels_from_timestamps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.utils.video.fetch_labels_from_timestamps" title="Permalink to this definition"></a></dt>
+<dd><p>Returns object labels for the specified video frame timestamps.</p>
+<p>The result will retain the structure of <cite>rectangles_dict</cite>, but just ensure that the
+timestamp values are as requested.</p>
+<p>If <cite>progressible_labels</cite> are supplied, the <cite>“progress”</cite> field will be included. This
+field represents the ‘normalized’ amount of time that the class label has existed
+temporally. See
+tests/data/datasets/utils/test_video.py:test_fetch_frame_with_progress for examples.</p>
+<p>This fetching function can be used for (per-frame) video classification pipelines.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>class_label_name</strong> – The field name in <cite>rectangles_dict</cite> that maps to the class
+label.</p></li>
+<li><p><strong>timestamps</strong> – A list of timestamps to fectch label from.</p></li>
+<li><p><strong>rectangles_dict</strong> – (See docstring at top of file.)</p></li>
+<li><p><strong>interpolation_cutoff_threshold_sec</strong> – Threshold under which we allow
+interpolation. In some <a href="#id1"><span class="problematic" id="id2">`</span></a>rectangles_dict`s, the labels (within the same
+track) are so far apart (e.g. 10 seconds) that interpolation is
+non-sensical. Thus this value prevents unrelated labels from being
+interpolated.</p></li>
+<li><p><strong>progressible_labels</strong> – Set of labels for which to calculate <cite>“progress”</cite> for the
+resulting bounding boxes. If None, no <cite>“progress”</cite> field will be included.</p></li>
+<li><p><strong>carry_over_keys</strong> – A list of keywords that specifies which keys should be carried
+over from the previous rectangle during interpolation. Defaults to None.</p></li>
+<li><p><strong>required_keys</strong> – A list of keywords that specifies which keywords need to be
+included in a new bounding_box in addition to the &#64;class_label_name.
+Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict containing the labels, still indexable by track id.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-data.datasets.utils">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-data.datasets.utils" title="Permalink to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

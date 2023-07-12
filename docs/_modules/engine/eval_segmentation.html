@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>engine.eval_segmentation &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">engine.eval_segmentation</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for engine.eval_segmentation</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">glob</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">nn</span>
+<span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">F</span>
+<span class="kn">from</span> <span class="nn">torchvision.transforms</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">F_vision</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+
+<span class="kn">from</span> <span class="nn">common</span> <span class="kn">import</span> <span class="n">SUPPORTED_IMAGE_EXTNS</span>
+<span class="kn">from</span> <span class="nn">cvnets</span> <span class="kn">import</span> <span class="n">get_model</span>
+<span class="kn">from</span> <span class="nn">data</span> <span class="kn">import</span> <span class="n">create_test_loader</span>
+<span class="kn">from</span> <span class="nn">engine.utils</span> <span class="kn">import</span> <span class="n">autocast_fn</span>
+<span class="kn">from</span> <span class="nn">metrics.confusion_mat</span> <span class="kn">import</span> <span class="n">ConfusionMatrix</span>
+<span class="kn">from</span> <span class="nn">options.opts</span> <span class="kn">import</span> <span class="n">get_training_arguments</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span><span class="p">,</span> <span class="n">resources</span>
+<span class="kn">from</span> <span class="nn">utils.color_map</span> <span class="kn">import</span> <span class="n">Colormap</span>
+<span class="kn">from</span> <span class="nn">utils.common_utils</span> <span class="kn">import</span> <span class="n">create_directories</span><span class="p">,</span> <span class="n">device_setup</span>
+<span class="kn">from</span> <span class="nn">utils.ddp_utils</span> <span class="kn">import</span> <span class="n">is_master</span>
+<span class="kn">from</span> <span class="nn">utils.download_utils</span> <span class="kn">import</span> <span class="n">get_local_path</span>
+<span class="kn">from</span> <span class="nn">utils.tensor_utils</span> <span class="kn">import</span> <span class="n">image_size_from_opts</span>
+<span class="kn">from</span> <span class="nn">utils.visualization_utils</span> <span class="kn">import</span> <span class="n">convert_to_cityscape_format</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Notes:</span>
+
+<span class="sd">1) We have separate scripts for evaluating segmentation models because the size of input images varies and</span>
+<span class="sd">we do not want to apply any resizing operations to input because that distorts the quality and hurts the performance.</span>
+
+<span class="sd">2) [Optional] We want to save the outputs in the same size as that of the input image.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="predict_and_save"><a class="viewcode-back" href="../../autogen/engine.html#engine.eval_segmentation.predict_and_save">[docs]</a><span class="k">def</span> <span class="nf">predict_and_save</span><span class="p">(</span>
+    <span class="n">opts</span><span class="p">,</span>
+    <span class="n">input_tensor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">orig_h</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">orig_w</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">target_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">),</span>
+    <span class="n">conf_mat</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ConfusionMatrix</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">color_map</span><span class="p">:</span> <span class="n">List</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">orig_image</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">adjust_label</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">is_cityscape</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Predict the segmentation mask and optionally save them&quot;&quot;&quot;</span>
+
+    <span class="n">mixed_precision_training</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.mixed_precision&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">mixed_precision_dtype</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.mixed_precision_dtype&quot;</span><span class="p">,</span> <span class="s2">&quot;float16&quot;</span><span class="p">)</span>
+
+    <span class="n">output_stride</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.segmentation.output_stride&quot;</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">output_stride</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="c1"># we set it to 32 because most of the ImageNet models have 5 downsampling stages (2^5 = 32)</span>
+        <span class="n">output_stride</span> <span class="o">=</span> <span class="mi">32</span>
+
+    <span class="k">if</span> <span class="n">orig_image</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">orig_image</span> <span class="o">=</span> <span class="n">F_vision</span><span class="o">.</span><span class="n">to_pil_image</span><span class="p">(</span><span class="n">input_tensor</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="n">curr_h</span><span class="p">,</span> <span class="n">curr_w</span> <span class="o">=</span> <span class="n">input_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+
+    <span class="c1"># check if dimensions are multiple of output_stride, otherwise, we get dimension mismatch errors.</span>
+    <span class="c1"># if not, then resize them</span>
+    <span class="n">new_h</span> <span class="o">=</span> <span class="p">(</span><span class="n">curr_h</span> <span class="o">//</span> <span class="n">output_stride</span><span class="p">)</span> <span class="o">*</span> <span class="n">output_stride</span>
+    <span class="n">new_w</span> <span class="o">=</span> <span class="p">(</span><span class="n">curr_w</span> <span class="o">//</span> <span class="n">output_stride</span><span class="p">)</span> <span class="o">*</span> <span class="n">output_stride</span>
+
+    <span class="k">if</span> <span class="n">new_h</span> <span class="o">!=</span> <span class="n">curr_h</span> <span class="ow">or</span> <span class="n">new_w</span> <span class="o">!=</span> <span class="n">curr_w</span><span class="p">:</span>
+        <span class="c1"># resize the input image, so that we do not get dimension mismatch errors in the forward pass</span>
+        <span class="n">input_tensor</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span>
+            <span class="nb">input</span><span class="o">=</span><span class="n">input_tensor</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">new_h</span><span class="p">,</span> <span class="n">new_w</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;bilinear&quot;</span><span class="p">,</span> <span class="n">align_corners</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+
+    <span class="n">file_name</span> <span class="o">=</span> <span class="n">file_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;.png&quot;</span>
+
+    <span class="c1"># move data to device</span>
+    <span class="n">input_tensor</span> <span class="o">=</span> <span class="n">input_tensor</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">target_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">target_mask</span> <span class="o">=</span> <span class="n">target_mask</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">autocast_fn</span><span class="p">(</span>
+        <span class="n">enabled</span><span class="o">=</span><span class="n">mixed_precision_training</span><span class="p">,</span> <span class="n">amp_precision</span><span class="o">=</span><span class="n">mixed_precision_dtype</span>
+    <span class="p">):</span>
+        <span class="c1"># prediction</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">input_tensor</span><span class="p">,</span> <span class="n">orig_size</span><span class="o">=</span><span class="p">(</span><span class="n">orig_h</span><span class="p">,</span> <span class="n">orig_w</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">pred</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="c1"># when segmentation mask from decoder and auxiliary decoder are returned</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="n">pred</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">):</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="n">pred</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;Predicted must should be either an instance of Tensor or Tuple[Tensor, Tensor]&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">num_classes</span> <span class="o">=</span> <span class="n">pred</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">pred_mask</span> <span class="o">=</span> <span class="n">pred</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">target_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">conf_mat</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">conf_mat</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+            <span class="n">target</span><span class="o">=</span><span class="n">target_mask</span><span class="p">,</span>
+            <span class="n">prediction</span><span class="o">=</span><span class="n">pred</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">save_dir</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.exp_loc&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">pred_mask</span> <span class="o">=</span> <span class="n">pred_mask</span> <span class="o">+</span> <span class="n">adjust_label</span>
+    <span class="k">if</span> <span class="n">target_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">target_mask</span> <span class="o">=</span> <span class="n">target_mask</span> <span class="o">+</span> <span class="n">adjust_label</span>
+
+    <span class="c1"># Visualize results</span>
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;evaluation.segmentation.apply_color_map&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="c1"># For some dataset, we need to adjust the labels. For example, we need adjust by 1 for ADE20k</span>
+
+        <span class="n">draw_colored_masks</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">orig_image</span><span class="o">=</span><span class="n">orig_image</span><span class="p">,</span>
+            <span class="n">pred_mask</span><span class="o">=</span><span class="n">pred_mask</span><span class="p">,</span>
+            <span class="n">target_mask</span><span class="o">=</span><span class="n">target_mask</span><span class="p">,</span>
+            <span class="n">results_location</span><span class="o">=</span><span class="n">save_dir</span><span class="p">,</span>
+            <span class="n">color_map</span><span class="o">=</span><span class="n">color_map</span><span class="p">,</span>
+            <span class="n">file_name</span><span class="o">=</span><span class="n">file_name</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;evaluation.segmentation.save_masks&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="n">draw_binary_masks</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">pred_mask</span><span class="o">=</span><span class="n">pred_mask</span><span class="p">,</span>
+            <span class="n">file_name</span><span class="o">=</span><span class="n">file_name</span><span class="p">,</span>
+            <span class="n">is_cityscape</span><span class="o">=</span><span class="n">is_cityscape</span><span class="p">,</span>
+            <span class="n">results_location</span><span class="o">=</span><span class="n">save_dir</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="draw_binary_masks"><a class="viewcode-back" href="../../autogen/engine.html#engine.eval_segmentation.draw_binary_masks">[docs]</a><span class="k">def</span> <span class="nf">draw_binary_masks</span><span class="p">(</span>
+    <span class="n">opts</span><span class="p">,</span>
+    <span class="n">pred_mask</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">results_location</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">is_cityscape</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Save masks whose values ranges between 0 and number_of_classes - 1&quot;&quot;&quot;</span>
+    <span class="n">no_color_mask_dir</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/predictions_no_cmap&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">results_location</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">no_color_mask_dir</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">no_color_mask_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">no_color_mask_f_name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">no_color_mask_dir</span><span class="p">,</span> <span class="n">file_name</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">is_cityscape</span><span class="p">:</span>
+        <span class="c1"># convert mask values to cityscapes format</span>
+        <span class="n">pred_mask</span> <span class="o">=</span> <span class="n">convert_to_cityscape_format</span><span class="p">(</span><span class="n">img</span><span class="o">=</span><span class="n">pred_mask</span><span class="p">)</span>
+    <span class="n">pred_mask_pil</span> <span class="o">=</span> <span class="n">F_vision</span><span class="o">.</span><span class="n">to_pil_image</span><span class="p">(</span><span class="n">pred_mask</span><span class="o">.</span><span class="n">byte</span><span class="p">())</span>
+    <span class="n">pred_mask_pil</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">no_color_mask_f_name</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="draw_colored_masks"><a class="viewcode-back" href="../../autogen/engine.html#engine.eval_segmentation.draw_colored_masks">[docs]</a><span class="k">def</span> <span class="nf">draw_colored_masks</span><span class="p">(</span>
+    <span class="n">opts</span><span class="p">,</span>
+    <span class="n">orig_image</span><span class="p">:</span> <span class="n">Image</span><span class="o">.</span><span class="n">Image</span><span class="p">,</span>
+    <span class="n">pred_mask</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">target_mask</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">results_location</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">color_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply color map to segmentation masks&quot;&quot;&quot;</span>
+
+    <span class="n">alpha</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;evaluation.segmentation.overlay_mask_weight&quot;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+    <span class="n">save_overlay_rgb_pred</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+        <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;evaluation.segmentation.save_overlay_rgb_pred&quot;</span><span class="p">,</span> <span class="kc">False</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">color_map</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">color_map</span> <span class="o">=</span> <span class="n">Colormap</span><span class="p">()</span><span class="o">.</span><span class="n">get_color_map_list</span><span class="p">()</span>
+
+    <span class="c1"># convert predicted tensor to PIL images, apply color map and save</span>
+    <span class="n">pred_mask_pil</span> <span class="o">=</span> <span class="n">F_vision</span><span class="o">.</span><span class="n">to_pil_image</span><span class="p">(</span><span class="n">pred_mask</span><span class="o">.</span><span class="n">byte</span><span class="p">())</span>
+    <span class="n">pred_mask_pil</span><span class="o">.</span><span class="n">putpalette</span><span class="p">(</span><span class="n">color_map</span><span class="p">)</span>
+    <span class="n">pred_mask_pil</span> <span class="o">=</span> <span class="n">pred_mask_pil</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s2">&quot;RGB&quot;</span><span class="p">)</span>
+    <span class="n">pred_color_mask_dir</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/predictions_cmap&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">results_location</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">pred_color_mask_dir</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">pred_color_mask_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">color_mask_f_name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pred_color_mask_dir</span><span class="p">,</span> <span class="n">file_name</span><span class="p">)</span>
+    <span class="n">pred_mask_pil</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">color_mask_f_name</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Predicted mask is saved at: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">color_mask_f_name</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">target_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># convert target tensor to PIL images, apply colormap, and save</span>
+        <span class="n">target_mask_pil</span> <span class="o">=</span> <span class="n">F_vision</span><span class="o">.</span><span class="n">to_pil_image</span><span class="p">(</span><span class="n">target_mask</span><span class="o">.</span><span class="n">byte</span><span class="p">())</span>
+        <span class="n">target_mask_pil</span><span class="o">.</span><span class="n">putpalette</span><span class="p">(</span><span class="n">color_map</span><span class="p">)</span>
+        <span class="n">target_mask_pil</span> <span class="o">=</span> <span class="n">target_mask_pil</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s2">&quot;RGB&quot;</span><span class="p">)</span>
+        <span class="n">target_color_mask_dir</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/gt_cmap&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">results_location</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">target_color_mask_dir</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">target_color_mask_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">gt_color_mask_f_name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target_color_mask_dir</span><span class="p">,</span> <span class="n">file_name</span><span class="p">)</span>
+        <span class="n">target_mask_pil</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">gt_color_mask_f_name</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Target mask is saved at: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">color_mask_f_name</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">save_overlay_rgb_pred</span> <span class="ow">and</span> <span class="n">orig_image</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># overlay predicted mask on top of original image and save</span>
+
+        <span class="k">if</span> <span class="n">pred_mask_pil</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">orig_image</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+            <span class="c1"># resize if input image size is not the same as predicted mask.</span>
+            <span class="c1"># this is likely in case of labeled datasets where we use transforms on the input image</span>
+            <span class="n">orig_image</span> <span class="o">=</span> <span class="n">F_vision</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span>
+                <span class="n">orig_image</span><span class="p">,</span>
+                <span class="n">size</span><span class="o">=</span><span class="n">pred_mask_pil</span><span class="o">.</span><span class="n">size</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">interpolation</span><span class="o">=</span><span class="n">F_vision</span><span class="o">.</span><span class="n">InterpolationMode</span><span class="o">.</span><span class="n">BILINEAR</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">overlayed_img</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">blend</span><span class="p">(</span><span class="n">pred_mask_pil</span><span class="p">,</span> <span class="n">orig_image</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">)</span>
+        <span class="n">overlay_mask_dir</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/predictions_overlay&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">results_location</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">overlay_mask_dir</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">overlay_mask_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">overlay_mask_f_name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">overlay_mask_dir</span><span class="p">,</span> <span class="n">file_name</span><span class="p">)</span>
+        <span class="n">overlayed_img</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">overlay_mask_f_name</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+            <span class="s2">&quot;RGB image blended with mask is saved at: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">overlay_mask_f_name</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># save original image</span>
+        <span class="n">rgb_image_dir</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/rgb_images&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">results_location</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">rgb_image_dir</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">rgb_image_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">rgb_image_f_name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rgb_image_dir</span><span class="p">,</span> <span class="n">file_name</span><span class="p">)</span>
+        <span class="n">orig_image</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">rgb_image_f_name</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Original RGB image is saved at: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">overlay_mask_f_name</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="predict_labeled_dataset"><a class="viewcode-back" href="../../autogen/engine.html#engine.eval_segmentation.predict_labeled_dataset">[docs]</a><span class="k">def</span> <span class="nf">predict_labeled_dataset</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dev.device&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">))</span>
+    <span class="n">mixed_precision_training</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.mixed_precision&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">dataset_name</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.name&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="c1"># set-up data loaders</span>
+    <span class="n">test_loader</span> <span class="o">=</span> <span class="n">create_test_loader</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+
+    <span class="c1"># set-up the model</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">info</span><span class="p">()</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Model is in training mode. Switching to evaluation mode&quot;</span><span class="p">)</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+    <span class="n">color_map</span> <span class="o">=</span> <span class="n">Colormap</span><span class="p">()</span><span class="o">.</span><span class="n">get_color_map_list</span><span class="p">()</span>
+    <span class="n">adjust_label</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">is_cityscape</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">conf_mat</span> <span class="o">=</span> <span class="n">ConfusionMatrix</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">test_loader</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="s2">&quot;color_palette&quot;</span><span class="p">):</span>
+        <span class="n">color_map</span> <span class="o">=</span> <span class="n">test_loader</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">color_palette</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">test_loader</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="s2">&quot;adjust_mask_value&quot;</span><span class="p">):</span>
+        <span class="n">adjust_label</span> <span class="o">=</span> <span class="n">test_loader</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">adjust_mask_value</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">dataset_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">dataset_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;cityscapes&quot;</span><span class="p">:</span>
+        <span class="n">is_cityscape</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">batch_id</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">test_loader</span><span class="p">):</span>
+            <span class="n">samples</span><span class="p">,</span> <span class="n">targets</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;samples&quot;</span><span class="p">],</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">]</span>
+            <span class="n">batch_size</span> <span class="o">=</span> <span class="n">samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="n">batch_size</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="p">),</span> <span class="s2">&quot;We recommend to run segmentation evaluation with a batch size of 1&quot;</span>
+
+            <span class="n">predict_and_save</span><span class="p">(</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                <span class="n">input_tensor</span><span class="o">=</span><span class="n">samples</span><span class="p">,</span>
+                <span class="n">file_name</span><span class="o">=</span><span class="n">targets</span><span class="p">[</span><span class="s2">&quot;file_name&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">orig_w</span><span class="o">=</span><span class="n">targets</span><span class="p">[</span><span class="s2">&quot;im_width&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+                <span class="n">orig_h</span><span class="o">=</span><span class="n">targets</span><span class="p">[</span><span class="s2">&quot;im_height&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+                <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">target_mask</span><span class="o">=</span><span class="n">targets</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">],</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+                <span class="n">mixed_precision_training</span><span class="o">=</span><span class="n">mixed_precision_training</span><span class="p">,</span>
+                <span class="n">conf_mat</span><span class="o">=</span><span class="n">conf_mat</span><span class="p">,</span>
+                <span class="n">color_map</span><span class="o">=</span><span class="n">color_map</span><span class="p">,</span>
+                <span class="n">adjust_label</span><span class="o">=</span><span class="n">adjust_label</span><span class="p">,</span>
+                <span class="n">is_cityscape</span><span class="o">=</span><span class="n">is_cityscape</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="n">metrics</span> <span class="o">=</span> <span class="n">conf_mat</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Quantitative results&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="s2">&quot;global correct: </span><span class="si">{:.2f}</span><span class="se">\n</span><span class="s2">average row correct: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">IoU: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">mean IoU: </span><span class="si">{:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;accuracy_global&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span><span class="p">,</span>
+            <span class="p">[</span><span class="s2">&quot;</span><span class="si">{:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;class_accuracy&quot;</span><span class="p">]],</span>
+            <span class="p">[</span><span class="s2">&quot;</span><span class="si">{:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;iou&quot;</span><span class="p">]],</span>
+            <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;mean_iou&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">is_city_dataset</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.name&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;cityscapes&quot;</span>
+    <span class="k">if</span> <span class="n">is_city_dataset</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">engine.segmentation_utils.cityscapes_iou</span> <span class="kn">import</span> <span class="n">eval_cityscapes</span>
+
+        <span class="n">pred_dir</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/predictions_no_cmap/&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.exp_loc&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">gt_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.root_val&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="s2">&quot;gtFine/val/&quot;</span><span class="p">)</span>
+        <span class="n">eval_cityscapes</span><span class="p">(</span><span class="n">pred_dir</span><span class="o">=</span><span class="n">pred_dir</span><span class="p">,</span> <span class="n">gt_dir</span><span class="o">=</span><span class="n">gt_dir</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="read_and_process_image"><a class="viewcode-back" href="../../autogen/engine.html#engine.eval_segmentation.read_and_process_image">[docs]</a><span class="k">def</span> <span class="nf">read_and_process_image</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">image_fname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">input_img</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">image_fname</span><span class="p">)</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s2">&quot;RGB&quot;</span><span class="p">)</span>
+    <span class="n">input_pil</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">input_img</span><span class="p">)</span>
+    <span class="n">orig_w</span><span class="p">,</span> <span class="n">orig_h</span> <span class="o">=</span> <span class="n">input_img</span><span class="o">.</span><span class="n">size</span>
+
+    <span class="c1"># Resize the image while maitaining the aspect ratio</span>
+    <span class="n">res_h</span><span class="p">,</span> <span class="n">res_w</span> <span class="o">=</span> <span class="n">image_size_from_opts</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+
+    <span class="n">input_img</span> <span class="o">=</span> <span class="n">F_vision</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span>
+        <span class="n">input_img</span><span class="p">,</span>
+        <span class="n">size</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">res_h</span><span class="p">,</span> <span class="n">res_w</span><span class="p">),</span>
+        <span class="n">interpolation</span><span class="o">=</span><span class="n">F_vision</span><span class="o">.</span><span class="n">InterpolationMode</span><span class="o">.</span><span class="n">BILINEAR</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">input_tensor</span> <span class="o">=</span> <span class="n">F_vision</span><span class="o">.</span><span class="n">pil_to_tensor</span><span class="p">(</span><span class="n">input_img</span><span class="p">)</span>
+    <span class="n">input_tensor</span> <span class="o">=</span> <span class="n">input_tensor</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="mf">255.0</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">input_tensor</span><span class="p">,</span> <span class="n">input_pil</span><span class="p">,</span> <span class="n">orig_h</span><span class="p">,</span> <span class="n">orig_w</span></div>
+
+
+<div class="viewcode-block" id="predict_image"><a class="viewcode-back" href="../../autogen/engine.html#engine.eval_segmentation.predict_image">[docs]</a><span class="k">def</span> <span class="nf">predict_image</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">image_fname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">image_fname</span> <span class="o">=</span> <span class="n">get_local_path</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">image_fname</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">image_fname</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Image file does not exist at: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">image_fname</span><span class="p">))</span>
+
+    <span class="n">input_tensor</span><span class="p">,</span> <span class="n">input_pil</span><span class="p">,</span> <span class="n">orig_h</span><span class="p">,</span> <span class="n">orig_w</span> <span class="o">=</span> <span class="n">read_and_process_image</span><span class="p">(</span>
+        <span class="n">opts</span><span class="p">,</span> <span class="n">image_fname</span><span class="o">=</span><span class="n">image_fname</span>
+    <span class="p">)</span>
+
+    <span class="n">image_fname</span> <span class="o">=</span> <span class="n">image_fname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">device</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dev.device&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">))</span>
+    <span class="c1"># set-up the model</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">info</span><span class="p">()</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Model is in training mode. Switching to evaluation mode&quot;</span><span class="p">)</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="n">predict_and_save</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">input_tensor</span><span class="o">=</span><span class="n">input_tensor</span><span class="p">,</span>
+            <span class="n">file_name</span><span class="o">=</span><span class="n">image_fname</span><span class="p">,</span>
+            <span class="n">orig_h</span><span class="o">=</span><span class="n">orig_h</span><span class="p">,</span>
+            <span class="n">orig_w</span><span class="o">=</span><span class="n">orig_w</span><span class="p">,</span>
+            <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+            <span class="n">target_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">orig_image</span><span class="o">=</span><span class="n">input_pil</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="predict_images_in_folder"><a class="viewcode-back" href="../../autogen/engine.html#engine.eval_segmentation.predict_images_in_folder">[docs]</a><span class="k">def</span> <span class="nf">predict_images_in_folder</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">img_folder_path</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;evaluation.segmentation.path&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">img_folder_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">&quot;Location of the folder containing images is not passed. Please use --evaluation.segmentation.path &quot;</span>
+            <span class="s2">&quot;as an argument to pass the location of the folder&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">img_folder_path</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">img_folder_path</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">&quot;Folder containing images does not exist at: </span><span class="si">{}</span><span class="s2">. Please check&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">img_folder_path</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">img_files</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">SUPPORTED_IMAGE_EXTNS</span><span class="p">:</span>
+        <span class="n">img_files_with_extn</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/*</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">img_folder_path</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">img_files_with_extn</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">img_files_with_extn</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">img_files</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">img_files_with_extn</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">img_files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">&quot;Number of image files found at </span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">img_folder_path</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">img_files</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+        <span class="s2">&quot;Number of image files found at </span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">img_folder_path</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">img_files</span><span class="p">))</span>
+    <span class="p">)</span>
+
+    <span class="n">device</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dev.device&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">))</span>
+    <span class="n">mixed_precision_training</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.mixed_precision&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="c1"># set-up the model</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">info</span><span class="p">()</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Model is in training mode. Switching to evaluation mode&quot;</span><span class="p">)</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">image_fname</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">img_files</span><span class="p">):</span>
+            <span class="n">input_tensor</span><span class="p">,</span> <span class="n">input_pil</span><span class="p">,</span> <span class="n">orig_h</span><span class="p">,</span> <span class="n">orig_w</span> <span class="o">=</span> <span class="n">read_and_process_image</span><span class="p">(</span>
+                <span class="n">opts</span><span class="p">,</span> <span class="n">image_fname</span><span class="o">=</span><span class="n">image_fname</span>
+            <span class="p">)</span>
+
+            <span class="n">image_fname</span> <span class="o">=</span> <span class="n">image_fname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="n">predict_and_save</span><span class="p">(</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+                <span class="n">input_tensor</span><span class="o">=</span><span class="n">input_tensor</span><span class="p">,</span>
+                <span class="n">file_name</span><span class="o">=</span><span class="n">image_fname</span><span class="p">,</span>
+                <span class="n">orig_h</span><span class="o">=</span><span class="n">orig_h</span><span class="p">,</span>
+                <span class="n">orig_w</span><span class="o">=</span><span class="n">orig_w</span><span class="p">,</span>
+                <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">target_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+                <span class="n">mixed_precision_training</span><span class="o">=</span><span class="n">mixed_precision_training</span><span class="p">,</span>
+                <span class="n">orig_image</span><span class="o">=</span><span class="n">input_pil</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="main_segmentation_evaluation"><a class="viewcode-back" href="../../autogen/engine.html#engine.eval_segmentation.main_segmentation_evaluation">[docs]</a><span class="k">def</span> <span class="nf">main_segmentation_evaluation</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">opts</span> <span class="o">=</span> <span class="n">get_training_arguments</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="c1"># device set-up</span>
+    <span class="n">opts</span> <span class="o">=</span> <span class="n">device_setup</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+
+    <span class="n">node_rank</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;ddp.rank&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">node_rank</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;--rank should be &gt;=0. Got </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">node_rank</span><span class="p">))</span>
+
+    <span class="n">is_master_node</span> <span class="o">=</span> <span class="n">is_master</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+
+    <span class="c1"># create the directory for saving results</span>
+    <span class="n">save_dir</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.results_loc&quot;</span><span class="p">,</span> <span class="s2">&quot;results&quot;</span><span class="p">)</span>
+    <span class="n">run_label</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.run_label&quot;</span><span class="p">,</span> <span class="s2">&quot;run_1&quot;</span><span class="p">)</span>
+    <span class="n">exp_dir</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">save_dir</span><span class="p">,</span> <span class="n">run_label</span><span class="p">)</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.exp_loc&quot;</span><span class="p">,</span> <span class="n">exp_dir</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Results (if any) will be stored here: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">exp_dir</span><span class="p">))</span>
+
+    <span class="n">create_directories</span><span class="p">(</span><span class="n">dir_path</span><span class="o">=</span><span class="n">exp_dir</span><span class="p">,</span> <span class="n">is_master_node</span><span class="o">=</span><span class="n">is_master_node</span><span class="p">)</span>
+
+    <span class="n">num_gpus</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dev.num_gpus&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># we disable the DDP setting for evaluating segmentation tasks</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;ddp.use_distributed&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># No of data workers = no of CPUs (if not specified or -1)</span>
+    <span class="n">n_cpus</span> <span class="o">=</span> <span class="n">resources</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span>
+    <span class="n">dataset_workers</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.workers&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dataset_workers</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.workers&quot;</span><span class="p">,</span> <span class="n">n_cpus</span><span class="p">)</span>
+
+    <span class="c1"># We are not performing any operation like resizing and cropping on images</span>
+    <span class="c1"># Because image dimensions are different, we process 1 sample at a time.</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.train_batch_size0&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dataset.val_batch_size0&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dev.device_id&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="n">eval_mode</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;evaluation.segmentation.mode&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">eval_mode</span> <span class="o">==</span> <span class="s2">&quot;single_image&quot;</span><span class="p">:</span>
+        <span class="n">num_seg_classes</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.segmentation.n_classes&quot;</span><span class="p">,</span> <span class="mi">21</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">num_seg_classes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+        <span class="c1"># test a single image</span>
+        <span class="n">img_f_name</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;evaluation.segmentation.path&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">predict_image</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="n">img_f_name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">eval_mode</span> <span class="o">==</span> <span class="s2">&quot;image_folder&quot;</span><span class="p">:</span>
+        <span class="n">num_seg_classes</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.segmentation.n_classes&quot;</span><span class="p">,</span> <span class="mi">21</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">num_seg_classes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+        <span class="c1"># test all images in a folder</span>
+        <span class="c1"># This is useful for generating results for test set</span>
+        <span class="n">predict_images_in_folder</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">eval_mode</span> <span class="o">==</span> <span class="s2">&quot;validation_set&quot;</span><span class="p">:</span>
+        <span class="c1"># evaluate and compute stats for labeled image dataset</span>
+        <span class="c1"># This is useful for generating results for validation set and compute quantitative results</span>
+        <span class="n">predict_labeled_dataset</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">&quot;Supported modes are single_image, image_folder, and validation_set. Got: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">eval_mode</span>
+            <span class="p">)</span>
+        <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

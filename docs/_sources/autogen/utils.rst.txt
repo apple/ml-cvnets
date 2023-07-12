@@ -1,0 +1,165 @@
+utils package
+=============
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   utils.third_party
+
+Submodules
+----------
+
+utils.checkpoint\_utils module
+------------------------------
+
+.. automodule:: utils.checkpoint_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+utils.color\_map module
+-----------------------
+
+.. automodule:: utils.color_map
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+utils.common\_utils module
+--------------------------
+
+.. automodule:: utils.common_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+utils.ddp\_utils module
+-----------------------
+
+.. automodule:: utils.ddp_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+utils.dict\_utils module
+------------------------
+
+.. automodule:: utils.dict_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+utils.download\_utils module
+----------------------------
+
+.. automodule:: utils.download_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+utils.download\_utils\_base module
+----------------------------------
+
+.. automodule:: utils.download_utils_base
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+utils.import\_utils module
+--------------------------
+
+.. automodule:: utils.import_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+utils.logger module
+-------------------
+
+.. automodule:: utils.logger
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+utils.math\_utils module
+------------------------
+
+.. automodule:: utils.math_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+utils.object\_utils module
+--------------------------
+
+.. automodule:: utils.object_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+utils.object\_utils\_test module
+--------------------------------
+
+.. automodule:: utils.object_utils_test
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+utils.pytorch\_to\_coreml module
+--------------------------------
+
+.. automodule:: utils.pytorch_to_coreml
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+utils.registry module
+---------------------
+
+.. automodule:: utils.registry
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+utils.registry\_test module
+---------------------------
+
+.. automodule:: utils.registry_test
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+utils.resources module
+----------------------
+
+.. automodule:: utils.resources
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+utils.tensor\_utils module
+--------------------------
+
+.. automodule:: utils.tensor_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+utils.visualization\_utils module
+---------------------------------
+
+.. automodule:: utils.visualization_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: utils
+   :members:
+   :undoc-members:
+   :show-inheritance:

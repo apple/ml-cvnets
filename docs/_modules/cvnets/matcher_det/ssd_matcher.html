@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cvnets.matcher_det.ssd_matcher &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../cvnets.html">cvnets</a></li>
+          <li class="breadcrumb-item"><a href="../matcher_det.html">cvnets.matcher_det</a></li>
+      <li class="breadcrumb-item active">cvnets.matcher_det.ssd_matcher</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cvnets.matcher_det.ssd_matcher</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
+
+<span class="kn">from</span> <span class="nn">cvnets.matcher_det</span> <span class="kn">import</span> <span class="n">MATCHER_REGISTRY</span><span class="p">,</span> <span class="n">BaseMatcher</span>
+<span class="kn">from</span> <span class="nn">cvnets.misc.box_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">center_form_to_corner_form</span><span class="p">,</span>
+    <span class="n">convert_boxes_to_locations</span><span class="p">,</span>
+    <span class="n">convert_locations_to_boxes</span><span class="p">,</span>
+    <span class="n">corner_form_to_center_form</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">cvnets.misc.third_party.ssd_utils</span> <span class="kn">import</span> <span class="n">assign_priors</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+
+
+<div class="viewcode-block" id="SSDMatcher"><a class="viewcode-back" href="../../../autogen/cvnets.matcher_det.html#cvnets.matcher_det.ssd_matcher.SSDMatcher">[docs]</a><span class="nd">@MATCHER_REGISTRY</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;ssd&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">SSDMatcher</span><span class="p">(</span><span class="n">BaseMatcher</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class assigns labels to anchors via `SSD matching process &lt;https://arxiv.org/abs/1512.02325&gt;`_</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: command line arguments</span>
+<span class="sd">        bg_class_id: Background class index</span>
+
+<span class="sd">    Shape:</span>
+<span class="sd">        - Input:</span>
+<span class="sd">            - gt_boxes: Ground-truth boxes in corner form (xyxy format). Shape is :math:`(N, 4)` where :math:`N` is the number of boxes</span>
+<span class="sd">            - gt_labels: Ground-truth box labels. Shape is :math:`(N)`</span>
+<span class="sd">            - anchors: Anchor boxes in center form (c_x, c_y, w, h). Shape is :math:`(M, 4)` where :math:`M` is the number of anchors</span>
+
+<span class="sd">        - Output:</span>
+<span class="sd">            - matched_boxes of shape :math:`(M, 4)`</span>
+<span class="sd">            - matched_box_labels of shape :math:`(M)`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SSDMatcher.__init__"><a class="viewcode-back" href="../../../autogen/cvnets.matcher_det.html#cvnets.matcher_det.ssd_matcher.SSDMatcher.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">opts</span><span class="p">,</span> <span class="n">bg_class_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">center_variance</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;matcher.ssd.center_variance&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">check_variable</span><span class="p">(</span><span class="n">center_variance</span><span class="p">,</span> <span class="s2">&quot;--matcher.ssd.center-variance&quot;</span><span class="p">)</span>
+
+        <span class="n">size_variance</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;matcher.ssd.size_variance&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">check_variable</span><span class="p">(</span><span class="n">val</span><span class="o">=</span><span class="n">size_variance</span><span class="p">,</span> <span class="n">args_str</span><span class="o">=</span><span class="s2">&quot;--matcher.ssd.size-variance&quot;</span><span class="p">)</span>
+
+        <span class="n">iou_threshold</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;matcher.ssd.iou_threshold&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">check_variable</span><span class="p">(</span><span class="n">val</span><span class="o">=</span><span class="n">iou_threshold</span><span class="p">,</span> <span class="n">args_str</span><span class="o">=</span><span class="s2">&quot;--matcher.ssd.iou-threshold&quot;</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">center_variance</span> <span class="o">=</span> <span class="n">center_variance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">size_variance</span> <span class="o">=</span> <span class="n">size_variance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iou_threshold</span> <span class="o">=</span> <span class="n">iou_threshold</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bg_class_id</span> <span class="o">=</span> <span class="n">bg_class_id</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">(center_variance=</span><span class="si">{}</span><span class="s2">, size_variance=</span><span class="si">{}</span><span class="s2">, iou_threshold=</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">center_variance</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">size_variance</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">iou_threshold</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="SSDMatcher.add_arguments"><a class="viewcode-back" href="../../../autogen/cvnets.matcher_det.html#cvnets.matcher_det.ssd_matcher.SSDMatcher.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add SSD Matcher specific arguments</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--matcher.ssd.center-variance&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Center variance for matching&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--matcher.ssd.size-variance&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Size variance.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--matcher.ssd.iou-threshold&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.45</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;IOU Threshold.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parser</span></div>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">gt_boxes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">gt_labels</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">anchors</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">gt_boxes</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">gt_boxes</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">gt_boxes</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">gt_labels</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">gt_labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">gt_labels</span><span class="p">)</span>
+
+        <span class="c1"># convert box priors from center [c_x, c_y] to corner_form [x, y]</span>
+        <span class="n">anchors_xyxy</span> <span class="o">=</span> <span class="n">center_form_to_corner_form</span><span class="p">(</span><span class="n">boxes</span><span class="o">=</span><span class="n">anchors</span><span class="p">)</span>
+
+        <span class="n">matched_boxes_xyxy</span><span class="p">,</span> <span class="n">matched_labels</span> <span class="o">=</span> <span class="n">assign_priors</span><span class="p">(</span>
+            <span class="n">gt_boxes</span><span class="p">,</span>  <span class="c1"># gt_boxes are in corner form [x, y, w, h]</span>
+            <span class="n">gt_labels</span><span class="p">,</span>
+            <span class="n">anchors_xyxy</span><span class="p">,</span>  <span class="c1"># priors are in corner form [x, y, w, h]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">iou_threshold</span><span class="p">,</span>
+            <span class="n">background_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bg_class_id</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># convert the matched boxes to center form [c_x, c_y]</span>
+        <span class="n">matched_boxes_cxcywh</span> <span class="o">=</span> <span class="n">corner_form_to_center_form</span><span class="p">(</span><span class="n">matched_boxes_xyxy</span><span class="p">)</span>
+
+        <span class="c1"># Eq.(2) in paper https://arxiv.org/pdf/1512.02325.pdf</span>
+        <span class="n">boxes_for_regression</span> <span class="o">=</span> <span class="n">convert_boxes_to_locations</span><span class="p">(</span>
+            <span class="n">gt_boxes</span><span class="o">=</span><span class="n">matched_boxes_cxcywh</span><span class="p">,</span>  <span class="c1"># center form</span>
+            <span class="n">prior_boxes</span><span class="o">=</span><span class="n">anchors</span><span class="p">,</span>  <span class="c1"># center form</span>
+            <span class="n">center_variance</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">center_variance</span><span class="p">,</span>
+            <span class="n">size_variance</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">size_variance</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">boxes_for_regression</span><span class="p">,</span> <span class="n">matched_labels</span>
+
+<div class="viewcode-block" id="SSDMatcher.convert_to_boxes"><a class="viewcode-back" href="../../../autogen/cvnets.matcher_det.html#cvnets.matcher_det.ssd_matcher.SSDMatcher.convert_to_boxes">[docs]</a>    <span class="k">def</span> <span class="nf">convert_to_boxes</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">pred_locations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">anchors</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Decodes boxes from predicted locations and anchors.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># decode boxes in center form</span>
+        <span class="n">boxes</span> <span class="o">=</span> <span class="n">convert_locations_to_boxes</span><span class="p">(</span>
+            <span class="n">pred_locations</span><span class="o">=</span><span class="n">pred_locations</span><span class="p">,</span>
+            <span class="n">anchor_boxes</span><span class="o">=</span><span class="n">anchors</span><span class="p">,</span>
+            <span class="n">center_variance</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">center_variance</span><span class="p">,</span>
+            <span class="n">size_variance</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">size_variance</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># convert boxes from center form [c_x, c_y] to corner form [x, y]</span>
+        <span class="n">boxes</span> <span class="o">=</span> <span class="n">center_form_to_corner_form</span><span class="p">(</span><span class="n">boxes</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">boxes</span></div></div>
+
+
+<div class="viewcode-block" id="check_variable"><a class="viewcode-back" href="../../../autogen/cvnets.matcher_det.html#cvnets.matcher_det.ssd_matcher.check_variable">[docs]</a><span class="k">def</span> <span class="nf">check_variable</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">args_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> cannot be None&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args_str</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mf">0.0</span> <span class="o">&lt;</span> <span class="n">val</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">&quot;The value of </span><span class="si">{}</span><span class="s2"> should be between 0 and 1. Got: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args_str</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+        <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>engine.evaluation_engine &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">engine.evaluation_engine</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for engine.evaluation_engine</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">from</span> <span class="nn">common</span> <span class="kn">import</span> <span class="n">DEFAULT_LOG_FREQ</span><span class="p">,</span> <span class="n">SUPPORTED_VIDEO_CLIP_VOTING_FN</span>
+<span class="kn">from</span> <span class="nn">engine.utils</span> <span class="kn">import</span> <span class="n">autocast_fn</span><span class="p">,</span> <span class="n">get_batch_size</span><span class="p">,</span> <span class="n">get_log_writers</span>
+<span class="kn">from</span> <span class="nn">metrics.stats</span> <span class="kn">import</span> <span class="n">Statistics</span>
+<span class="kn">from</span> <span class="nn">options.parse_args</span> <span class="kn">import</span> <span class="n">parse_validation_metric_names</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">from</span> <span class="nn">utils.common_utils</span> <span class="kn">import</span> <span class="n">move_to_device</span>
+<span class="kn">from</span> <span class="nn">utils.ddp_utils</span> <span class="kn">import</span> <span class="n">is_master</span>
+
+
+<div class="viewcode-block" id="Evaluator"><a class="viewcode-back" href="../../autogen/engine.html#engine.evaluation_engine.Evaluator">[docs]</a><span class="k">class</span> <span class="nc">Evaluator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="c1"># Note: &quot;test_loader&quot; used to be named &quot;eval_loader&quot;. We recently renamed data-related &quot;eval_*&quot; names to &quot;test_*&quot;</span>
+    <span class="c1">#   to follow the standard train/val/test terminology. Engine-related names (eval_engine, is_evaluation, evaluator,</span>
+    <span class="c1">#   etc.) remained unchanged. One of the reasons was to prevent &quot;eval_engine.py&quot;-&gt;&quot;test_engine.py&quot; being</span>
+    <span class="c1">#   recognized a test suite by pytest.</span>
+<div class="viewcode-block" id="Evaluator.__init__"><a class="viewcode-back" href="../../autogen/engine.html#engine.evaluation_engine.Evaluator.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">opts</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">test_loader</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Evaluator</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">opts</span> <span class="o">=</span> <span class="n">opts</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_loader</span> <span class="o">=</span> <span class="n">test_loader</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;dev.device&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_distributed</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;ddp.use_distributed&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_master_node</span> <span class="o">=</span> <span class="n">is_master</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage_name</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.eval_stage_name&quot;</span><span class="p">,</span> <span class="s2">&quot;evaluation&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixed_precision_training</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.mixed_precision&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixed_precision_dtype</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.mixed_precision_dtype&quot;</span><span class="p">,</span> <span class="s2">&quot;float16&quot;</span>
+        <span class="p">)</span>
+
+        <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metric_names</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ckpt_metric</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ckpt_submetric</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="n">parse_validation_metric_names</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_writers</span> <span class="o">=</span> <span class="n">get_log_writers</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="n">save_location</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+        <span class="c1"># inference modality based eval function</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_fn_image</span>
+        <span class="n">inference_modality</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.inference_modality&quot;</span><span class="p">,</span> <span class="s2">&quot;image&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">inference_modality</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">inference_modality</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;video&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eval_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_fn_video</span></div>
+
+<div class="viewcode-block" id="Evaluator.eval_fn_image"><a class="viewcode-back" href="../../autogen/engine.html#engine.evaluation_engine.Evaluator.eval_fn_image">[docs]</a>    <span class="k">def</span> <span class="nf">eval_fn_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="n">log_freq</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.log_freq&quot;</span><span class="p">,</span> <span class="n">DEFAULT_LOG_FREQ</span><span class="p">)</span>
+
+        <span class="n">evaluation_stats</span> <span class="o">=</span> <span class="n">Statistics</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">metric_names</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metric_names</span><span class="p">,</span>
+            <span class="n">is_master_node</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">is_master_node</span><span class="p">,</span>
+            <span class="n">is_distributed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_distributed</span><span class="p">,</span>
+            <span class="n">log_writers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">log_writers</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">training</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_master_node</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Model is in training mode. Switching to evaluation mode&quot;</span><span class="p">)</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">epoch_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="n">total_samples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">test_loader</span><span class="p">)</span>
+            <span class="n">processed_samples</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="k">for</span> <span class="n">batch_id</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">test_loader</span><span class="p">):</span>
+                <span class="n">batch</span> <span class="o">=</span> <span class="n">move_to_device</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">batch</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+                <span class="n">samples</span><span class="p">,</span> <span class="n">targets</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;samples&quot;</span><span class="p">],</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">]</span>
+
+                <span class="n">batch_size</span> <span class="o">=</span> <span class="n">get_batch_size</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
+
+                <span class="k">with</span> <span class="n">autocast_fn</span><span class="p">(</span>
+                    <span class="n">enabled</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mixed_precision_training</span><span class="p">,</span>
+                    <span class="n">amp_precision</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mixed_precision_dtype</span><span class="p">,</span>
+                <span class="p">):</span>
+                    <span class="c1"># prediction</span>
+                    <span class="n">pred_label</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
+
+                <span class="n">processed_samples</span> <span class="o">+=</span> <span class="n">batch_size</span>
+
+                <span class="n">evaluation_stats</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                    <span class="n">pred_label</span><span class="o">=</span><span class="n">pred_label</span><span class="p">,</span>
+                    <span class="n">target_label</span><span class="o">=</span><span class="n">targets</span><span class="p">,</span>
+                    <span class="n">extras</span><span class="o">=</span><span class="p">{</span>
+                        <span class="s2">&quot;loss&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+                    <span class="p">},</span>
+                    <span class="n">batch_time</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                    <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">batch_id</span> <span class="o">%</span> <span class="n">log_freq</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_master_node</span><span class="p">:</span>
+                    <span class="n">evaluation_stats</span><span class="o">.</span><span class="n">iter_summary</span><span class="p">(</span>
+                        <span class="n">epoch</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                        <span class="n">n_processed_samples</span><span class="o">=</span><span class="n">processed_samples</span><span class="p">,</span>
+                        <span class="n">total_samples</span><span class="o">=</span><span class="n">total_samples</span><span class="p">,</span>
+                        <span class="n">elapsed_time</span><span class="o">=</span><span class="n">epoch_start_time</span><span class="p">,</span>
+                        <span class="n">learning_rate</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+        <span class="n">evaluation_stats</span><span class="o">.</span><span class="n">epoch_summary</span><span class="p">(</span><span class="n">epoch</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stage_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Evaluator.eval_fn_video"><a class="viewcode-back" href="../../autogen/engine.html#engine.evaluation_engine.Evaluator.eval_fn_video">[docs]</a>    <span class="k">def</span> <span class="nf">eval_fn_video</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="n">log_freq</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;common.log_freq&quot;</span><span class="p">,</span> <span class="n">DEFAULT_LOG_FREQ</span><span class="p">)</span>
+
+        <span class="n">evaluation_stats</span> <span class="o">=</span> <span class="n">Statistics</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">metric_names</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metric_names</span><span class="p">,</span>
+            <span class="n">is_master_node</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">is_master_node</span><span class="p">,</span>
+            <span class="n">is_distributed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_distributed</span><span class="p">,</span>
+            <span class="n">log_writers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">log_writers</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">training</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_master_node</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Model is in training mode. Switching to evaluation mode&quot;</span><span class="p">)</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+        <span class="n">num_clips_per_video</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;sampler.bs.clips_per_video&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">voting_fn</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.video_classification.clip_out_voting_fn&quot;</span><span class="p">,</span> <span class="s2">&quot;sum&quot;</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">voting_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">voting_fn</span> <span class="o">=</span> <span class="s2">&quot;sum&quot;</span>
+        <span class="n">voting_fn</span> <span class="o">=</span> <span class="n">voting_fn</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">epoch_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="n">total_samples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">test_loader</span><span class="p">)</span>
+            <span class="n">processed_samples</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="k">for</span> <span class="n">batch_id</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">test_loader</span><span class="p">):</span>
+                <span class="n">batch</span> <span class="o">=</span> <span class="n">move_to_device</span><span class="p">(</span><span class="n">opts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">batch</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+                <span class="n">samples</span><span class="p">,</span> <span class="n">targets</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;samples&quot;</span><span class="p">],</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;targets&quot;</span><span class="p">]</span>
+                <span class="c1"># target_label is Batch*Num_clips</span>
+                <span class="n">batch_size_</span> <span class="o">=</span> <span class="n">get_batch_size</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
+                <span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size_</span> <span class="o">//</span> <span class="n">num_clips_per_video</span>
+                <span class="k">if</span> <span class="n">batch_size_</span> <span class="o">!=</span> <span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_clips_per_video</span><span class="p">):</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+                        <span class="s2">&quot;Skipping batch. Expected batch size= </span><span class="si">{}</span><span class="s2">. Got: (bxc:</span><span class="si">{}</span><span class="s2">x</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">batch_size_</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_clips_per_video</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="k">continue</span>
+
+                <span class="k">with</span> <span class="n">autocast_fn</span><span class="p">(</span>
+                    <span class="n">enabled</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mixed_precision_training</span><span class="p">,</span>
+                    <span class="n">amp_precision</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mixed_precision_dtype</span><span class="p">,</span>
+                <span class="p">):</span>
+                    <span class="c1"># prediction</span>
+                    <span class="n">pred_label</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
+
+                <span class="n">targets</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_clips_per_video</span><span class="p">)</span>
+                <span class="c1"># label is the same for all clips in the video</span>
+                <span class="n">targets</span> <span class="o">=</span> <span class="n">targets</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+                <span class="n">pred_label</span> <span class="o">=</span> <span class="n">pred_label</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_clips_per_video</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">voting_fn</span> <span class="o">==</span> <span class="s2">&quot;sum&quot;</span><span class="p">:</span>
+                    <span class="n">pred_label</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pred_label</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">voting_fn</span> <span class="o">==</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span>
+                    <span class="n">pred_label</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">pred_label</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                        <span class="s2">&quot;--model.video-classification.clip-out-fusion-fn can be </span><span class="si">{}</span><span class="s2">. Got: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">SUPPORTED_VIDEO_CLIP_VOTING_FN</span><span class="p">,</span> <span class="n">voting_fn</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+                <span class="n">processed_samples</span> <span class="o">+=</span> <span class="n">batch_size</span>
+
+                <span class="n">evaluation_stats</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                    <span class="n">pred_label</span><span class="o">=</span><span class="n">pred_label</span><span class="p">,</span>
+                    <span class="n">target_label</span><span class="o">=</span><span class="n">targets</span><span class="p">,</span>
+                    <span class="n">extras</span><span class="o">=</span><span class="p">{</span>
+                        <span class="s2">&quot;loss&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+                    <span class="p">},</span>
+                    <span class="n">batch_time</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                    <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">batch_id</span> <span class="o">%</span> <span class="n">log_freq</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_master_node</span><span class="p">:</span>
+                    <span class="n">evaluation_stats</span><span class="o">.</span><span class="n">iter_summary</span><span class="p">(</span>
+                        <span class="n">epoch</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                        <span class="n">n_processed_samples</span><span class="o">=</span><span class="n">processed_samples</span><span class="p">,</span>
+                        <span class="n">total_samples</span><span class="o">=</span><span class="n">total_samples</span><span class="p">,</span>
+                        <span class="n">elapsed_time</span><span class="o">=</span><span class="n">epoch_start_time</span><span class="p">,</span>
+                        <span class="n">learning_rate</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+        <span class="n">evaluation_stats</span><span class="o">.</span><span class="n">epoch_summary</span><span class="p">(</span><span class="n">epoch</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stage_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Evaluator.run"><a class="viewcode-back" href="../../autogen/engine.html#engine.evaluation_engine.Evaluator.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">eval_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval_fn</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+        <span class="n">eval_end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">eval_start_time</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Evaluation took </span><span class="si">{}</span><span class="s2"> seconds&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">eval_end_time</span><span class="p">))</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

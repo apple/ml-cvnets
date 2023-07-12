@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Object detection using SSDLite on MS-COCO &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Semantic Segmentation using DeepLabv3" href="../segmentation/README-segmentation-deeplabv3-tutorial.html" />
+    <link rel="prev" title="Training Classification Models on the ImageNet dataset" href="../classification/README-classification-tutorial.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../../getting_started.html">Getting Started</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../general/README-config-files-intro.html">Config Files: Introduction and Walkthrough</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../general/README-directory-structure.html">Directory Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../classification/README-classification-tutorial.html">Training Classification Models on the ImageNet dataset</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Object detection using SSDLite on MS-COCO</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#training-detection-network-on-the-ms-coco-dataset">Training detection network on the MS-COCO dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#quantitative-evaluation">Quantitative evaluation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#qualitative-evaluation">Qualitative evaluation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example">Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#citation">Citation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../segmentation/README-segmentation-deeplabv3-tutorial.html">Semantic Segmentation using DeepLabv3</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../getting_started.html">Getting Started</a></li>
+      <li class="breadcrumb-item active">Object detection using SSDLite on MS-COCO</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/en/models/detection/README-detection-SSD-tutorial.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="object-detection-using-ssdlite-on-ms-coco">
+<h1>Object detection using SSDLite on MS-COCO<a class="headerlink" href="#object-detection-using-ssdlite-on-ms-coco" title="Permalink to this heading"></a></h1>
+<section id="training-detection-network-on-the-ms-coco-dataset">
+<h2>Training detection network on the MS-COCO dataset<a class="headerlink" href="#training-detection-network-on-the-ms-coco-dataset" title="Permalink to this heading"></a></h2>
+<p>Single node training of SSD with any classification backbone, that adheres to <a class="reference internal" href="#../../../../../cvnets/models/classification/base_cls.py"><span class="xref myst">BaseEncoder</span></a> structure, can be done using the below command:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>  export CONFIG_FILE=&quot;PATH_TO_CONFIG_FILE&quot;
+  export IMAGENET_PRETRAINED_WTS=&quot;LOCATION_OF_IMAGENET_WEIGHTS&quot;
+  PYTHONWARNINGS=&quot;ignore&quot; cvnets-train --common.config-file $CONFIG_FILE --common.results-loc ssd_results --model.classification.pretrained $IMAGENET_PRETRAINED_WTS
+</pre></div>
+</div>
+<p>For example configuration files, please see <a class="reference internal" href="#../../../../../config/detection/ssd_coco"><span class="xref myst">config</span></a> folder.</p>
+<p><em><strong>Note</strong></em>: Do not forget to change the training and validation dataset locations in configuration files.</p>
+</section>
+<section id="quantitative-evaluation">
+<h2>Quantitative evaluation<a class="headerlink" href="#quantitative-evaluation" title="Permalink to this heading"></a></h2>
+<p>Mean average precision score can be computed on MS-COCO dataset using the below command:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span> export CFG_FILE=&quot;PATH_TO_CONFIG_FILE&quot;
+ export SSDLITE_MODEL_WEIGHTS=&quot;PATH_TO_MODEL_WEIGHTS&quot; 
+ CUDA_VISIBLE_DEVICES=0 cvnets-eval-det --common.config-file $CFG_FILE --common.results-loc ssdlite_results --model.detection.pretrained $SSDLITE_MODEL_WEIGHTS --model.detection.n-classes 81 --evaluation.detection.resize-input-images --evaluation.detection.mode validation_set
+</pre></div>
+</div>
+</section>
+<section id="qualitative-evaluation">
+<h2>Qualitative evaluation<a class="headerlink" href="#qualitative-evaluation" title="Permalink to this heading"></a></h2>
+<p>An example command to run detection on an image using <code class="docutils literal notranslate"><span class="pre">SSDLite-MobileViTv2</span></code> model is given below</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span> export IMG_PATH=&quot;LOCATION_OF_IMAGE&quot;
+ export CFG_FILE=&quot;PATH_TO_CONFIG_FILE&quot;
+ export MODEL_WEIGHTS=&quot;PATH_TO_MODEL_WEIGHTS&quot;
+ cvnets-eval-det --common.config-file $CFG_FILE --common.results-loc ssdlite_mobilevitv2_results --model.detection.pretrained $MODEL_WEIGHTS --model.detection.n-classes 81 --evaluation.detection.resize-input-images --evaluation.detection.mode single_image --evaluation.detection.path &quot;${IMG_PATH}&quot; --model.detection.ssd.conf-threshold 0.3
+</pre></div>
+</div>
+<hr class="docutils" />
+<p>An example command to run detection on images stored in a folder using <code class="docutils literal notranslate"><span class="pre">SSDLite-MobileViTv2</span></code> model is given below</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span> export IMG_FOLDER_PATH=&quot;PATH_TO_FOLDER_CONTAINING_IMAGES&quot;
+ export CFG_FILE=&quot;PATH_TO_CONFIG_FILE&quot;
+ export MODEL_WEIGHTS=&quot;PATH_TO_MODEL_WEIGHTS&quot;
+ cvnets-eval-det --common.config-file $CFG_FILE --common.results-loc ssdlite_mobilevitv2_results --model.detection.pretrained $MODEL_WEIGHTS --model.detection.n-classes 81 --evaluation.detection.resize-input-images --evaluation.detection.mode image_folder --evaluation.detection.path $IMG_FOLDER_PATH --model.detection.ssd.conf-threshold 0.3
+</pre></div>
+</div>
+</section>
+<section id="example">
+<h2>Example<a class="headerlink" href="#example" title="Permalink to this heading"></a></h2>
+<p>In the below example, we download an image from the Internet and then detect objects using SSD w/ ResNet-50 backbone.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span> export IMG_PATH=&quot;http://farm3.staticflickr.com/2700/4532763002_7f4eafc5b0_z.jpg&quot;
+ export CFG_FILE=&quot;https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/coco-ssd-resnet-50.yaml&quot;
+ export MODEL_WEIGHTS=&quot;https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/detection/coco-ssd-resnet-50.pt&quot;
+ cvnets-eval-det --common.config-file $CFG_FILE --common.results-loc ssdlite_results --model.detection.pretrained $MODEL_WEIGHTS --model.detection.n-classes 81 --evaluation.detection.resize-input-images --evaluation.detection.mode single_image --evaluation.detection.path &quot;${IMG_PATH}&quot; --model.detection.ssd.conf-threshold 0.3
+</pre></div>
+</div>
+</section>
+<section id="citation">
+<h2>Citation<a class="headerlink" href="#citation" title="Permalink to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@inproceedings</span><span class="p">{</span><span class="n">liu2016ssd</span><span class="p">,</span>
+  <span class="n">title</span><span class="o">=</span><span class="p">{</span><span class="n">Ssd</span><span class="p">:</span> <span class="n">Single</span> <span class="n">shot</span> <span class="n">multibox</span> <span class="n">detector</span><span class="p">},</span>
+  <span class="n">author</span><span class="o">=</span><span class="p">{</span><span class="n">Liu</span><span class="p">,</span> <span class="n">Wei</span> <span class="ow">and</span> <span class="n">Anguelov</span><span class="p">,</span> <span class="n">Dragomir</span> <span class="ow">and</span> <span class="n">Erhan</span><span class="p">,</span> <span class="n">Dumitru</span> <span class="ow">and</span> <span class="n">Szegedy</span><span class="p">,</span> <span class="n">Christian</span> <span class="ow">and</span> <span class="n">Reed</span><span class="p">,</span> <span class="n">Scott</span> <span class="ow">and</span> <span class="n">Fu</span><span class="p">,</span> <span class="n">Cheng</span><span class="o">-</span><span class="n">Yang</span> <span class="ow">and</span> <span class="n">Berg</span><span class="p">,</span> <span class="n">Alexander</span> <span class="n">C</span><span class="p">},</span>
+  <span class="n">booktitle</span><span class="o">=</span><span class="p">{</span><span class="n">European</span> <span class="n">conference</span> <span class="n">on</span> <span class="n">computer</span> <span class="n">vision</span><span class="p">},</span>
+  <span class="n">pages</span><span class="o">=</span><span class="p">{</span><span class="mi">21</span><span class="o">--</span><span class="mi">37</span><span class="p">},</span>
+  <span class="n">year</span><span class="o">=</span><span class="p">{</span><span class="mi">2016</span><span class="p">},</span>
+  <span class="n">organization</span><span class="o">=</span><span class="p">{</span><span class="n">Springer</span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../classification/README-classification-tutorial.html" class="btn btn-neutral float-left" title="Training Classification Models on the ImageNet dataset" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../segmentation/README-segmentation-deeplabv3-tutorial.html" class="btn btn-neutral float-right" title="Semantic Segmentation using DeepLabv3" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>utils.third_party package &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">utils.third_party package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/autogen/utils.third_party.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="utils-third-party-package">
+<h1>utils.third_party package<a class="headerlink" href="#utils-third-party-package" title="Permalink to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</section>
+<section id="module-utils.third_party.ddp_functional_utils">
+<span id="utils-third-party-ddp-functional-utils-module"></span><h2>utils.third_party.ddp_functional_utils module<a class="headerlink" href="#module-utils.third_party.ddp_functional_utils" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.third_party.ddp_functional_utils.broadcast">
+<span class="sig-prename descclassname"><span class="pre">utils.third_party.ddp_functional_utils.</span></span><span class="sig-name descname"><span class="pre">broadcast</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/third_party/ddp_functional_utils.html#broadcast"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#utils.third_party.ddp_functional_utils.broadcast" title="Permalink to this definition"></a></dt>
+<dd><p>Broadcasts the tensor to the whole group.</p>
+<p><code class="docutils literal notranslate"><span class="pre">tensor</span></code> must have the same number of elements in all processes
+participating in the collective.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tensor</strong> (<em>Tensor</em>) – Data to be sent if <code class="docutils literal notranslate"><span class="pre">src</span></code> is the rank of current
+process.</p></li>
+<li><p><strong>src</strong> (<em>int</em>) – Source rank.</p></li>
+<li><p><strong>group</strong> (<em>ProcessGroup</em><em>, </em><em>optional</em>) – The process group to work on.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Received tensor from the broadcast op.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.third_party.ddp_functional_utils.gather">
+<span class="sig-prename descclassname"><span class="pre">utils.third_party.ddp_functional_utils.</span></span><span class="sig-name descname"><span class="pre">gather</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dst</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/third_party/ddp_functional_utils.html#gather"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#utils.third_party.ddp_functional_utils.gather" title="Permalink to this definition"></a></dt>
+<dd><p>Gathers a list of tensors in a single process.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tensor</strong> (<em>Tensor</em>) – Input tensor.</p></li>
+<li><p><strong>dst</strong> (<em>int</em><em>, </em><em>optional</em>) – Destination rank (default is 0).</p></li>
+<li><p><strong>group</strong> (<em>ProcessGroup</em><em>, </em><em>optional</em>) – The process group to work on.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of appropriately-sized tensors with the gathered data.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[Tensor]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.third_party.ddp_functional_utils.scatter">
+<span class="sig-prename descclassname"><span class="pre">utils.third_party.ddp_functional_utils.</span></span><span class="sig-name descname"><span class="pre">scatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/third_party/ddp_functional_utils.html#scatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#utils.third_party.ddp_functional_utils.scatter" title="Permalink to this definition"></a></dt>
+<dd><p>Scatters a list of tensors to all processes in a group.</p>
+<p>Each process will receive exactly one tensor and store its data in the
+<code class="docutils literal notranslate"><span class="pre">tensor</span></code> argument.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tensors</strong> (<em>list</em><em>[</em><em>Tensor</em><em>]</em>) – List of tensors to scatter on the source rank.
+Receivers must pass <a href="#id1"><span class="problematic" id="id2">``</span></a>None`.</p></li>
+<li><p><strong>src</strong> (<em>int</em><em>, </em><em>optional</em>) – Source rank (default is 0).</p></li>
+<li><p><strong>group</strong> (<em>ProcessGroup</em><em>, </em><em>optional</em>) – The process group to work on.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Output tensor from the scatter operation.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.third_party.ddp_functional_utils.reduce">
+<span class="sig-prename descclassname"><span class="pre">utils.third_party.ddp_functional_utils.</span></span><span class="sig-name descname"><span class="pre">reduce</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dst</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op=&lt;torch.distributed.distributed_c10d.ReduceOp</span> <span class="pre">object&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group=None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/third_party/ddp_functional_utils.html#reduce"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#utils.third_party.ddp_functional_utils.reduce" title="Permalink to this definition"></a></dt>
+<dd><p>Reduces the tensor data across all machines.</p>
+<p>Only the process with rank <code class="docutils literal notranslate"><span class="pre">dst</span></code> is going to receive the final result.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tensor</strong> (<em>Tensor</em>) – Input of the collective.</p></li>
+<li><p><strong>dst</strong> (<em>int</em>) – Destination rank.</p></li>
+<li><p><strong>op</strong> (<em>optional</em>) – One of the values from
+<code class="docutils literal notranslate"><span class="pre">torch.distributed.ReduceOp</span></code>
+enum.  Specifies an operation used for element-wise reductions.</p></li>
+<li><p><strong>group</strong> (<em>ProcessGroup</em><em>, </em><em>optional</em>) – The process group to work on.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Output of the collective.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.third_party.ddp_functional_utils.reduce_scatter">
+<span class="sig-prename descclassname"><span class="pre">utils.third_party.ddp_functional_utils.</span></span><span class="sig-name descname"><span class="pre">reduce_scatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op=&lt;torch.distributed.distributed_c10d.ReduceOp</span> <span class="pre">object&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group=None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/third_party/ddp_functional_utils.html#reduce_scatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#utils.third_party.ddp_functional_utils.reduce_scatter" title="Permalink to this definition"></a></dt>
+<dd><p>Reduces, then scatters a list of tensors to all processes in a group.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output</strong> (<em>Tensor</em>) – Output tensor.</p></li>
+<li><p><strong>input_list</strong> (<em>list</em><em>[</em><em>Tensor</em><em>]</em>) – List of tensors to reduce and scatter.</p></li>
+<li><p><strong>op</strong> (<em>optional</em>) – One of the values from
+<code class="docutils literal notranslate"><span class="pre">torch.distributed.ReduceOp</span></code>
+enum.  Specifies an operation used for element-wise reductions.</p></li>
+<li><p><strong>group</strong> (<em>ProcessGroup</em><em>, </em><em>optional</em>) – The process group to work on.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Output of the collective.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.third_party.ddp_functional_utils.all_gather">
+<span class="sig-prename descclassname"><span class="pre">utils.third_party.ddp_functional_utils.</span></span><span class="sig-name descname"><span class="pre">all_gather</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/third_party/ddp_functional_utils.html#all_gather"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#utils.third_party.ddp_functional_utils.all_gather" title="Permalink to this definition"></a></dt>
+<dd><p>Gathers tensors from the whole group in a list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tensor</strong> (<em>Tensor</em>) – Tensor to be broadcast from current process.</p></li>
+<li><p><strong>group</strong> (<em>ProcessGroup</em><em>, </em><em>optional</em>) – The process group to work on.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Output of the collective.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple([Tensor])</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.third_party.ddp_functional_utils.all_to_all">
+<span class="sig-prename descclassname"><span class="pre">utils.third_party.ddp_functional_utils.</span></span><span class="sig-name descname"><span class="pre">all_to_all</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_tensor_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_tensor_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/third_party/ddp_functional_utils.html#all_to_all"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#utils.third_party.ddp_functional_utils.all_to_all" title="Permalink to this definition"></a></dt>
+<dd><p>Each process scatters list of input tensors to all processes in a group and
+return gathered list of tensors in output list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>out_tensor_list</strong> (<em>list</em><em>[</em><em>Tensor</em><em>]</em>) – list of tensors to gather one per rank.</p></li>
+<li><p><strong>input_tensor_list</strong> (<em>list</em><em>[</em><em>Tensor</em><em>]</em>) – List of tensors to scatter one per rank.</p></li>
+<li><p><strong>group</strong> (<em>ProcessGroup</em><em>, </em><em>optional</em>) – The process group to work on.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Output of the collective.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple([Tensor])</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.third_party.ddp_functional_utils.all_to_all_single">
+<span class="sig-prename descclassname"><span class="pre">utils.third_party.ddp_functional_utils.</span></span><span class="sig-name descname"><span class="pre">all_to_all_single</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_split_sizes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_split_sizes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/third_party/ddp_functional_utils.html#all_to_all_single"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#utils.third_party.ddp_functional_utils.all_to_all_single" title="Permalink to this definition"></a></dt>
+<dd><p>Each process splits input tensor and then scatters the split list
+to all processes in a group. Then concatenate the received tensors from all
+the processes in the group and return single output tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output</strong> (<em>Tensor</em>) – Gathered cancatenated output tensor.</p></li>
+<li><p><strong>input</strong> (<em>Tensor</em>) – Input tensor to scatter.</p></li>
+<li><p><strong>output_split_sizes</strong> – (list[Int], optional): Output split sizes for dim 0
+if specified None or empty, dim 0 of <code class="docutils literal notranslate"><span class="pre">output</span></code> tensor must divide
+equally by <code class="docutils literal notranslate"><span class="pre">world_size</span></code>.</p></li>
+<li><p><strong>input_split_sizes</strong> – (list[Int], optional): Input split sizes for dim 0
+if specified None or empty, dim 0 of <code class="docutils literal notranslate"><span class="pre">input</span></code> tensor must divide
+equally by <code class="docutils literal notranslate"><span class="pre">world_size</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Output of the collective.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.third_party.ddp_functional_utils.all_reduce">
+<span class="sig-prename descclassname"><span class="pre">utils.third_party.ddp_functional_utils.</span></span><span class="sig-name descname"><span class="pre">all_reduce</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op=&lt;torch.distributed.distributed_c10d.ReduceOp</span> <span class="pre">object&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group=None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/utils/third_party/ddp_functional_utils.html#all_reduce"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#utils.third_party.ddp_functional_utils.all_reduce" title="Permalink to this definition"></a></dt>
+<dd><p>Reduces the tensor data across all machines in such a way that all get
+the final result.</p>
+<p>After the call the returned tensor is going to be bitwise
+identical in all processes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tensor</strong> (<em>Tensor</em>) – Input of the collective.</p></li>
+<li><p><strong>op</strong> (<em>optional</em>) – One of the values from
+<code class="docutils literal notranslate"><span class="pre">torch.distributed.ReduceOp</span></code>
+enum.  Specifies an operation used for element-wise reductions.</p></li>
+<li><p><strong>group</strong> (<em>ProcessGroup</em><em>, </em><em>optional</em>) – The process group to work on.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Output of the collective</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-utils.third_party">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-utils.third_party" title="Permalink to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

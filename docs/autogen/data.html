@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>data package &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">data package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/autogen/data.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="data-package">
+<h1>data package<a class="headerlink" href="#data-package" title="Permalink to this heading"></a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="data.collate_fns.html">data.collate_fns package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="data.collate_fns.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data.collate_fns.html#module-data.collate_fns.byteformer_collate_functions">data.collate_fns.byteformer_collate_functions module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.collate_fns.html#data.collate_fns.byteformer_collate_functions.byteformer_image_collate_fn"><code class="docutils literal notranslate"><span class="pre">byteformer_image_collate_fn()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.collate_fns.html#data.collate_fns.byteformer_collate_functions.apply_padding"><code class="docutils literal notranslate"><span class="pre">apply_padding()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.collate_fns.html#data.collate_fns.byteformer_collate_functions.apply_pil_save"><code class="docutils literal notranslate"><span class="pre">apply_pil_save()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.collate_fns.html#data.collate_fns.byteformer_collate_functions.apply_shuffle_bytes"><code class="docutils literal notranslate"><span class="pre">apply_shuffle_bytes()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.collate_fns.html#data.collate_fns.byteformer_collate_functions.apply_mask_positions"><code class="docutils literal notranslate"><span class="pre">apply_mask_positions()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.collate_fns.html#data.collate_fns.byteformer_collate_functions.apply_random_uniform_noise"><code class="docutils literal notranslate"><span class="pre">apply_random_uniform_noise()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.collate_fns.html#data.collate_fns.byteformer_collate_functions.apply_byte_permutation"><code class="docutils literal notranslate"><span class="pre">apply_byte_permutation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.collate_fns.html#data.collate_fns.byteformer_collate_functions.apply_torchaudio_save"><code class="docutils literal notranslate"><span class="pre">apply_torchaudio_save()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.collate_fns.html#data.collate_fns.byteformer_collate_functions.byteformer_audio_collate_fn"><code class="docutils literal notranslate"><span class="pre">byteformer_audio_collate_fn()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.collate_fns.html#module-data.collate_fns.collate_functions">data.collate_fns.collate_functions module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.collate_fns.html#data.collate_fns.collate_functions.pytorch_default_collate_fn"><code class="docutils literal notranslate"><span class="pre">pytorch_default_collate_fn()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.collate_fns.html#data.collate_fns.collate_functions.unlabeled_image_data_collate_fn"><code class="docutils literal notranslate"><span class="pre">unlabeled_image_data_collate_fn()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.collate_fns.html#data.collate_fns.collate_functions.image_classification_data_collate_fn"><code class="docutils literal notranslate"><span class="pre">image_classification_data_collate_fn()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.collate_fns.html#data.collate_fns.collate_functions.default_collate_fn"><code class="docutils literal notranslate"><span class="pre">default_collate_fn()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.collate_fns.html#module-data.collate_fns">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.collate_fns.html#data.collate_fns.arguments_collate_fn"><code class="docutils literal notranslate"><span class="pre">arguments_collate_fn()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.collate_fns.html#data.collate_fns.build_collate_fn"><code class="docutils literal notranslate"><span class="pre">build_collate_fn()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.collate_fns.html#data.collate_fns.build_test_collate_fn"><code class="docutils literal notranslate"><span class="pre">build_test_collate_fn()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="data.datasets.html">data.datasets package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.audio_classification.html">data.datasets.audio_classification package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.audio_classification.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.audio_classification.html#module-data.datasets.audio_classification.speech_commands_v2">data.datasets.audio_classification.speech_commands_v2 module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.audio_classification.html#module-data.datasets.audio_classification">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.classification.html">data.datasets.classification package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#module-data.datasets.classification.base_image_classification_dataset">data.datasets.classification.base_image_classification_dataset module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#module-data.datasets.classification.base_imagenet_shift_dataset">data.datasets.classification.base_imagenet_shift_dataset module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#module-data.datasets.classification.imagenet">data.datasets.classification.imagenet module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#module-data.datasets.classification.imagenet_a">data.datasets.classification.imagenet_a module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#module-data.datasets.classification.imagenet_r">data.datasets.classification.imagenet_r module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#module-data.datasets.classification.imagenet_sketch">data.datasets.classification.imagenet_sketch module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#module-data.datasets.classification.imagenet_synsets">data.datasets.classification.imagenet_synsets module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#module-data.datasets.classification.imagenet_v2">data.datasets.classification.imagenet_v2 module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#module-data.datasets.classification.places365">data.datasets.classification.places365 module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#module-data.datasets.classification">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.detection.html">data.datasets.detection package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.detection.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.detection.html#module-data.datasets.detection.base_detection">data.datasets.detection.base_detection module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.detection.html#module-data.datasets.detection.coco_base">data.datasets.detection.coco_base module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.detection.html#module-data.datasets.detection.coco_mask_rcnn">data.datasets.detection.coco_mask_rcnn module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.detection.html#module-data.datasets.detection.coco_ssd">data.datasets.detection.coco_ssd module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.detection.html#module-data.datasets.detection">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.multi_modal_img_text.html">data.datasets.multi_modal_img_text package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#module-data.datasets.multi_modal_img_text.base_multi_modal_img_text">data.datasets.multi_modal_img_text.base_multi_modal_img_text module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#module-data.datasets.multi_modal_img_text.flickr">data.datasets.multi_modal_img_text.flickr module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#module-data.datasets.multi_modal_img_text.img_text_tar_dataset">data.datasets.multi_modal_img_text.img_text_tar_dataset module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#module-data.datasets.multi_modal_img_text">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.segmentation.html">data.datasets.segmentation package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#module-data.datasets.segmentation.ade20k">data.datasets.segmentation.ade20k module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#module-data.datasets.segmentation.base_segmentation">data.datasets.segmentation.base_segmentation module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#module-data.datasets.segmentation.coco_segmentation">data.datasets.segmentation.coco_segmentation module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#module-data.datasets.segmentation.pascal_voc">data.datasets.segmentation.pascal_voc module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#module-data.datasets.segmentation">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.utils.html">data.datasets.utils package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.utils.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.utils.html#module-data.datasets.utils.common">data.datasets.utils.common module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.utils.html#module-data.datasets.utils.text">data.datasets.utils.text module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.utils.html#module-data.datasets.utils.video">data.datasets.utils.video module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.utils.html#module-data.datasets.utils">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.html#module-data.datasets.dataset_base">data.datasets.dataset_base module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.BaseDataset"><code class="docutils literal notranslate"><span class="pre">BaseDataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.BaseDataset.__init__"><code class="docutils literal notranslate"><span class="pre">BaseDataset.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.BaseDataset.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseDataset.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.BaseDataset.load_from_server"><code class="docutils literal notranslate"><span class="pre">BaseDataset.load_from_server()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.BaseDataset.get_augmentation_transforms"><code class="docutils literal notranslate"><span class="pre">BaseDataset.get_augmentation_transforms()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.BaseDataset.share_dataset_arguments"><code class="docutils literal notranslate"><span class="pre">BaseDataset.share_dataset_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.BaseDataset.extra_repr"><code class="docutils literal notranslate"><span class="pre">BaseDataset.extra_repr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.BaseDataset.get_item_metadata"><code class="docutils literal notranslate"><span class="pre">BaseDataset.get_item_metadata()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.BaseImageDataset"><code class="docutils literal notranslate"><span class="pre">BaseImageDataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.BaseImageDataset.read_image_pil"><code class="docutils literal notranslate"><span class="pre">BaseImageDataset.read_image_pil()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.BaseImageDataset.extra_repr"><code class="docutils literal notranslate"><span class="pre">BaseImageDataset.extra_repr()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.BaseVideoDataset"><code class="docutils literal notranslate"><span class="pre">BaseVideoDataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.BaseVideoDataset.__init__"><code class="docutils literal notranslate"><span class="pre">BaseVideoDataset.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.BaseVideoDataset.clips_per_video"><code class="docutils literal notranslate"><span class="pre">BaseVideoDataset.clips_per_video</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.BaseVideoDataset.n_frames_per_clip"><code class="docutils literal notranslate"><span class="pre">BaseVideoDataset.n_frames_per_clip</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.BaseVideoDataset.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseVideoDataset.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.BaseVideoDataset.get_item_metadata"><code class="docutils literal notranslate"><span class="pre">BaseVideoDataset.get_item_metadata()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.VideoMetadataDict"><code class="docutils literal notranslate"><span class="pre">VideoMetadataDict</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.VideoMetadataDict.video_fps"><code class="docutils literal notranslate"><span class="pre">VideoMetadataDict.video_fps</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.VideoMetadataDict.total_video_frames"><code class="docutils literal notranslate"><span class="pre">VideoMetadataDict.total_video_frames</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.VideoMetadataDict.video_duration"><code class="docutils literal notranslate"><span class="pre">VideoMetadataDict.video_duration</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.VideoMetadataDict.audio_fps"><code class="docutils literal notranslate"><span class="pre">VideoMetadataDict.audio_fps</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.html#module-data.datasets">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.html#data.datasets.build_dataset_from_registry"><code class="docutils literal notranslate"><span class="pre">build_dataset_from_registry()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.html#data.datasets.get_test_dataset"><code class="docutils literal notranslate"><span class="pre">get_test_dataset()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.html#data.datasets.get_train_val_datasets"><code class="docutils literal notranslate"><span class="pre">get_train_val_datasets()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.html#data.datasets.arguments_dataset"><code class="docutils literal notranslate"><span class="pre">arguments_dataset()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="data.loader.html">data.loader package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="data.loader.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data.loader.html#module-data.loader.dataloader">data.loader.dataloader module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.loader.html#data.loader.dataloader.CVNetsDataLoader"><code class="docutils literal notranslate"><span class="pre">CVNetsDataLoader</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.loader.html#data.loader.dataloader.CVNetsDataLoader.__init__"><code class="docutils literal notranslate"><span class="pre">CVNetsDataLoader.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.loader.html#data.loader.dataloader.CVNetsDataLoader.update_indices"><code class="docutils literal notranslate"><span class="pre">CVNetsDataLoader.update_indices()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.loader.html#data.loader.dataloader.CVNetsDataLoader.samples_in_dataset"><code class="docutils literal notranslate"><span class="pre">CVNetsDataLoader.samples_in_dataset()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.loader.html#data.loader.dataloader.CVNetsDataLoader.get_sample_indices"><code class="docutils literal notranslate"><span class="pre">CVNetsDataLoader.get_sample_indices()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.loader.html#module-data.loader">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="data.sampler.html">data.sampler package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="data.sampler.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data.sampler.html#module-data.sampler.base_sampler">data.sampler.base_sampler module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.sampler.html#data.sampler.base_sampler.BaseSampler"><code class="docutils literal notranslate"><span class="pre">BaseSampler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.base_sampler.BaseSampler.__init__"><code class="docutils literal notranslate"><span class="pre">BaseSampler.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.base_sampler.BaseSampler.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseSampler.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.base_sampler.BaseSampler.get_indices"><code class="docutils literal notranslate"><span class="pre">BaseSampler.get_indices()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.base_sampler.BaseSampler.set_epoch"><code class="docutils literal notranslate"><span class="pre">BaseSampler.set_epoch()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.base_sampler.BaseSampler.update_scales"><code class="docutils literal notranslate"><span class="pre">BaseSampler.update_scales()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.base_sampler.BaseSampler.update_indices"><code class="docutils literal notranslate"><span class="pre">BaseSampler.update_indices()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.base_sampler.BaseSampler.extra_repr"><code class="docutils literal notranslate"><span class="pre">BaseSampler.extra_repr()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.sampler.html#data.sampler.base_sampler.BaseSamplerDDP"><code class="docutils literal notranslate"><span class="pre">BaseSamplerDDP</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.base_sampler.BaseSamplerDDP.__init__"><code class="docutils literal notranslate"><span class="pre">BaseSamplerDDP.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.base_sampler.BaseSamplerDDP.get_indices_rank_i"><code class="docutils literal notranslate"><span class="pre">BaseSamplerDDP.get_indices_rank_i()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.base_sampler.BaseSamplerDDP.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseSamplerDDP.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.base_sampler.BaseSamplerDDP.set_epoch"><code class="docutils literal notranslate"><span class="pre">BaseSamplerDDP.set_epoch()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.base_sampler.BaseSamplerDDP.update_scales"><code class="docutils literal notranslate"><span class="pre">BaseSamplerDDP.update_scales()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.base_sampler.BaseSamplerDDP.update_indices"><code class="docutils literal notranslate"><span class="pre">BaseSamplerDDP.update_indices()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.base_sampler.BaseSamplerDDP.extra_repr"><code class="docutils literal notranslate"><span class="pre">BaseSamplerDDP.extra_repr()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.sampler.html#data.sampler.base_sampler.get_batch_size_from_opts"><code class="docutils literal notranslate"><span class="pre">get_batch_size_from_opts()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.sampler.html#module-data.sampler.batch_sampler">data.sampler.batch_sampler module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.sampler.html#data.sampler.batch_sampler.BatchSampler"><code class="docutils literal notranslate"><span class="pre">BatchSampler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.batch_sampler.BatchSampler.__init__"><code class="docutils literal notranslate"><span class="pre">BatchSampler.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.batch_sampler.BatchSampler.extra_repr"><code class="docutils literal notranslate"><span class="pre">BatchSampler.extra_repr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.batch_sampler.BatchSampler.add_arguments"><code class="docutils literal notranslate"><span class="pre">BatchSampler.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.sampler.html#data.sampler.batch_sampler.BatchSamplerDDP"><code class="docutils literal notranslate"><span class="pre">BatchSamplerDDP</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.batch_sampler.BatchSamplerDDP.__init__"><code class="docutils literal notranslate"><span class="pre">BatchSamplerDDP.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.batch_sampler.BatchSamplerDDP.extra_repr"><code class="docutils literal notranslate"><span class="pre">BatchSamplerDDP.extra_repr()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.sampler.html#module-data.sampler.chain_sampler">data.sampler.chain_sampler module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.sampler.html#data.sampler.chain_sampler.ChainSampler"><code class="docutils literal notranslate"><span class="pre">ChainSampler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.chain_sampler.ChainSampler.__init__"><code class="docutils literal notranslate"><span class="pre">ChainSampler.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.chain_sampler.ChainSampler.add_arguments"><code class="docutils literal notranslate"><span class="pre">ChainSampler.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.chain_sampler.ChainSampler.build_chain_sampler"><code class="docutils literal notranslate"><span class="pre">ChainSampler.build_chain_sampler()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.chain_sampler.ChainSampler.set_epoch"><code class="docutils literal notranslate"><span class="pre">ChainSampler.set_epoch()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.chain_sampler.ChainSampler.update_scales"><code class="docutils literal notranslate"><span class="pre">ChainSampler.update_scales()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.chain_sampler.ChainSampler.update_indices"><code class="docutils literal notranslate"><span class="pre">ChainSampler.update_indices()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.sampler.html#module-data.sampler.multi_scale_sampler">data.sampler.multi_scale_sampler module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.sampler.html#data.sampler.multi_scale_sampler.MultiScaleSampler"><code class="docutils literal notranslate"><span class="pre">MultiScaleSampler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.multi_scale_sampler.MultiScaleSampler.__init__"><code class="docutils literal notranslate"><span class="pre">MultiScaleSampler.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.multi_scale_sampler.MultiScaleSampler.add_arguments"><code class="docutils literal notranslate"><span class="pre">MultiScaleSampler.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.multi_scale_sampler.MultiScaleSampler.update_scales"><code class="docutils literal notranslate"><span class="pre">MultiScaleSampler.update_scales()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.multi_scale_sampler.MultiScaleSampler.extra_repr"><code class="docutils literal notranslate"><span class="pre">MultiScaleSampler.extra_repr()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.sampler.html#data.sampler.multi_scale_sampler.MultiScaleSamplerDDP"><code class="docutils literal notranslate"><span class="pre">MultiScaleSamplerDDP</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.multi_scale_sampler.MultiScaleSamplerDDP.__init__"><code class="docutils literal notranslate"><span class="pre">MultiScaleSamplerDDP.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.multi_scale_sampler.MultiScaleSamplerDDP.extra_repr"><code class="docutils literal notranslate"><span class="pre">MultiScaleSamplerDDP.extra_repr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.multi_scale_sampler.MultiScaleSamplerDDP.update_scales"><code class="docutils literal notranslate"><span class="pre">MultiScaleSamplerDDP.update_scales()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.sampler.html#module-data.sampler.utils">data.sampler.utils module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.sampler.html#data.sampler.utils.image_batch_pairs"><code class="docutils literal notranslate"><span class="pre">image_batch_pairs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.sampler.html#data.sampler.utils.make_video_pairs"><code class="docutils literal notranslate"><span class="pre">make_video_pairs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.sampler.html#data.sampler.utils.create_intervallic_integer_list"><code class="docutils literal notranslate"><span class="pre">create_intervallic_integer_list()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.sampler.html#data.sampler.utils.make_tuple_list"><code class="docutils literal notranslate"><span class="pre">make_tuple_list()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.sampler.html#module-data.sampler.variable_batch_sampler">data.sampler.variable_batch_sampler module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.sampler.html#data.sampler.variable_batch_sampler.VariableBatchSampler"><code class="docutils literal notranslate"><span class="pre">VariableBatchSampler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.variable_batch_sampler.VariableBatchSampler.__init__"><code class="docutils literal notranslate"><span class="pre">VariableBatchSampler.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.variable_batch_sampler.VariableBatchSampler.update_scales"><code class="docutils literal notranslate"><span class="pre">VariableBatchSampler.update_scales()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.variable_batch_sampler.VariableBatchSampler.extra_repr"><code class="docutils literal notranslate"><span class="pre">VariableBatchSampler.extra_repr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.variable_batch_sampler.VariableBatchSampler.add_arguments"><code class="docutils literal notranslate"><span class="pre">VariableBatchSampler.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.sampler.html#data.sampler.variable_batch_sampler.VariableBatchSamplerDDP"><code class="docutils literal notranslate"><span class="pre">VariableBatchSamplerDDP</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.variable_batch_sampler.VariableBatchSamplerDDP.__init__"><code class="docutils literal notranslate"><span class="pre">VariableBatchSamplerDDP.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.variable_batch_sampler.VariableBatchSamplerDDP.update_scales"><code class="docutils literal notranslate"><span class="pre">VariableBatchSamplerDDP.update_scales()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.sampler.html#data.sampler.variable_batch_sampler.VariableBatchSamplerDDP.extra_repr"><code class="docutils literal notranslate"><span class="pre">VariableBatchSamplerDDP.extra_repr()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.sampler.html#module-data.sampler">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.sampler.html#data.sampler.build_sampler"><code class="docutils literal notranslate"><span class="pre">build_sampler()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.sampler.html#data.sampler.add_sampler_arguments"><code class="docutils literal notranslate"><span class="pre">add_sampler_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="data.text_tokenizer.html">data.text_tokenizer package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="data.text_tokenizer.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data.text_tokenizer.html#module-data.text_tokenizer.base_tokenizer">data.text_tokenizer.base_tokenizer module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.text_tokenizer.html#data.text_tokenizer.base_tokenizer.BaseTokenizer"><code class="docutils literal notranslate"><span class="pre">BaseTokenizer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.text_tokenizer.html#data.text_tokenizer.base_tokenizer.BaseTokenizer.__init__"><code class="docutils literal notranslate"><span class="pre">BaseTokenizer.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.text_tokenizer.html#data.text_tokenizer.base_tokenizer.BaseTokenizer.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseTokenizer.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.text_tokenizer.html#data.text_tokenizer.base_tokenizer.BaseTokenizer.get_vocab_size"><code class="docutils literal notranslate"><span class="pre">BaseTokenizer.get_vocab_size()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.text_tokenizer.html#data.text_tokenizer.base_tokenizer.BaseTokenizer.get_eot_token"><code class="docutils literal notranslate"><span class="pre">BaseTokenizer.get_eot_token()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.text_tokenizer.html#data.text_tokenizer.base_tokenizer.BaseTokenizer.get_sot_token"><code class="docutils literal notranslate"><span class="pre">BaseTokenizer.get_sot_token()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.text_tokenizer.html#data.text_tokenizer.base_tokenizer.BaseTokenizer.get_encodings"><code class="docutils literal notranslate"><span class="pre">BaseTokenizer.get_encodings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.text_tokenizer.html#data.text_tokenizer.base_tokenizer.BaseTokenizer.forward"><code class="docutils literal notranslate"><span class="pre">BaseTokenizer.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.text_tokenizer.html#module-data.text_tokenizer.clip_tokenizer">data.text_tokenizer.clip_tokenizer module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.text_tokenizer.html#data.text_tokenizer.clip_tokenizer.ClipTokenizer"><code class="docutils literal notranslate"><span class="pre">ClipTokenizer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.text_tokenizer.html#data.text_tokenizer.clip_tokenizer.ClipTokenizer.__init__"><code class="docutils literal notranslate"><span class="pre">ClipTokenizer.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.text_tokenizer.html#data.text_tokenizer.clip_tokenizer.ClipTokenizer.add_arguments"><code class="docutils literal notranslate"><span class="pre">ClipTokenizer.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.text_tokenizer.html#data.text_tokenizer.clip_tokenizer.ClipTokenizer.get_vocab_size"><code class="docutils literal notranslate"><span class="pre">ClipTokenizer.get_vocab_size()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.text_tokenizer.html#data.text_tokenizer.clip_tokenizer.ClipTokenizer.get_encodings"><code class="docutils literal notranslate"><span class="pre">ClipTokenizer.get_encodings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.text_tokenizer.html#data.text_tokenizer.clip_tokenizer.ClipTokenizer.get_eot_token"><code class="docutils literal notranslate"><span class="pre">ClipTokenizer.get_eot_token()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.text_tokenizer.html#data.text_tokenizer.clip_tokenizer.ClipTokenizer.get_sot_token"><code class="docutils literal notranslate"><span class="pre">ClipTokenizer.get_sot_token()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.text_tokenizer.html#data.text_tokenizer.clip_tokenizer.ClipTokenizer.forward"><code class="docutils literal notranslate"><span class="pre">ClipTokenizer.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.text_tokenizer.html#module-data.text_tokenizer">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.text_tokenizer.html#data.text_tokenizer.arguments_tokenizer"><code class="docutils literal notranslate"><span class="pre">arguments_tokenizer()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.text_tokenizer.html#data.text_tokenizer.build_tokenizer"><code class="docutils literal notranslate"><span class="pre">build_tokenizer()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="data.transforms.html">data.transforms package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="data.transforms.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.audio_aux.html">data.transforms.audio_aux package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.audio_aux.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.audio_aux.html#module-data.transforms.audio_aux.mfccs">data.transforms.audio_aux.mfccs module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.audio_aux.html#module-data.transforms.audio_aux">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.transforms.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data.transforms.html#module-data.transforms.audio">data.transforms.audio module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.audio.Gain"><code class="docutils literal notranslate"><span class="pre">Gain</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.audio.Gain.__init__"><code class="docutils literal notranslate"><span class="pre">Gain.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.audio.Gain.add_arguments"><code class="docutils literal notranslate"><span class="pre">Gain.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.audio.Noise"><code class="docutils literal notranslate"><span class="pre">Noise</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.audio.Noise.__init__"><code class="docutils literal notranslate"><span class="pre">Noise.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.audio.Noise.load_noise_files"><code class="docutils literal notranslate"><span class="pre">Noise.load_noise_files()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.audio.Noise.add_arguments"><code class="docutils literal notranslate"><span class="pre">Noise.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.audio.SetFixedLength"><code class="docutils literal notranslate"><span class="pre">SetFixedLength</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.audio.SetFixedLength.__init__"><code class="docutils literal notranslate"><span class="pre">SetFixedLength.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.audio.SetFixedLength.add_arguments"><code class="docutils literal notranslate"><span class="pre">SetFixedLength.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.audio.Roll"><code class="docutils literal notranslate"><span class="pre">Roll</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.audio.Roll.__init__"><code class="docutils literal notranslate"><span class="pre">Roll.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.audio.Roll.add_arguments"><code class="docutils literal notranslate"><span class="pre">Roll.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.audio.MFCCs"><code class="docutils literal notranslate"><span class="pre">MFCCs</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.audio.MFCCs.__init__"><code class="docutils literal notranslate"><span class="pre">MFCCs.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.audio.MFCCs.add_arguments"><code class="docutils literal notranslate"><span class="pre">MFCCs.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.audio.LambdaAudio"><code class="docutils literal notranslate"><span class="pre">LambdaAudio</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.audio.LambdaAudio.__init__"><code class="docutils literal notranslate"><span class="pre">LambdaAudio.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.audio.AudioResample"><code class="docutils literal notranslate"><span class="pre">AudioResample</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.audio.AudioResample.add_arguments"><code class="docutils literal notranslate"><span class="pre">AudioResample.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.audio.AudioResample.__init__"><code class="docutils literal notranslate"><span class="pre">AudioResample.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.audio.StandardizeChannels"><code class="docutils literal notranslate"><span class="pre">StandardizeChannels</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.audio.StandardizeChannels.__init__"><code class="docutils literal notranslate"><span class="pre">StandardizeChannels.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.audio.StandardizeChannels.add_arguments"><code class="docutils literal notranslate"><span class="pre">StandardizeChannels.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.transforms.html#module-data.transforms.audio_bytes">data.transforms.audio_bytes module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.audio_bytes.TorchaudioSave"><code class="docutils literal notranslate"><span class="pre">TorchaudioSave</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.audio_bytes.TorchaudioSave.__init__"><code class="docutils literal notranslate"><span class="pre">TorchaudioSave.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.audio_bytes.TorchaudioSave.add_arguments"><code class="docutils literal notranslate"><span class="pre">TorchaudioSave.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.transforms.html#module-data.transforms.base_transforms">data.transforms.base_transforms module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.base_transforms.BaseTransformation"><code class="docutils literal notranslate"><span class="pre">BaseTransformation</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.base_transforms.BaseTransformation.__init__"><code class="docutils literal notranslate"><span class="pre">BaseTransformation.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.base_transforms.BaseTransformation.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseTransformation.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.transforms.html#module-data.transforms.common">data.transforms.common module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.common.Compose"><code class="docutils literal notranslate"><span class="pre">Compose</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.common.Compose.__init__"><code class="docutils literal notranslate"><span class="pre">Compose.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.transforms.html#module-data.transforms.image_bytes">data.transforms.image_bytes module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_bytes.PILSave"><code class="docutils literal notranslate"><span class="pre">PILSave</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_bytes.PILSave.__init__"><code class="docutils literal notranslate"><span class="pre">PILSave.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_bytes.PILSave.add_arguments"><code class="docutils literal notranslate"><span class="pre">PILSave.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_bytes.ShuffleBytes"><code class="docutils literal notranslate"><span class="pre">ShuffleBytes</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_bytes.ShuffleBytes.__init__"><code class="docutils literal notranslate"><span class="pre">ShuffleBytes.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_bytes.ShuffleBytes.add_arguments"><code class="docutils literal notranslate"><span class="pre">ShuffleBytes.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_bytes.MaskPositions"><code class="docutils literal notranslate"><span class="pre">MaskPositions</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_bytes.MaskPositions.__init__"><code class="docutils literal notranslate"><span class="pre">MaskPositions.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_bytes.MaskPositions.add_arguments"><code class="docutils literal notranslate"><span class="pre">MaskPositions.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_bytes.BytePermutation"><code class="docutils literal notranslate"><span class="pre">BytePermutation</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_bytes.BytePermutation.__init__"><code class="docutils literal notranslate"><span class="pre">BytePermutation.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_bytes.BytePermutation.add_arguments"><code class="docutils literal notranslate"><span class="pre">BytePermutation.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_bytes.RandomUniformNoise"><code class="docutils literal notranslate"><span class="pre">RandomUniformNoise</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_bytes.RandomUniformNoise.__init__"><code class="docutils literal notranslate"><span class="pre">RandomUniformNoise.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_bytes.RandomUniformNoise.add_arguments"><code class="docutils literal notranslate"><span class="pre">RandomUniformNoise.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.transforms.html#module-data.transforms.image_pil">data.transforms.image_pil module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.FixedSizeCrop"><code class="docutils literal notranslate"><span class="pre">FixedSizeCrop</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.FixedSizeCrop.__init__"><code class="docutils literal notranslate"><span class="pre">FixedSizeCrop.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.FixedSizeCrop.add_arguments"><code class="docutils literal notranslate"><span class="pre">FixedSizeCrop.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.ScaleJitter"><code class="docutils literal notranslate"><span class="pre">ScaleJitter</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.ScaleJitter.__init__"><code class="docutils literal notranslate"><span class="pre">ScaleJitter.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.ScaleJitter.add_arguments"><code class="docutils literal notranslate"><span class="pre">ScaleJitter.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomResizedCrop"><code class="docutils literal notranslate"><span class="pre">RandomResizedCrop</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomResizedCrop.__init__"><code class="docutils literal notranslate"><span class="pre">RandomResizedCrop.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomResizedCrop.add_arguments"><code class="docutils literal notranslate"><span class="pre">RandomResizedCrop.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomResizedCrop.get_rrc_params"><code class="docutils literal notranslate"><span class="pre">RandomResizedCrop.get_rrc_params()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.AutoAugment"><code class="docutils literal notranslate"><span class="pre">AutoAugment</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.AutoAugment.__init__"><code class="docutils literal notranslate"><span class="pre">AutoAugment.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.AutoAugment.add_arguments"><code class="docutils literal notranslate"><span class="pre">AutoAugment.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandAugment"><code class="docutils literal notranslate"><span class="pre">RandAugment</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandAugment.__init__"><code class="docutils literal notranslate"><span class="pre">RandAugment.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandAugment.add_arguments"><code class="docutils literal notranslate"><span class="pre">RandAugment.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.TrivialAugmentWide"><code class="docutils literal notranslate"><span class="pre">TrivialAugmentWide</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.TrivialAugmentWide.__init__"><code class="docutils literal notranslate"><span class="pre">TrivialAugmentWide.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.TrivialAugmentWide.add_arguments"><code class="docutils literal notranslate"><span class="pre">TrivialAugmentWide.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomHorizontalFlip"><code class="docutils literal notranslate"><span class="pre">RandomHorizontalFlip</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomHorizontalFlip.__init__"><code class="docutils literal notranslate"><span class="pre">RandomHorizontalFlip.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomHorizontalFlip.add_arguments"><code class="docutils literal notranslate"><span class="pre">RandomHorizontalFlip.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomRotate"><code class="docutils literal notranslate"><span class="pre">RandomRotate</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomRotate.__init__"><code class="docutils literal notranslate"><span class="pre">RandomRotate.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomRotate.add_arguments"><code class="docutils literal notranslate"><span class="pre">RandomRotate.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.Resize"><code class="docutils literal notranslate"><span class="pre">Resize</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.Resize.__init__"><code class="docutils literal notranslate"><span class="pre">Resize.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.Resize.add_arguments"><code class="docutils literal notranslate"><span class="pre">Resize.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.CenterCrop"><code class="docutils literal notranslate"><span class="pre">CenterCrop</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.CenterCrop.__init__"><code class="docutils literal notranslate"><span class="pre">CenterCrop.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.CenterCrop.add_arguments"><code class="docutils literal notranslate"><span class="pre">CenterCrop.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.SSDCroping"><code class="docutils literal notranslate"><span class="pre">SSDCroping</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.SSDCroping.__init__"><code class="docutils literal notranslate"><span class="pre">SSDCroping.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.SSDCroping.add_arguments"><code class="docutils literal notranslate"><span class="pre">SSDCroping.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.PhotometricDistort"><code class="docutils literal notranslate"><span class="pre">PhotometricDistort</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.PhotometricDistort.__init__"><code class="docutils literal notranslate"><span class="pre">PhotometricDistort.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.PhotometricDistort.add_arguments"><code class="docutils literal notranslate"><span class="pre">PhotometricDistort.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.BoxPercentCoords"><code class="docutils literal notranslate"><span class="pre">BoxPercentCoords</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.BoxPercentCoords.__init__"><code class="docutils literal notranslate"><span class="pre">BoxPercentCoords.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.InstanceProcessor"><code class="docutils literal notranslate"><span class="pre">InstanceProcessor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.InstanceProcessor.__init__"><code class="docutils literal notranslate"><span class="pre">InstanceProcessor.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomResize"><code class="docutils literal notranslate"><span class="pre">RandomResize</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomResize.__init__"><code class="docutils literal notranslate"><span class="pre">RandomResize.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomResize.add_arguments"><code class="docutils literal notranslate"><span class="pre">RandomResize.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomShortSizeResize"><code class="docutils literal notranslate"><span class="pre">RandomShortSizeResize</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomShortSizeResize.__init__"><code class="docutils literal notranslate"><span class="pre">RandomShortSizeResize.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomShortSizeResize.add_arguments"><code class="docutils literal notranslate"><span class="pre">RandomShortSizeResize.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomErasing"><code class="docutils literal notranslate"><span class="pre">RandomErasing</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomErasing.__init__"><code class="docutils literal notranslate"><span class="pre">RandomErasing.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomErasing.add_arguments"><code class="docutils literal notranslate"><span class="pre">RandomErasing.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomGaussianBlur"><code class="docutils literal notranslate"><span class="pre">RandomGaussianBlur</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomGaussianBlur.__init__"><code class="docutils literal notranslate"><span class="pre">RandomGaussianBlur.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomGaussianBlur.add_arguments"><code class="docutils literal notranslate"><span class="pre">RandomGaussianBlur.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomCrop"><code class="docutils literal notranslate"><span class="pre">RandomCrop</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomCrop.__init__"><code class="docutils literal notranslate"><span class="pre">RandomCrop.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomCrop.add_arguments"><code class="docutils literal notranslate"><span class="pre">RandomCrop.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomCrop.get_params"><code class="docutils literal notranslate"><span class="pre">RandomCrop.get_params()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomCrop.get_params_from_box"><code class="docutils literal notranslate"><span class="pre">RandomCrop.get_params_from_box()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomCrop.get_params_from_mask"><code class="docutils literal notranslate"><span class="pre">RandomCrop.get_params_from_mask()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.ToTensor"><code class="docutils literal notranslate"><span class="pre">ToTensor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.ToTensor.__init__"><code class="docutils literal notranslate"><span class="pre">ToTensor.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.ToTensor.add_arguments"><code class="docutils literal notranslate"><span class="pre">ToTensor.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomOrder"><code class="docutils literal notranslate"><span class="pre">RandomOrder</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomOrder.__init__"><code class="docutils literal notranslate"><span class="pre">RandomOrder.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandomOrder.add_arguments"><code class="docutils literal notranslate"><span class="pre">RandomOrder.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandAugmentTimm"><code class="docutils literal notranslate"><span class="pre">RandAugmentTimm</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandAugmentTimm.__init__"><code class="docutils literal notranslate"><span class="pre">RandAugmentTimm.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_pil.RandAugmentTimm.add_arguments"><code class="docutils literal notranslate"><span class="pre">RandAugmentTimm.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.transforms.html#module-data.transforms.image_torch">data.transforms.image_torch module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_torch.RandomMixup"><code class="docutils literal notranslate"><span class="pre">RandomMixup</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_torch.RandomMixup.__init__"><code class="docutils literal notranslate"><span class="pre">RandomMixup.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_torch.RandomMixup.add_arguments"><code class="docutils literal notranslate"><span class="pre">RandomMixup.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_torch.RandomCutmix"><code class="docutils literal notranslate"><span class="pre">RandomCutmix</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_torch.RandomCutmix.__init__"><code class="docutils literal notranslate"><span class="pre">RandomCutmix.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.image_torch.RandomCutmix.add_arguments"><code class="docutils literal notranslate"><span class="pre">RandomCutmix.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.image_torch.apply_mixing_transforms"><code class="docutils literal notranslate"><span class="pre">apply_mixing_transforms()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.transforms.html#module-data.transforms.utils">data.transforms.utils module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.utils.setup_size"><code class="docutils literal notranslate"><span class="pre">setup_size()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.utils.intersect"><code class="docutils literal notranslate"><span class="pre">intersect()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.utils.jaccard_numpy"><code class="docutils literal notranslate"><span class="pre">jaccard_numpy()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.transforms.html#module-data.transforms.video">data.transforms.video module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.video.ToTensor"><code class="docutils literal notranslate"><span class="pre">ToTensor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.ToTensor.__init__"><code class="docutils literal notranslate"><span class="pre">ToTensor.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.video.SaveInputs"><code class="docutils literal notranslate"><span class="pre">SaveInputs</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.SaveInputs.__init__"><code class="docutils literal notranslate"><span class="pre">SaveInputs.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.SaveInputs.add_arguments"><code class="docutils literal notranslate"><span class="pre">SaveInputs.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.SaveInputs.save_video_with_annotations"><code class="docutils literal notranslate"><span class="pre">SaveInputs.save_video_with_annotations()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.video.RandomResizedCrop"><code class="docutils literal notranslate"><span class="pre">RandomResizedCrop</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.RandomResizedCrop.__init__"><code class="docutils literal notranslate"><span class="pre">RandomResizedCrop.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.RandomResizedCrop.add_arguments"><code class="docutils literal notranslate"><span class="pre">RandomResizedCrop.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.RandomResizedCrop.get_params"><code class="docutils literal notranslate"><span class="pre">RandomResizedCrop.get_params()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.video.RandomShortSizeResizeCrop"><code class="docutils literal notranslate"><span class="pre">RandomShortSizeResizeCrop</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.RandomShortSizeResizeCrop.__init__"><code class="docutils literal notranslate"><span class="pre">RandomShortSizeResizeCrop.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.RandomShortSizeResizeCrop.add_arguments"><code class="docutils literal notranslate"><span class="pre">RandomShortSizeResizeCrop.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.RandomShortSizeResizeCrop.get_params"><code class="docutils literal notranslate"><span class="pre">RandomShortSizeResizeCrop.get_params()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.video.RandomCrop"><code class="docutils literal notranslate"><span class="pre">RandomCrop</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.RandomCrop.__init__"><code class="docutils literal notranslate"><span class="pre">RandomCrop.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.RandomCrop.add_arguments"><code class="docutils literal notranslate"><span class="pre">RandomCrop.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.RandomCrop.get_params"><code class="docutils literal notranslate"><span class="pre">RandomCrop.get_params()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.video.RandomHorizontalFlip"><code class="docutils literal notranslate"><span class="pre">RandomHorizontalFlip</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.RandomHorizontalFlip.__init__"><code class="docutils literal notranslate"><span class="pre">RandomHorizontalFlip.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.RandomHorizontalFlip.add_arguments"><code class="docutils literal notranslate"><span class="pre">RandomHorizontalFlip.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.video.CenterCrop"><code class="docutils literal notranslate"><span class="pre">CenterCrop</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.CenterCrop.__init__"><code class="docutils literal notranslate"><span class="pre">CenterCrop.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.CenterCrop.add_arguments"><code class="docutils literal notranslate"><span class="pre">CenterCrop.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.video.Resize"><code class="docutils literal notranslate"><span class="pre">Resize</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.Resize.__init__"><code class="docutils literal notranslate"><span class="pre">Resize.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.Resize.add_arguments"><code class="docutils literal notranslate"><span class="pre">Resize.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.video.CropByBoundingBox"><code class="docutils literal notranslate"><span class="pre">CropByBoundingBox</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.CropByBoundingBox.__init__"><code class="docutils literal notranslate"><span class="pre">CropByBoundingBox.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.CropByBoundingBox.expand_boxes"><code class="docutils literal notranslate"><span class="pre">CropByBoundingBox.expand_boxes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.CropByBoundingBox.add_arguments"><code class="docutils literal notranslate"><span class="pre">CropByBoundingBox.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.video.ShuffleAudios"><code class="docutils literal notranslate"><span class="pre">ShuffleAudios</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.ShuffleAudios.__init__"><code class="docutils literal notranslate"><span class="pre">ShuffleAudios.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.transforms.html#data.transforms.video.ShuffleAudios.add_arguments"><code class="docutils literal notranslate"><span class="pre">ShuffleAudios.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.transforms.html#module-data.transforms">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.transforms.html#data.transforms.arguments_augmentation"><code class="docutils literal notranslate"><span class="pre">arguments_augmentation()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="data.video_reader.html">data.video_reader package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="data.video_reader.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data.video_reader.html#module-data.video_reader.base_av_reader">data.video_reader.base_av_reader module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.video_reader.html#data.video_reader.base_av_reader.VideoDurationDoesNotMatchAudioDurationError"><code class="docutils literal notranslate"><span class="pre">VideoDurationDoesNotMatchAudioDurationError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader"><code class="docutils literal notranslate"><span class="pre">BaseAVReader</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseAVReader.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader.__init__"><code class="docutils literal notranslate"><span class="pre">BaseAVReader.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader.get_frame_transform"><code class="docutils literal notranslate"><span class="pre">BaseAVReader.get_frame_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader.check_video"><code class="docutils literal notranslate"><span class="pre">BaseAVReader.check_video()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader.read_video"><code class="docutils literal notranslate"><span class="pre">BaseAVReader.read_video()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader.num_frames"><code class="docutils literal notranslate"><span class="pre">BaseAVReader.num_frames()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader.random_sampling"><code class="docutils literal notranslate"><span class="pre">BaseAVReader.random_sampling()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader.uniform_sampling"><code class="docutils literal notranslate"><span class="pre">BaseAVReader.uniform_sampling()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader.read_video_file_into_clips"><code class="docutils literal notranslate"><span class="pre">BaseAVReader.read_video_file_into_clips()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.video_reader.html#data.video_reader.base_av_reader.BaseAVReader.dummy_audio_video_clips"><code class="docutils literal notranslate"><span class="pre">BaseAVReader.dummy_audio_video_clips()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.video_reader.html#module-data.video_reader.decord_reader">data.video_reader.decord_reader module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.video_reader.html#data.video_reader.decord_reader.DecordAVReader"><code class="docutils literal notranslate"><span class="pre">DecordAVReader</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.video_reader.html#data.video_reader.decord_reader.DecordAVReader.__init__"><code class="docutils literal notranslate"><span class="pre">DecordAVReader.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.video_reader.html#data.video_reader.decord_reader.DecordAVReader.read_video"><code class="docutils literal notranslate"><span class="pre">DecordAVReader.read_video()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.video_reader.html#module-data.video_reader.pyav_reader">data.video_reader.pyav_reader module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.video_reader.html#data.video_reader.pyav_reader.PyAVReader"><code class="docutils literal notranslate"><span class="pre">PyAVReader</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.video_reader.html#data.video_reader.pyav_reader.PyAVReader.read_video"><code class="docutils literal notranslate"><span class="pre">PyAVReader.read_video()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.video_reader.html#module-data.video_reader">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.video_reader.html#data.video_reader.arguments_video_reader"><code class="docutils literal notranslate"><span class="pre">arguments_video_reader()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.video_reader.html#data.video_reader.get_video_reader"><code class="docutils literal notranslate"><span class="pre">get_video_reader()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</section>
+<section id="module-data.data_loaders">
+<span id="data-data-loaders-module"></span><h2>data.data_loaders module<a class="headerlink" href="#module-data.data_loaders" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="data.data_loaders.create_test_loader">
+<span class="sig-prename descclassname"><span class="pre">data.data_loaders.</span></span><span class="sig-name descname"><span class="pre">create_test_loader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="data.loader.html#data.loader.dataloader.CVNetsDataLoader" title="data.loader.dataloader.CVNetsDataLoader"><span class="pre">CVNetsDataLoader</span></a></span></span><a class="reference internal" href="../_modules/data/data_loaders.html#create_test_loader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.data_loaders.create_test_loader" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to create and return a dataset loader for test dataset from command-line arguments</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="data.data_loaders.create_train_val_loader">
+<span class="sig-prename descclassname"><span class="pre">data.data_loaders.</span></span><span class="sig-name descname"><span class="pre">create_train_val_loader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="data.loader.html#data.loader.dataloader.CVNetsDataLoader" title="data.loader.dataloader.CVNetsDataLoader"><span class="pre">CVNetsDataLoader</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="data.loader.html#data.loader.dataloader.CVNetsDataLoader" title="data.loader.dataloader.CVNetsDataLoader"><span class="pre">CVNetsDataLoader</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Sampler</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/data/data_loaders.html#create_train_val_loader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.data_loaders.create_train_val_loader" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to create training and validation data loaders.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>opts</strong> – Command-line arguments</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tuple containing training data loader, (optional) validation data loader, and training data sampler.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="data.data_loaders.get_num_data_samples_as_int_or_mapping">
+<span class="sig-prename descclassname"><span class="pre">data.data_loaders.</span></span><span class="sig-name descname"><span class="pre">get_num_data_samples_as_int_or_mapping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="data.datasets.html#data.datasets.dataset_base.BaseDataset" title="data.datasets.dataset_base.BaseDataset"><span class="pre">BaseDataset</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/data/data_loaders.html#get_num_data_samples_as_int_or_mapping"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.data_loaders.get_num_data_samples_as_int_or_mapping" title="Permalink to this definition"></a></dt>
+<dd><p>Return the number of samples in the dataset.</p>
+<p>The dataset can be a single or composition of multiple datasets (as in multi-task learning). For a single
+dataset, the number of samples is integer while for multiple datasets, a dictionary is returned with task name and
+number of samples per task.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dataset</strong> – An instance of <cite>data.datasets.BaseDataset</cite> class</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An integer for single dataset and mapping for composite datasets.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-data">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-data" title="Permalink to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

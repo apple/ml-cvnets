@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>data.datasets package &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">data.datasets package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/autogen/data.datasets.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="data-datasets-package">
+<h1>data.datasets package<a class="headerlink" href="#data-datasets-package" title="Permalink to this heading"></a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="data.datasets.audio_classification.html">data.datasets.audio_classification package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.audio_classification.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.audio_classification.html#module-data.datasets.audio_classification.speech_commands_v2">data.datasets.audio_classification.speech_commands_v2 module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.audio_classification.html#data.datasets.audio_classification.speech_commands_v2.SpeechCommandsv2Dataset"><code class="docutils literal notranslate"><span class="pre">SpeechCommandsv2Dataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.audio_classification.html#data.datasets.audio_classification.speech_commands_v2.SpeechCommandsv2Dataset.__init__"><code class="docutils literal notranslate"><span class="pre">SpeechCommandsv2Dataset.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.audio_classification.html#data.datasets.audio_classification.speech_commands_v2.SpeechCommandsv2Dataset.add_arguments"><code class="docutils literal notranslate"><span class="pre">SpeechCommandsv2Dataset.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.audio_classification.html#data.datasets.audio_classification.speech_commands_v2.SpeechCommandsv2Dataset.get_sample"><code class="docutils literal notranslate"><span class="pre">SpeechCommandsv2Dataset.get_sample()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.audio_classification.html#data.datasets.audio_classification.speech_commands_v2.SpeechCommandsv2Dataset.get_transformed_sample"><code class="docutils literal notranslate"><span class="pre">SpeechCommandsv2Dataset.get_transformed_sample()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.audio_classification.html#module-data.datasets.audio_classification">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="data.datasets.classification.html">data.datasets.classification package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.classification.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.classification.html#module-data.datasets.classification.base_image_classification_dataset">data.datasets.classification.base_image_classification_dataset module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.base_image_classification_dataset.BaseImageClassificationDataset"><code class="docutils literal notranslate"><span class="pre">BaseImageClassificationDataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.base_image_classification_dataset.BaseImageClassificationDataset.__init__"><code class="docutils literal notranslate"><span class="pre">BaseImageClassificationDataset.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.base_image_classification_dataset.BaseImageClassificationDataset.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseImageClassificationDataset.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.base_image_classification_dataset.BaseImageClassificationDataset.share_dataset_arguments"><code class="docutils literal notranslate"><span class="pre">BaseImageClassificationDataset.share_dataset_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.base_image_classification_dataset.BaseImageClassificationDataset.extra_repr"><code class="docutils literal notranslate"><span class="pre">BaseImageClassificationDataset.extra_repr()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.classification.html#module-data.datasets.classification.base_imagenet_shift_dataset">data.datasets.classification.base_imagenet_shift_dataset module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.base_imagenet_shift_dataset.BaseImageNetShiftDataset"><code class="docutils literal notranslate"><span class="pre">BaseImageNetShiftDataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.base_imagenet_shift_dataset.BaseImageNetShiftDataset.__init__"><code class="docutils literal notranslate"><span class="pre">BaseImageNetShiftDataset.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.base_imagenet_shift_dataset.BaseImageNetShiftDataset.post_init_checks"><code class="docutils literal notranslate"><span class="pre">BaseImageNetShiftDataset.post_init_checks()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.base_imagenet_shift_dataset.BaseImageNetShiftDataset.class_id_to_imagenet_class_id"><code class="docutils literal notranslate"><span class="pre">BaseImageNetShiftDataset.class_id_to_imagenet_class_id()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.classification.html#module-data.datasets.classification.imagenet">data.datasets.classification.imagenet module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.imagenet.ImageNetDataset"><code class="docutils literal notranslate"><span class="pre">ImageNetDataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.imagenet.ImageNetDataset.__init__"><code class="docutils literal notranslate"><span class="pre">ImageNetDataset.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.classification.html#module-data.datasets.classification.imagenet_a">data.datasets.classification.imagenet_a module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.imagenet_a.ImageNetADataset"><code class="docutils literal notranslate"><span class="pre">ImageNetADataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.imagenet_a.ImageNetADataset.__init__"><code class="docutils literal notranslate"><span class="pre">ImageNetADataset.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.imagenet_a.ImageNetADataset.class_id_to_imagenet_class_id"><code class="docutils literal notranslate"><span class="pre">ImageNetADataset.class_id_to_imagenet_class_id()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.classification.html#module-data.datasets.classification.imagenet_r">data.datasets.classification.imagenet_r module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.imagenet_r.ImageNetRDataset"><code class="docutils literal notranslate"><span class="pre">ImageNetRDataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.imagenet_r.ImageNetRDataset.__init__"><code class="docutils literal notranslate"><span class="pre">ImageNetRDataset.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.imagenet_r.ImageNetRDataset.class_id_to_imagenet_class_id"><code class="docutils literal notranslate"><span class="pre">ImageNetRDataset.class_id_to_imagenet_class_id()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.classification.html#module-data.datasets.classification.imagenet_sketch">data.datasets.classification.imagenet_sketch module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.imagenet_sketch.ImageNetSketchDataset"><code class="docutils literal notranslate"><span class="pre">ImageNetSketchDataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.imagenet_sketch.ImageNetSketchDataset.__init__"><code class="docutils literal notranslate"><span class="pre">ImageNetSketchDataset.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.imagenet_sketch.ImageNetSketchDataset.class_id_to_imagenet_class_id"><code class="docutils literal notranslate"><span class="pre">ImageNetSketchDataset.class_id_to_imagenet_class_id()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.classification.html#module-data.datasets.classification.imagenet_synsets">data.datasets.classification.imagenet_synsets module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.classification.html#module-data.datasets.classification.imagenet_v2">data.datasets.classification.imagenet_v2 module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.imagenet_v2.Imagenetv2Dataset"><code class="docutils literal notranslate"><span class="pre">Imagenetv2Dataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.imagenet_v2.Imagenetv2Dataset.__init__"><code class="docutils literal notranslate"><span class="pre">Imagenetv2Dataset.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.imagenet_v2.Imagenetv2Dataset.add_arguments"><code class="docutils literal notranslate"><span class="pre">Imagenetv2Dataset.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.classification.html#module-data.datasets.classification.places365">data.datasets.classification.places365 module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.places365.Places365Dataset"><code class="docutils literal notranslate"><span class="pre">Places365Dataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.classification.html#data.datasets.classification.places365.Places365Dataset.__init__"><code class="docutils literal notranslate"><span class="pre">Places365Dataset.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.classification.html#module-data.datasets.classification">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="data.datasets.detection.html">data.datasets.detection package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.detection.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.detection.html#module-data.datasets.detection.base_detection">data.datasets.detection.base_detection module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.detection.html#data.datasets.detection.base_detection.BaseDetectionDataset"><code class="docutils literal notranslate"><span class="pre">BaseDetectionDataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.detection.html#data.datasets.detection.base_detection.BaseDetectionDataset.__init__"><code class="docutils literal notranslate"><span class="pre">BaseDetectionDataset.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.detection.html#data.datasets.detection.base_detection.BaseDetectionDataset.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseDetectionDataset.add_arguments()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.detection.html#module-data.datasets.detection.coco_base">data.datasets.detection.coco_base module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.detection.html#data.datasets.detection.coco_base.COCODetection"><code class="docutils literal notranslate"><span class="pre">COCODetection</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.detection.html#data.datasets.detection.coco_base.COCODetection.__init__"><code class="docutils literal notranslate"><span class="pre">COCODetection.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.detection.html#data.datasets.detection.coco_base.COCODetection.share_dataset_arguments"><code class="docutils literal notranslate"><span class="pre">COCODetection.share_dataset_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.detection.html#data.datasets.detection.coco_base.COCODetection.add_arguments"><code class="docutils literal notranslate"><span class="pre">COCODetection.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.detection.html#data.datasets.detection.coco_base.COCODetection.get_boxes_and_labels"><code class="docutils literal notranslate"><span class="pre">COCODetection.get_boxes_and_labels()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.detection.html#data.datasets.detection.coco_base.COCODetection.get_image"><code class="docutils literal notranslate"><span class="pre">COCODetection.get_image()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.detection.html#data.datasets.detection.coco_base.COCODetection.extra_repr"><code class="docutils literal notranslate"><span class="pre">COCODetection.extra_repr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.detection.html#data.datasets.detection.coco_base.COCODetection.class_names"><code class="docutils literal notranslate"><span class="pre">COCODetection.class_names()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.detection.html#module-data.datasets.detection.coco_mask_rcnn">data.datasets.detection.coco_mask_rcnn module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.detection.html#data.datasets.detection.coco_mask_rcnn.COCODetectionMaskRCNN"><code class="docutils literal notranslate"><span class="pre">COCODetectionMaskRCNN</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.detection.html#data.datasets.detection.coco_mask_rcnn.COCODetectionMaskRCNN.__init__"><code class="docutils literal notranslate"><span class="pre">COCODetectionMaskRCNN.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.detection.html#data.datasets.detection.coco_mask_rcnn.COCODetectionMaskRCNN.add_arguments"><code class="docutils literal notranslate"><span class="pre">COCODetectionMaskRCNN.add_arguments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.detection.html#data.datasets.detection.coco_mask_rcnn.coco_mask_rcnn_collate_fn"><code class="docutils literal notranslate"><span class="pre">coco_mask_rcnn_collate_fn()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.detection.html#module-data.datasets.detection.coco_ssd">data.datasets.detection.coco_ssd module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.detection.html#data.datasets.detection.coco_ssd.COCODetectionSSD"><code class="docutils literal notranslate"><span class="pre">COCODetectionSSD</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.detection.html#data.datasets.detection.coco_ssd.COCODetectionSSD.__init__"><code class="docutils literal notranslate"><span class="pre">COCODetectionSSD.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.detection.html#data.datasets.detection.coco_ssd.COCODetectionSSD.generate_anchors"><code class="docutils literal notranslate"><span class="pre">COCODetectionSSD.generate_anchors()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.detection.html#data.datasets.detection.coco_ssd.COCODetectionSSD.extra_repr"><code class="docutils literal notranslate"><span class="pre">COCODetectionSSD.extra_repr()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.detection.html#data.datasets.detection.coco_ssd.coco_ssd_collate_fn"><code class="docutils literal notranslate"><span class="pre">coco_ssd_collate_fn()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.detection.html#module-data.datasets.detection">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="data.datasets.multi_modal_img_text.html">data.datasets.multi_modal_img_text package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.multi_modal_img_text.zero_shot.html">data.datasets.multi_modal_img_text.zero_shot package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.zero_shot.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.zero_shot.html#module-data.datasets.multi_modal_img_text.zero_shot.base_zero_shot">data.datasets.multi_modal_img_text.zero_shot.base_zero_shot module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.zero_shot.html#module-data.datasets.multi_modal_img_text.zero_shot.imagenet">data.datasets.multi_modal_img_text.zero_shot.imagenet module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.zero_shot.html#module-data.datasets.multi_modal_img_text.zero_shot.imagenet_class_names">data.datasets.multi_modal_img_text.zero_shot.imagenet_class_names module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.zero_shot.html#module-data.datasets.multi_modal_img_text.zero_shot.templates">data.datasets.multi_modal_img_text.zero_shot.templates module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.zero_shot.html#module-data.datasets.multi_modal_img_text.zero_shot">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#module-data.datasets.multi_modal_img_text.base_multi_modal_img_text">data.datasets.multi_modal_img_text.base_multi_modal_img_text module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.base_multi_modal_img_text.BaseMultiModalImgText"><code class="docutils literal notranslate"><span class="pre">BaseMultiModalImgText</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.base_multi_modal_img_text.BaseMultiModalImgText.__init__"><code class="docutils literal notranslate"><span class="pre">BaseMultiModalImgText.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.base_multi_modal_img_text.BaseMultiModalImgText.get_zero_shot_dataset"><code class="docutils literal notranslate"><span class="pre">BaseMultiModalImgText.get_zero_shot_dataset()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.base_multi_modal_img_text.BaseMultiModalImgText.get_dataset"><code class="docutils literal notranslate"><span class="pre">BaseMultiModalImgText.get_dataset()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.base_multi_modal_img_text.BaseMultiModalImgText.share_dataset_arguments"><code class="docutils literal notranslate"><span class="pre">BaseMultiModalImgText.share_dataset_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.base_multi_modal_img_text.BaseMultiModalImgText.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseMultiModalImgText.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.base_multi_modal_img_text.BaseMultiModalImgText.get_zero_shot_pair"><code class="docutils literal notranslate"><span class="pre">BaseMultiModalImgText.get_zero_shot_pair()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.base_multi_modal_img_text.BaseMultiModalImgText.get_dataset_pair"><code class="docutils literal notranslate"><span class="pre">BaseMultiModalImgText.get_dataset_pair()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.base_multi_modal_img_text.BaseMultiModalImgText.extra_repr"><code class="docutils literal notranslate"><span class="pre">BaseMultiModalImgText.extra_repr()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.base_multi_modal_img_text.multi_modal_img_text_collate_fn"><code class="docutils literal notranslate"><span class="pre">multi_modal_img_text_collate_fn()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#module-data.datasets.multi_modal_img_text.flickr">data.datasets.multi_modal_img_text.flickr module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.flickr.FlickrDataset"><code class="docutils literal notranslate"><span class="pre">FlickrDataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.flickr.FlickrDataset.get_dataset"><code class="docutils literal notranslate"><span class="pre">FlickrDataset.get_dataset()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#module-data.datasets.multi_modal_img_text.img_text_tar_dataset">data.datasets.multi_modal_img_text.img_text_tar_dataset module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.img_text_tar_dataset.extract_content"><code class="docutils literal notranslate"><span class="pre">extract_content()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.img_text_tar_dataset.decode_image"><code class="docutils literal notranslate"><span class="pre">decode_image()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.img_text_tar_dataset.decode_text"><code class="docutils literal notranslate"><span class="pre">decode_text()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.img_text_tar_dataset.async_download_file_from_s3"><code class="docutils literal notranslate"><span class="pre">async_download_file_from_s3()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.img_text_tar_dataset.ImgTextTarDataset"><code class="docutils literal notranslate"><span class="pre">ImgTextTarDataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.img_text_tar_dataset.ImgTextTarDataset.__init__"><code class="docutils literal notranslate"><span class="pre">ImgTextTarDataset.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.img_text_tar_dataset.ImgTextTarDataset.get_dataset"><code class="docutils literal notranslate"><span class="pre">ImgTextTarDataset.get_dataset()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.img_text_tar_dataset.ImgTextTarDataset.add_arguments"><code class="docutils literal notranslate"><span class="pre">ImgTextTarDataset.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.img_text_tar_dataset.ImgTextTarDataset.get_dataset_pair"><code class="docutils literal notranslate"><span class="pre">ImgTextTarDataset.get_dataset_pair()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#module-data.datasets.multi_modal_img_text">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.multi_modal_img_text.html#data.datasets.multi_modal_img_text.arguments_multi_modal_img_text"><code class="docutils literal notranslate"><span class="pre">arguments_multi_modal_img_text()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="data.datasets.segmentation.html">data.datasets.segmentation package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.segmentation.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.segmentation.html#module-data.datasets.segmentation.ade20k">data.datasets.segmentation.ade20k module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.ade20k.ADE20KDataset"><code class="docutils literal notranslate"><span class="pre">ADE20KDataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.ade20k.ADE20KDataset.__init__"><code class="docutils literal notranslate"><span class="pre">ADE20KDataset.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.ade20k.ADE20KDataset.adjust_mask_value"><code class="docutils literal notranslate"><span class="pre">ADE20KDataset.adjust_mask_value()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.ade20k.ADE20KDataset.color_palette"><code class="docutils literal notranslate"><span class="pre">ADE20KDataset.color_palette()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.ade20k.ADE20KDataset.class_names"><code class="docutils literal notranslate"><span class="pre">ADE20KDataset.class_names()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.segmentation.html#module-data.datasets.segmentation.base_segmentation">data.datasets.segmentation.base_segmentation module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.base_segmentation.BaseImageSegmentationDataset"><code class="docutils literal notranslate"><span class="pre">BaseImageSegmentationDataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.base_segmentation.BaseImageSegmentationDataset.__init__"><code class="docutils literal notranslate"><span class="pre">BaseImageSegmentationDataset.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.base_segmentation.BaseImageSegmentationDataset.add_arguments"><code class="docutils literal notranslate"><span class="pre">BaseImageSegmentationDataset.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.base_segmentation.BaseImageSegmentationDataset.check_dataset"><code class="docutils literal notranslate"><span class="pre">BaseImageSegmentationDataset.check_dataset()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.base_segmentation.BaseImageSegmentationDataset.adjust_mask_value"><code class="docutils literal notranslate"><span class="pre">BaseImageSegmentationDataset.adjust_mask_value()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.base_segmentation.BaseImageSegmentationDataset.color_palette"><code class="docutils literal notranslate"><span class="pre">BaseImageSegmentationDataset.color_palette()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.base_segmentation.BaseImageSegmentationDataset.class_names"><code class="docutils literal notranslate"><span class="pre">BaseImageSegmentationDataset.class_names()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.base_segmentation.BaseImageSegmentationDataset.read_mask_pil"><code class="docutils literal notranslate"><span class="pre">BaseImageSegmentationDataset.read_mask_pil()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.base_segmentation.BaseImageSegmentationDataset.convert_mask_to_tensor"><code class="docutils literal notranslate"><span class="pre">BaseImageSegmentationDataset.convert_mask_to_tensor()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.segmentation.html#module-data.datasets.segmentation.coco_segmentation">data.datasets.segmentation.coco_segmentation module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.coco_segmentation.COCOSegmentationDataset"><code class="docutils literal notranslate"><span class="pre">COCOSegmentationDataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.coco_segmentation.COCOSegmentationDataset.__init__"><code class="docutils literal notranslate"><span class="pre">COCOSegmentationDataset.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.coco_segmentation.COCOSegmentationDataset.class_names"><code class="docutils literal notranslate"><span class="pre">COCOSegmentationDataset.class_names()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.coco_segmentation.COCOSegmentationDataset.coco_to_pascal_mapping"><code class="docutils literal notranslate"><span class="pre">COCOSegmentationDataset.coco_to_pascal_mapping()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.segmentation.html#module-data.datasets.segmentation.pascal_voc">data.datasets.segmentation.pascal_voc module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.pascal_voc.PascalVOCDataset"><code class="docutils literal notranslate"><span class="pre">PascalVOCDataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.pascal_voc.PascalVOCDataset.__init__"><code class="docutils literal notranslate"><span class="pre">PascalVOCDataset.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.pascal_voc.PascalVOCDataset.add_arguments"><code class="docutils literal notranslate"><span class="pre">PascalVOCDataset.add_arguments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.pascal_voc.PascalVOCDataset.color_palette"><code class="docutils literal notranslate"><span class="pre">PascalVOCDataset.color_palette()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="data.datasets.segmentation.html#data.datasets.segmentation.pascal_voc.PascalVOCDataset.class_names"><code class="docutils literal notranslate"><span class="pre">PascalVOCDataset.class_names()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.segmentation.html#module-data.datasets.segmentation">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="data.datasets.utils.html">data.datasets.utils package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.utils.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.utils.html#module-data.datasets.utils.common">data.datasets.utils.common module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.utils.html#data.datasets.utils.common.file_has_valid_image_extension"><code class="docutils literal notranslate"><span class="pre">file_has_valid_image_extension()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.utils.html#data.datasets.utils.common.file_has_allowed_extension"><code class="docutils literal notranslate"><span class="pre">file_has_allowed_extension()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.utils.html#data.datasets.utils.common.get_image_paths"><code class="docutils literal notranslate"><span class="pre">get_image_paths()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.utils.html#data.datasets.utils.common.select_random_subset"><code class="docutils literal notranslate"><span class="pre">select_random_subset()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.utils.html#data.datasets.utils.common.select_samples_by_category"><code class="docutils literal notranslate"><span class="pre">select_samples_by_category()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.utils.html#module-data.datasets.utils.text">data.datasets.utils.text module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.utils.html#data.datasets.utils.text.caption_preprocessing"><code class="docutils literal notranslate"><span class="pre">caption_preprocessing()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.utils.html#module-data.datasets.utils.video">data.datasets.utils.video module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data.datasets.utils.html#data.datasets.utils.video.fetch_labels_from_timestamps"><code class="docutils literal notranslate"><span class="pre">fetch_labels_from_timestamps()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data.datasets.utils.html#module-data.datasets.utils">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</section>
+<section id="module-data.datasets.dataset_base">
+<span id="data-datasets-dataset-base-module"></span><h2>data.datasets.dataset_base module<a class="headerlink" href="#module-data.datasets.dataset_base" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.BaseDataset">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">data.datasets.dataset_base.</span></span><span class="sig-name descname"><span class="pre">BaseDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_training</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_evaluation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data/datasets/dataset_base.html#BaseDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.dataset_base.BaseDataset" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>Base class for creating datasets. Sub-classes must implement __getitem__,
+_training_transforms, and _validation_transforms functions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>opts</strong> – Command-line arguments</p></li>
+<li><p><strong>is_training</strong> – Training mode or not. Defaults to True.</p></li>
+<li><p><strong>is_evaluation</strong> – Evaluation mode or not. Defaults to False.</p></li>
+</ul>
+</dd>
+</dl>
+<dl>
+<dt>…note::</dt><dd><p><cite>is_training</cite> is used to indicate whether the dataset is used for training or
+validation. On the other hand, <cite>is_evaluation</cite> mode is used to indicate the
+dataset is used for testing.</p>
+<p>Theoretically, <cite>is_training=False</cite> and <cite>is_evaluation=True</cite> should be the same.
+However, for some datasets (especially segmentation), validation dataset
+transforms are different from test transforms because each image has different
+resolution, making it difficult to construct batches. Therefore, we treat these
+two modes different.</p>
+<p>For datasets, where validation and testing transforms are the same, we set
+evaluation transforms the same as the validation transforms.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.BaseDataset.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_training</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_evaluation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/data/datasets/dataset_base.html#BaseDataset.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.dataset_base.BaseDataset.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.BaseDataset.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/data/datasets/dataset_base.html#BaseDataset.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.dataset_base.BaseDataset.add_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Add dataset-specific arguments</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.BaseDataset.load_from_server">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load_from_server</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_training</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_evaluation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Namespace</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/data/datasets/dataset_base.html#BaseDataset.load_from_server"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.dataset_base.BaseDataset.load_from_server" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to load dataset from server.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.BaseDataset.get_augmentation_transforms">
+<span class="sig-name descname"><span class="pre">get_augmentation_transforms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="data.transforms.html#data.transforms.base_transforms.BaseTransformation" title="data.transforms.base_transforms.BaseTransformation"><span class="pre">BaseTransformation</span></a></span></span><a class="reference internal" href="../_modules/data/datasets/dataset_base.html#BaseDataset.get_augmentation_transforms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.dataset_base.BaseDataset.get_augmentation_transforms" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to get data transforms depending on the
+mode (training, evaluation, or validation)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.BaseDataset.share_dataset_arguments">
+<span class="sig-name descname"><span class="pre">share_dataset_arguments</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/data/datasets/dataset_base.html#BaseDataset.share_dataset_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.dataset_base.BaseDataset.share_dataset_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Function that can be used by sub-classes to share dataset-specific options.
+It returns a mapping. An example is {“model.classification.n_classes”, 1000}</p>
+<p>By default, we return an empty dictionary</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.BaseDataset.extra_repr">
+<span class="sig-name descname"><span class="pre">extra_repr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/data/datasets/dataset_base.html#BaseDataset.extra_repr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.dataset_base.BaseDataset.extra_repr" title="Permalink to this definition"></a></dt>
+<dd><p>Extra information to be represented in __repr__. Each line in the output
+string should be prefixed with <code class="docutils literal notranslate"><span class="pre">\t</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.BaseDataset.get_item_metadata">
+<span class="sig-name descname"><span class="pre">get_item_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item_idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="reference internal" href="../_modules/data/datasets/dataset_base.html#BaseDataset.get_item_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.dataset_base.BaseDataset.get_item_metadata" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the metadata for given &#64;item_idx. This method could be used by
+samplers for sampling dynamic batches based on the metadata of the items.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>item_idx</strong> (<em>int</em>) – The index of sample to provide metadata for. The indexing
+should be aligned with how <code class="docutils literal notranslate"><span class="pre">self.__getitem__(item_idx)</span></code> sequences the
+dataset items.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Returns: A dict containing the metadata. Each sampler may require a specific</dt><dd><p>schema to be returned by this function.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.BaseImageDataset">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">data.datasets.dataset_base.</span></span><span class="sig-name descname"><span class="pre">BaseImageDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_training</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_evaluation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data/datasets/dataset_base.html#BaseImageDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.dataset_base.BaseImageDataset" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#data.datasets.dataset_base.BaseDataset" title="data.datasets.dataset_base.BaseDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseDataset</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>Base Dataset class for Image datasets.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.BaseImageDataset.read_image_pil">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_image_pil</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Image</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/data/datasets/dataset_base.html#BaseImageDataset.read_image_pil"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.dataset_base.BaseImageDataset.read_image_pil" title="Permalink to this definition"></a></dt>
+<dd><p>Reads a PIL image.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> – Path of image file.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>If there are no exceptions (e.g., because of corrupted images), PIL Image is
+returned. Otherwise, None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.BaseImageDataset.extra_repr">
+<span class="sig-name descname"><span class="pre">extra_repr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/data/datasets/dataset_base.html#BaseImageDataset.extra_repr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.dataset_base.BaseImageDataset.extra_repr" title="Permalink to this definition"></a></dt>
+<dd><p>Extra information to be represented in __repr__. Each line in the output
+string should be prefixed with <code class="docutils literal notranslate"><span class="pre">\t</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.BaseVideoDataset">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">data.datasets.dataset_base.</span></span><span class="sig-name descname"><span class="pre">BaseVideoDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/data/datasets/dataset_base.html#BaseVideoDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.dataset_base.BaseVideoDataset" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#data.datasets.dataset_base.BaseDataset" title="data.datasets.dataset_base.BaseDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseDataset</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>Base Dataset class for video datasets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>opts</strong> – Command-line arguments</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.BaseVideoDataset.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/data/datasets/dataset_base.html#BaseVideoDataset.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.dataset_base.BaseVideoDataset.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.BaseVideoDataset.clips_per_video">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">clips_per_video</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#data.datasets.dataset_base.BaseVideoDataset.clips_per_video" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.BaseVideoDataset.n_frames_per_clip">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">n_frames_per_clip</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#data.datasets.dataset_base.BaseVideoDataset.n_frames_per_clip" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.BaseVideoDataset.add_arguments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">add_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/data/datasets/dataset_base.html#BaseVideoDataset.add_arguments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.dataset_base.BaseVideoDataset.add_arguments" title="Permalink to this definition"></a></dt>
+<dd><p>Add dataset-specific arguments</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.BaseVideoDataset.get_item_metadata">
+<span class="sig-name descname"><span class="pre">get_item_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item_idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#data.datasets.dataset_base.VideoMetadataDict" title="data.datasets.dataset_base.VideoMetadataDict"><span class="pre">VideoMetadataDict</span></a></span></span><a class="reference internal" href="../_modules/data/datasets/dataset_base.html#BaseVideoDataset.get_item_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.dataset_base.BaseVideoDataset.get_item_metadata" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the metadata for given &#64;item_idx. This method is used by
+VideoClipSampler for sampling dynamic clips based on the duration of the items.</p>
+<p>Subclasses should override this method if they use VideoClipSampler.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>item_idx</strong> (<em>int</em>) – The index of video file to provide metadata. The indexing
+should be aligned with how <code class="docutils literal notranslate"><span class="pre">self.__getitem__(item_idx)</span></code> sequences the
+dataset items.</p>
+</dd>
+</dl>
+<p>Returns: A dict containing the metadata. Please see &#64;VideoMetadataDict
+documentation.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.VideoMetadataDict">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">data.datasets.dataset_base.</span></span><span class="sig-name descname"><span class="pre">VideoMetadataDict</span></span><a class="reference internal" href="../_modules/data/datasets/dataset_base.html#VideoMetadataDict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.dataset_base.VideoMetadataDict" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">TypedDict</span></code></p>
+<p>This class is an alias of Dict, in addition to optional standard key names and
+value types. The fields will be required or optional depending on the Sampler.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.VideoMetadataDict.video_fps">
+<span class="sig-name descname"><span class="pre">video_fps</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#data.datasets.dataset_base.VideoMetadataDict.video_fps" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.VideoMetadataDict.total_video_frames">
+<span class="sig-name descname"><span class="pre">total_video_frames</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#data.datasets.dataset_base.VideoMetadataDict.total_video_frames" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.VideoMetadataDict.video_duration">
+<span class="sig-name descname"><span class="pre">video_duration</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#data.datasets.dataset_base.VideoMetadataDict.video_duration" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="data.datasets.dataset_base.VideoMetadataDict.audio_fps">
+<span class="sig-name descname"><span class="pre">audio_fps</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#data.datasets.dataset_base.VideoMetadataDict.audio_fps" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-data.datasets">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-data.datasets" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="data.datasets.build_dataset_from_registry">
+<span class="sig-prename descclassname"><span class="pre">data.datasets.</span></span><span class="sig-name descname"><span class="pre">build_dataset_from_registry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_training</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_evaluation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#data.datasets.dataset_base.BaseDataset" title="data.datasets.dataset_base.BaseDataset"><span class="pre">BaseDataset</span></a></span></span><a class="reference internal" href="../_modules/data/datasets.html#build_dataset_from_registry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.build_dataset_from_registry" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to build a dataset from dataset registry</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>opts</strong> – Command-line arguments</p></li>
+<li><p><strong>is_training</strong> – Training mode or not. Defaults to True.</p></li>
+<li><p><strong>is_evaluation</strong> – Evaluation mode or not. Defaults to False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An instance of BaseDataset</p>
+</dd>
+</dl>
+<dl>
+<dt>…note:</dt><dd><p><cite>is_training</cite> is used to indicate whether the dataset is used for training or validation
+On the other hand, <cite>is_evaluation</cite> mode is used to indicate the dataset is used for testing.</p>
+<p>Theoretically, <cite>is_training=False</cite> and <cite>is_evaluation=True</cite> should be the same. However, for some datasets
+(especially segmentation), validation dataset transforms are different from
+test transforms because each image has different resolution, making it difficult to construct
+batches. Therefore, we treat these two modes different. For datasets, where validation and testing
+transforms are the same, we set evaluation transforms the same as the validation transforms (e.g., in ImageNet
+object classification).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="data.datasets.get_test_dataset">
+<span class="sig-prename descclassname"><span class="pre">data.datasets.</span></span><span class="sig-name descname"><span class="pre">get_test_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#data.datasets.dataset_base.BaseDataset" title="data.datasets.dataset_base.BaseDataset"><span class="pre">BaseDataset</span></a></span></span><a class="reference internal" href="../_modules/data/datasets.html#get_test_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.get_test_dataset" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to build a dataset for testing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>opts</strong> – Command-line arguments</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An instance of BaseDataset</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="data.datasets.get_train_val_datasets">
+<span class="sig-prename descclassname"><span class="pre">data.datasets.</span></span><span class="sig-name descname"><span class="pre">get_train_val_datasets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#data.datasets.dataset_base.BaseDataset" title="data.datasets.dataset_base.BaseDataset"><span class="pre">BaseDataset</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#data.datasets.dataset_base.BaseDataset" title="data.datasets.dataset_base.BaseDataset"><span class="pre">BaseDataset</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/data/datasets.html#get_train_val_datasets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.get_train_val_datasets" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to build a dataset for training and validation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>opts</strong> – Command-line arguments</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Training and (optionally) validation datasets.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="data.datasets.arguments_dataset">
+<span class="sig-prename descclassname"><span class="pre">data.datasets.</span></span><span class="sig-name descname"><span class="pre">arguments_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ArgumentParser</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ArgumentParser</span></span></span><a class="reference internal" href="../_modules/data/datasets.html#arguments_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#data.datasets.arguments_dataset" title="Permalink to this definition"></a></dt>
+<dd><p>Add dataset-specific arguments from BaseDataset, BaseImageDataset,
+BaseImageClassificationDataset, BaseImageNetShiftDataset,
+BaseVideoDataset, zero-shot datasets, and DATASET_REGISTRY.</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

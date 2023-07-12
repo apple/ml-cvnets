@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cvnets.modules.regnet_modules &mdash; CVNets: A library for training computer vision networks  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CVNets: A library for training computer vision networks
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../sample_recipes.html">Sample Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../how_to.html">How To</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_samplers.html">Data Samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../en/general/README-model-zoo.html">Model Zoo</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CVNets: A library for training computer vision networks</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../cvnets.html">cvnets</a></li>
+      <li class="breadcrumb-item active">cvnets.modules.regnet_modules</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cvnets.modules.regnet_modules</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># For licensing see accompanying LICENSE file.</span>
+<span class="c1"># Copyright (C) 2023 Apple Inc. All Rights Reserved.</span>
+<span class="c1">#</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">nn</span>
+
+<span class="kn">from</span> <span class="nn">cvnets.layers</span> <span class="kn">import</span> <span class="n">ConvLayer2d</span><span class="p">,</span> <span class="n">Identity</span><span class="p">,</span> <span class="n">StochasticDepth</span>
+<span class="kn">from</span> <span class="nn">cvnets.layers.activation</span> <span class="kn">import</span> <span class="n">build_activation_layer</span>
+<span class="kn">from</span> <span class="nn">cvnets.modules</span> <span class="kn">import</span> <span class="n">BaseModule</span><span class="p">,</span> <span class="n">SqueezeExcitation</span>
+
+
+<div class="viewcode-block" id="XRegNetBlock"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.regnet_modules.XRegNetBlock">[docs]</a><span class="k">class</span> <span class="nc">XRegNetBlock</span><span class="p">(</span><span class="n">BaseModule</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class implements the `X` block based on the ResNet bottleneck block. See figure 4 of RegNet</span>
+<span class="sd">    paper `RegNet model &lt;https://arxiv.org/pdf/2003.13678.pdf&gt;`_</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: command-line arguments</span>
+<span class="sd">        width_in: The number of input channels</span>
+<span class="sd">        width_out: The number of output channels</span>
+<span class="sd">        stride: Stride for convolution</span>
+<span class="sd">        groups: Number of groups for convolution</span>
+<span class="sd">        bottleneck_multiplier: The number of in/out channels of the intermediate</span>
+<span class="sd">            conv layer will be scaled by this value</span>
+<span class="sd">        se_ratio: The numer squeeze-excitation ratio. The number of channels in the SE</span>
+<span class="sd">            module will be scaled by this value</span>
+<span class="sd">        stochastic_depth_prob: The stochastic depth probability</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="XRegNetBlock.__init__"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.regnet_modules.XRegNetBlock.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
+        <span class="n">width_in</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">width_out</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">stride</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">groups</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">bottleneck_multiplier</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">se_ratio</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">stochastic_depth_prob</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># drop probability (= 1 - survival_prob)</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="n">bottleneck_width</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">width_out</span> <span class="o">*</span> <span class="n">bottleneck_multiplier</span><span class="p">))</span>
+        <span class="n">bottleneck_groups</span> <span class="o">=</span> <span class="n">bottleneck_width</span> <span class="o">//</span> <span class="n">groups</span>
+
+        <span class="n">conv_1x1_1</span> <span class="o">=</span> <span class="n">ConvLayer2d</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">in_channels</span><span class="o">=</span><span class="n">width_in</span><span class="p">,</span>
+            <span class="n">out_channels</span><span class="o">=</span><span class="n">bottleneck_width</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">use_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">use_act</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">conv_3x3</span> <span class="o">=</span> <span class="n">ConvLayer2d</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">in_channels</span><span class="o">=</span><span class="n">bottleneck_width</span><span class="p">,</span>
+            <span class="n">out_channels</span><span class="o">=</span><span class="n">bottleneck_width</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+            <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span>
+            <span class="n">groups</span><span class="o">=</span><span class="n">bottleneck_groups</span><span class="p">,</span>
+            <span class="n">use_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">use_act</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">se</span> <span class="o">=</span> <span class="n">Identity</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">se_ratio</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">squeeze_channels</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">se_ratio</span> <span class="o">*</span> <span class="n">width_in</span><span class="p">))</span>
+            <span class="n">se</span> <span class="o">=</span> <span class="n">SqueezeExcitation</span><span class="p">(</span>
+                <span class="n">opts</span><span class="p">,</span>
+                <span class="n">in_channels</span><span class="o">=</span><span class="n">bottleneck_width</span><span class="p">,</span>
+                <span class="n">squeeze_channels</span><span class="o">=</span><span class="n">squeeze_channels</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">conv_1x1_2</span> <span class="o">=</span> <span class="n">ConvLayer2d</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">in_channels</span><span class="o">=</span><span class="n">bottleneck_width</span><span class="p">,</span>
+            <span class="n">out_channels</span><span class="o">=</span><span class="n">width_out</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">use_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">use_act</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">block</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">()</span>
+        <span class="n">block</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="s2">&quot;conv_1x1_1&quot;</span><span class="p">,</span> <span class="n">module</span><span class="o">=</span><span class="n">conv_1x1_1</span><span class="p">)</span>
+        <span class="n">block</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="s2">&quot;conv_3x3&quot;</span><span class="p">,</span> <span class="n">module</span><span class="o">=</span><span class="n">conv_3x3</span><span class="p">)</span>
+        <span class="n">block</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="s2">&quot;se&quot;</span><span class="p">,</span> <span class="n">module</span><span class="o">=</span><span class="n">se</span><span class="p">)</span>
+        <span class="n">block</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="s2">&quot;conv_1x1_2&quot;</span><span class="p">,</span> <span class="n">module</span><span class="o">=</span><span class="n">conv_1x1_2</span><span class="p">)</span>
+
+        <span class="n">down_sample</span> <span class="o">=</span> <span class="n">Identity</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">stride</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">width_out</span> <span class="o">!=</span> <span class="n">width_in</span><span class="p">:</span>
+            <span class="n">down_sample</span> <span class="o">=</span> <span class="n">ConvLayer2d</span><span class="p">(</span>
+                <span class="n">opts</span><span class="p">,</span>
+                <span class="n">in_channels</span><span class="o">=</span><span class="n">width_in</span><span class="p">,</span>
+                <span class="n">out_channels</span><span class="o">=</span><span class="n">width_out</span><span class="p">,</span>
+                <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span>
+                <span class="n">use_act</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">act_type</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.activation.name&quot;</span><span class="p">)</span>
+        <span class="n">neg_slope</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.activation.neg_slope&quot;</span><span class="p">)</span>
+        <span class="n">inplace</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">opts</span><span class="p">,</span> <span class="s2">&quot;model.activation.inplace&quot;</span><span class="p">)</span>
+        <span class="n">final_act</span> <span class="o">=</span> <span class="n">build_activation_layer</span><span class="p">(</span>
+            <span class="n">opts</span><span class="o">=</span><span class="n">opts</span><span class="p">,</span>
+            <span class="n">act_type</span><span class="o">=</span><span class="n">act_type</span><span class="p">,</span>
+            <span class="n">inplace</span><span class="o">=</span><span class="n">inplace</span><span class="p">,</span>
+            <span class="n">negative_slope</span><span class="o">=</span><span class="n">neg_slope</span><span class="p">,</span>
+            <span class="n">num_parameters</span><span class="o">=</span><span class="n">width_out</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">stochastic_depth</span> <span class="o">=</span> <span class="n">StochasticDepth</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">stochastic_depth_prob</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;row&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">block</span> <span class="o">=</span> <span class="n">block</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">down_sample</span> <span class="o">=</span> <span class="n">down_sample</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">final_act</span> <span class="o">=</span> <span class="n">final_act</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">width_in</span> <span class="o">=</span> <span class="n">width_in</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">width_out</span> <span class="o">=</span> <span class="n">width_out</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stride</span> <span class="o">=</span> <span class="n">stride</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">groups</span> <span class="o">=</span> <span class="n">groups</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bottleneck_multiplier</span> <span class="o">=</span> <span class="n">bottleneck_multiplier</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">se_ratio</span> <span class="o">=</span> <span class="n">se_ratio</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stochastic_depth_prob</span> <span class="o">=</span> <span class="n">stochastic_depth_prob</span></div>
+
+<div class="viewcode-block" id="XRegNetBlock.forward"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.regnet_modules.XRegNetBlock.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward pass for XRegNetBlock.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x: Batch of images</span>
+
+<span class="sd">        Retruns:</span>
+<span class="sd">            * output of XRegNetBlock including stochastic depth layer and</span>
+<span class="sd">                residual.</span>
+
+<span class="sd">        Shape:</span>
+<span class="sd">            x: :math:`(N, C_{in}, H_{in}, W_{in})`</span>
+<span class="sd">            Output: :math:`(N, C_{out}, H_{out}, W_{out})`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stochastic_depth</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">down_sample</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">res</span> <span class="o">+</span> <span class="n">out</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_act</span><span class="p">(</span><span class="n">out</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">(width_in=</span><span class="si">{}</span><span class="s2">, width_out=</span><span class="si">{}</span><span class="s2">, stride=</span><span class="si">{}</span><span class="s2">, groups=</span><span class="si">{}</span><span class="s2">, bottleneck_multiplier=</span><span class="si">{}</span><span class="s2">, se_ratio=</span><span class="si">{}</span><span class="s2">, stochastic_depth_prob=</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">width_in</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">width_out</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bottleneck_multiplier</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">se_ratio</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stochastic_depth_prob</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AnyRegNetStage"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.regnet_modules.AnyRegNetStage">[docs]</a><span class="k">class</span> <span class="nc">AnyRegNetStage</span><span class="p">(</span><span class="n">BaseModule</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class implements a &#39;stage&#39; as defined in the `RegNet paper &lt;https://arxiv.org/pdf/2003.13678.pdf&gt;`_.</span>
+<span class="sd">    It consists of a sequence of bottleneck blocks.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        opts: command-line arguments</span>
+<span class="sd">        depth: The number of XRegNetBlocks in the stage</span>
+<span class="sd">        width_in: The number of input channels of the first block</span>
+<span class="sd">        width_out: The number of output channels of each block</span>
+<span class="sd">        stride: Stride for convolution of first block</span>
+<span class="sd">        groups: Number of groups for the intermediate convolution (bottleneck) layer in each block</span>
+<span class="sd">        bottleneck_multiplier: The number of in/out channels of the intermediate</span>
+<span class="sd">            conv layer of each block will be scaled by this value</span>
+<span class="sd">        se_ratio: The numer squeeze-excitation ratio. The number of channels in the SE</span>
+<span class="sd">            module of each block will be scaled by this value</span>
+<span class="sd">        stage_depths: A list of the number of blocks in each stage</span>
+<span class="sd">        stage_index: The index of the current stage being constructed</span>
+<span class="sd">        stochastic_depth_prob: The stochastic depth probability</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="AnyRegNetStage.__init__"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.regnet_modules.AnyRegNetStage.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">opts</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
+        <span class="n">depth</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">width_in</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">width_out</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">stride</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">groups</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">bottleneck_multiplier</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">se_ratio</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">stage_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">stochastic_depth_probs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="n">stage_blocks</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sd_prob</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">stochastic_depth_probs</span><span class="p">):</span>
+            <span class="n">block</span> <span class="o">=</span> <span class="n">XRegNetBlock</span><span class="p">(</span>
+                <span class="n">opts</span><span class="p">,</span>
+                <span class="n">width_in</span><span class="o">=</span><span class="n">width_in</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">width_out</span><span class="p">,</span>
+                <span class="n">width_out</span><span class="o">=</span><span class="n">width_out</span><span class="p">,</span>
+                <span class="n">stride</span><span class="o">=</span><span class="n">stride</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">groups</span><span class="o">=</span><span class="n">groups</span><span class="p">,</span>
+                <span class="n">bottleneck_multiplier</span><span class="o">=</span><span class="n">bottleneck_multiplier</span><span class="p">,</span>
+                <span class="n">se_ratio</span><span class="o">=</span><span class="n">se_ratio</span><span class="p">,</span>
+                <span class="n">stochastic_depth_prob</span><span class="o">=</span><span class="n">sd_prob</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">stage_blocks</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Stage</span><span class="si">{</span><span class="n">stage_index</span><span class="si">}</span><span class="s2">-Block</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">module</span><span class="o">=</span><span class="n">block</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage</span> <span class="o">=</span> <span class="n">stage_blocks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">depth</span> <span class="o">=</span> <span class="n">depth</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">width_in</span> <span class="o">=</span> <span class="n">width_in</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">width_out</span> <span class="o">=</span> <span class="n">width_out</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stride</span> <span class="o">=</span> <span class="n">stride</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">groups</span> <span class="o">=</span> <span class="n">groups</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bottleneck_multiplier</span> <span class="o">=</span> <span class="n">bottleneck_multiplier</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">se_ratio</span> <span class="o">=</span> <span class="n">se_ratio</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage_index</span> <span class="o">=</span> <span class="n">stage_index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stochastic_depth_probs</span> <span class="o">=</span> <span class="n">stochastic_depth_probs</span></div>
+
+<div class="viewcode-block" id="AnyRegNetStage.forward"><a class="viewcode-back" href="../../../autogen/cvnets.modules.html#cvnets.modules.regnet_modules.AnyRegNetStage.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward pass through all blocks in the stage.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x: Batch of images.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            * output of passing x through all blocks in the stage.</span>
+
+<span class="sd">        Shape:</span>
+<span class="sd">            x: :math:`(N, C_{in}, H_{in}, W_{in})`</span>
+<span class="sd">            Output: :math:`(N, C_{out}, H_{out}, W_{out})`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">(depth=</span><span class="si">{}</span><span class="s2">, width_in=</span><span class="si">{}</span><span class="s2">, width_out=</span><span class="si">{}</span><span class="s2">, stride=</span><span class="si">{}</span><span class="s2">, groups=</span><span class="si">{}</span><span class="s2">, bottleneck_multiplier=</span><span class="si">{}</span><span class="s2">, se_ratio=</span><span class="si">{}</span><span class="s2">, stage_index=</span><span class="si">{}</span><span class="s2">, stochastic_depth_probs=</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">depth</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">width_in</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">width_out</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bottleneck_multiplier</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">se_ratio</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage_index</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stochastic_depth_probs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright (C) 2023 Apple Inc. All Rights Reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
