@@ -1,6 +1,6 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
 
@@ -20,16 +20,26 @@ def train_val_datasets(opts):
 
     if dataset_category == "classification":
         # image classification
-        from .classification import DummyClassificationDataset as dataset_cls
+        from tests.dummy_datasets.classification import (
+            DummyClassificationDataset as dataset_cls,
+        )
     elif dataset_category == "detection" and dataset_name.find("ssd") > -1:
         # Object detection using SSD
-        from .ssd_detection import DummySSDDetectionDataset as dataset_cls
+        from tests.dummy_datasets.ssd_detection import (
+            DummySSDDetectionDataset as dataset_cls,
+        )
     elif dataset_category == "segmentation":
-        from .segmentation import DummySegmentationDataset as dataset_cls
+        from tests.dummy_datasets.segmentation import (
+            DummySegmentationDataset as dataset_cls,
+        )
     elif dataset_category == "video_classification":
-        from .video_classification import DummyVideoClassificationDataset as dataset_cls
-    elif dataset_category == "multi_modal_img_text":
-        from .multi_modal_img_text import DummyMultiModalImageTextDataset as dataset_cls
+        from tests.dummy_datasets.video_classification import (
+            DummyVideoClassificationDataset as dataset_cls,
+        )
+    elif dataset_category == "multi_modal_image_text":
+        from tests.dummy_datasets.multi_modal_img_text import (
+            DummyMultiModalImageTextDataset as dataset_cls,
+        )
     else:
         raise NotImplementedError(
             "Dummy datasets for {} not yet implemented".format(dataset_category)

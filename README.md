@@ -18,16 +18,13 @@ semantic segmentation, and foundation models (e.g., CLIP).
 
 ## What's new?
 
-   * ***Dec 2022***: Version 0.3 of the CVNets library includes
-      * [RangeAugment: Efficient online augmentation with Range Learning](https://arxiv.org/abs/2212.10553)
-      * Training and evaluating foundation models (CLIP)
-      * Mask R-CNN
-      * EfficientNet, Swin Transformer, and ViT
-      * Enhanced distillation support
+   * ***July 2023***: Version 0.4 of the CVNets library includes
+      *  [Bytes Are All You Need: Transformers Operating Directly On File Bytes
+](https://arxiv.org/abs/2306.00238)
 
 ## Installation
 
-We recommend to use Python 3.8+ and [PyTorch](https://pytorch.org) (version >= v1.12.0)
+We recommend to use Python 3.10+ and [PyTorch](https://pytorch.org) (version >= v1.12.0)
 
 Instructions below use Conda, if you don't have Conda installed, you can check out [How to Install Conda](https://docs.conda.io/en/latest/miniconda.html#latest-miniconda-installer-links).
 
@@ -37,11 +34,11 @@ git clone git@github.com:apple/ml-cvnets.git
 cd ml-cvnets
 
 # Create a virtual env. We use Conda
-conda create -n cvnets python=3.8
+conda create -n cvnets python=3.10.8
 conda activate cvnets
 
 # install requirements and CVNets package
-pip install -r requirements.txt
+pip install -r requirements.txt -c constraints.txt
 pip install --editable .
 ```
 
@@ -66,11 +63,21 @@ ImageNet classification models
      * [MobileNetv3](https://arxiv.org/abs/1905.02244)
      * [EfficientNet](https://arxiv.org/abs/1905.11946)
      * [ResNet](https://arxiv.org/abs/1512.03385)
+     * [RegNet](https://arxiv.org/abs/2003.13678)
    * Transformers
      * [Vision Transformer](https://arxiv.org/abs/2010.11929)
      * [MobileViTv1](https://arxiv.org/abs/2110.02178)
      * [MobileViTv2](https://arxiv.org/abs/2206.02680)
      * [SwinTransformer](https://arxiv.org/abs/2103.14030)
+</details>
+
+<details>
+<summary>
+Multimodal Classification
+</summary>
+
+  * [ByteFormer](https://arxiv.org/abs/2306.00238)
+
 </details>
 
 <details>
@@ -125,7 +132,10 @@ Distillation
 
 ## Maintainers
 
-This code is developed by <a href="https://sacmehta.github.io" target="_blank">Sachin Mehta</a>, and is now maintained by Sachin, <a href="https://farzadab.github.io" target="_blank">Farzad Abdolhosseini</a>, and <a href="http://mchorton.com" target="_blank">Maxwell Horton</a>.
+This code is developed by <a href="https://sacmehta.github.io" target="_blank">Sachin</a>, and is now maintained by Sachin, <a href="https://mchorton.com" target="_blank">Maxwell Horton</a>, <a href="https://www.mohammad.pro" target="_blank">Mohammad Sekhavat</a>, and Yanzi Jin.
+
+### Previous Maintainers
+* <a href="https://farzadab.github.io" target="_blank">Farzad</a>
 
 ## Research effort at Apple using CVNets
 
@@ -135,6 +145,7 @@ Below is the list of publications from Apple that uses CVNets:
    * [CVNets: High performance library for Computer Vision, ACM MM'22](https://arxiv.org/abs/2206.02002)
    * [Separable Self-attention for Mobile Vision Transformers (MobileViTv2)](https://arxiv.org/abs/2206.02680)
    * [RangeAugment: Efficient Online Augmentation with Range Learning](https://arxiv.org/abs/2212.10553)
+   * [Bytes Are All You Need: Transformers Operating Directly on File Bytes](https://arxiv.org/abs/2306.00238)
 
 ## Contributing to CVNets
 

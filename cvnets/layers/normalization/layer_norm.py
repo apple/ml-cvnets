@@ -1,18 +1,19 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn, Tensor, Size
-from typing import Optional, Union, List
-import torch
+from typing import List, Optional, Union
 
-from . import register_norm_fn
+import torch
+from torch import Size, Tensor, nn
+
+from cvnets.layers.normalization import register_norm_fn
 
 
 @register_norm_fn(name="layer_norm")
 class LayerNorm(nn.LayerNorm):
-    """
+    r"""
     Applies `Layer Normalization <https://arxiv.org/abs/1607.06450>`_ over a input tensor
 
     Args:
@@ -70,10 +71,6 @@ class LayerNorm(nn.LayerNorm):
                 "LayerNorm is supported for channel-first and channel-last format only"
             )
 
-    def profile_module(self, input: Tensor) -> (Tensor, float, float):
-        params = sum([p.numel() for p in self.parameters()])
-        return input, params, 0.0
-
 
 @register_norm_fn(name="layer_norm_2d")
 @register_norm_fn(name="layer_norm_nchw")
@@ -109,10 +106,6 @@ class LayerNorm2D_NCHW(nn.GroupNorm):
         return "{}(num_channels={}, eps={}, affine={})".format(
             self.__class__.__name__, self.num_channels, self.eps, self.affine
         )
-
-    def profile_module(self, input: Tensor) -> (Tensor, float, float):
-        params = sum([p.numel() for p in self.parameters()])
-        return input, params, 0.0
 
 
 @register_norm_fn(name="layer_norm_fp32")

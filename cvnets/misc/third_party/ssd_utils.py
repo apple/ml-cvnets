@@ -1,12 +1,13 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
+
+import math
+from typing import Optional, Tuple
 
 import torch
 from torch import Tensor
-import math
-from typing import Optional, Tuple
 
 """
 This source code in this file is adapted from following repos, both of which are released under MIT license.

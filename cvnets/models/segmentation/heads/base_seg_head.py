@@ -1,26 +1,29 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import torch
-from torch import nn, Tensor
-from typing import Optional, Dict, Tuple
 import argparse
+from typing import Dict, Optional, Tuple
 
+from torch import Tensor, nn
+
+from cvnets.layers import ConvLayer2d, Dropout2d, UpSample
+from cvnets.misc.common import parameter_list
+from cvnets.misc.init_utils import initialize_weights
+from cvnets.models import MODEL_REGISTRY, BaseAnyNNModel
 from utils import logger
 
-from ....misc.common import parameter_list
-from ....misc.init_utils import initialize_weights
-from ....layers import ConvLayer, Dropout2d, UpSample
 
-
-class BaseSegHead(nn.Module):
+@MODEL_REGISTRY.register(name="__base__", type="segmentation_head")
+class BaseSegHead(BaseAnyNNModel):
     """
     Base class for segmentation heads
     """
 
-    def __init__(self, opts, enc_conf: dict, use_l5_exp: Optional[bool] = False):
+    def __init__(
+        self, opts, enc_conf: dict, use_l5_exp: Optional[bool] = False, *args, **kwargs
+    ):
         enc_ch_l5_exp_out = _check_out_channels(enc_conf, "exp_before_cls")
         enc_ch_l5_out = _check_out_channels(enc_conf, "layer5")
         enc_ch_l4_out = _check_out_channels(enc_conf, "layer4")
@@ -28,7 +31,13 @@ class BaseSegHead(nn.Module):
         enc_ch_l2_out = _check_out_channels(enc_conf, "layer2")
         enc_ch_l1_out = _check_out_channels(enc_conf, "layer1")
 
-        super().__init__()
+        n_seg_classes = getattr(opts, "model.segmentation.n_classes")
+        if n_seg_classes is None:
+            logger.error(
+                "Please specify number of segmentation classes using --model.segmentation.n-classes. Got None."
+            )
+
+        super().__init__(opts, *args, **kwargs)
 
         self.use_l5_exp = use_l5_exp
         self.enc_l5_exp_channels = enc_ch_l5_exp_out
@@ -38,7 +47,7 @@ class BaseSegHead(nn.Module):
         self.enc_l2_channels = enc_ch_l2_out
         self.enc_l1_channels = enc_ch_l1_out
 
-        self.n_seg_classes = getattr(opts, "model.segmentation.n_classes", 20)
+        self.n_seg_classes = n_seg_classes
         self.lr_multiplier = getattr(opts, "model.segmentation.lr_multiplier", 1.0)
         self.classifier_dropout = getattr(
             opts, "model.segmentation.classifier_dropout", 0.1
@@ -50,7 +59,7 @@ class BaseSegHead(nn.Module):
             drop_aux = getattr(opts, "model.segmentation.aux_dropout", 0.1)
             inner_channels = max(int(self.enc_l4_channels // 4), 128)
             self.aux_head = nn.Sequential(
-                ConvLayer(
+                ConvLayer2d(
                     opts=opts,
                     in_channels=self.enc_l4_channels,
                     out_channels=inner_channels,
@@ -62,7 +71,7 @@ class BaseSegHead(nn.Module):
                     groups=1,
                 ),
                 Dropout2d(drop_aux),
-                ConvLayer(
+                ConvLayer2d(
                     opts=opts,
                     in_channels=inner_channels,
                     out_channels=self.n_seg_classes,
@@ -125,12 +134,6 @@ class BaseSegHead(nn.Module):
 
         return parser
 
-    def profile_module(self, x: Tensor) -> Tuple[Tensor, float, float]:
-        """
-        Child classes must implement this function to compute FLOPs and parameters
-        """
-        raise NotImplementedError
-
     def get_trainable_parameters(
         self,
         weight_decay: float = 0.0,
@@ -152,6 +155,10 @@ class BaseSegHead(nn.Module):
         This function updates the classification layer in a model. Useful for finetuning purposes.
         """
         raise NotImplementedError
+
+    @classmethod
+    def build_model(cls, opts: argparse.Namespace, *args, **kwargs) -> BaseAnyNNModel:
+        return cls(opts, *args, **kwargs)
 
 
 def _check_out_channels(config: dict, layer_name: str) -> int:

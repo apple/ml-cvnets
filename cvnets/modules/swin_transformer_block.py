@@ -1,22 +1,17 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn, Tensor
+from typing import List, Optional
+
 import torch
+from torch import Tensor, nn
 from torch.nn import functional as F
-from typing import List, Optional, Tuple
 
-from ..layers import (
-    get_normalization_layer,
-    LinearLayer,
-    get_activation_fn,
-    Dropout,
-    StochasticDepth,
-)
-from ..modules import BaseModule
-
+from cvnets.layers import Dropout, LinearLayer, StochasticDepth, get_normalization_layer
+from cvnets.layers.activation import build_activation_layer
+from cvnets.modules import BaseModule
 
 """
 Most of the functions and classes below are heavily borrowed from torchvision https://github.com/pytorch/vision
@@ -378,7 +373,7 @@ class SwinTransformerBlock(BaseModule):
 
         self.stochastic_depth = StochasticDepth(stochastic_depth_prob, "row")
         ffn_latent_dim = int(embed_dim * mlp_ratio)
-        act_name = self.build_act_layer(opts=opts)
+        act_name = build_activation_layer(opts, num_parameters=1)
         self.mlp = nn.Sequential(
             get_normalization_layer(
                 opts=opts, norm_type=norm_layer, num_features=embed_dim
@@ -396,19 +391,6 @@ class SwinTransformerBlock(BaseModule):
         self.attn_fn_name = attn_unit.__class__.__name__
         self.act_fn_name = act_name.__class__.__name__
         self.norm_type = norm_layer
-
-    @staticmethod
-    def build_act_layer(opts) -> nn.Module:
-        act_type = getattr(opts, "model.activation.name", "gelu")
-        neg_slope = getattr(opts, "model.activation.neg_slope", 0.1)
-        inplace = getattr(opts, "model.activation.inplace", False)
-        act_layer = get_activation_fn(
-            act_type=act_type,
-            inplace=inplace,
-            negative_slope=neg_slope,
-            num_parameters=1,
-        )
-        return act_layer
 
     def __repr__(self) -> str:
         return "{}(embed_dim={}, ffn_dim={}, dropout={}, ffn_dropout={}, attn_fn={}, act_fn={}, norm_fn={})".format(

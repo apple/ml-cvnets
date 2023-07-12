@@ -51,11 +51,11 @@ sampler:
     crop_size_height: 512
 loss:
   category: "segmentation"
-  ignore_idx: -1
   segmentation:
     name: "cross_entropy"
     cross_entropy:
       aux_weight: 0.4
+      ignore_index: -1
 optim:
   name: "sgd"
   weight_decay: 1.e-4
@@ -72,6 +72,7 @@ scheduler:
 model:
   segmentation:
     name: "encoder_decoder"
+    n_classes: 150
     lr_multiplier: 1
     seg_head: "deeplabv3"
     output_stride: 8
@@ -84,6 +85,8 @@ model:
       aspp_rates: [ 12, 24, 36 ]
   classification:
     name: "resnet"
+    n_classes: 1000
+    pretrained: "https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/advanced/resnet-50-adv.pt"
     activation:
       name: "relu"
     resnet:

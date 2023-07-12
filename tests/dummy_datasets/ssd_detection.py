@@ -1,15 +1,16 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from typing import Tuple, Dict
+import math
+from typing import Dict, Tuple
+
 import torch
 import torch.utils.data as data
-import math
 
-from cvnets.matcher_det import build_matcher
 from cvnets.anchor_generator import build_anchor_generator
+from cvnets.matcher_det import build_matcher
 
 
 class DummySSDDetectionDataset(data.Dataset):
@@ -39,7 +40,7 @@ class DummySSDDetectionDataset(data.Dataset):
         # set the collate functions for the dataset
         setattr(opts, "dataset.collate_fn_name_train", "coco_ssd_collate_fn")
         setattr(opts, "dataset.collate_fn_name_val", "coco_ssd_collate_fn")
-        setattr(opts, "dataset.collate_fn_name_eval", "coco_ssd_collate_fn")
+        setattr(opts, "dataset.collate_fn_name_test", "coco_ssd_collate_fn")
 
     def generate_anchors(self, height, width):
         """Generate anchors **on-the-fly** based on the input resolution."""
@@ -98,6 +99,9 @@ class DummySSDDetectionDataset(data.Dataset):
             gt_labels=labels,
             anchors=anchors,
         )
+
+        # Make sure there are no NaNs in the coordinates
+        gt_coordinates[gt_coordinates.isnan()] = 0
 
         return {
             "samples": {"image": input_img},

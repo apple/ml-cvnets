@@ -1,28 +1,29 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn
 import argparse
 from typing import Dict, List, Optional, Tuple
 
+from torch import nn
+
+from cvnets.layers import (
+    ConvLayer2d,
+    Dropout,
+    GlobalPool,
+    Identity,
+    LinearLayer,
+    SeparableConv2d,
+)
+from cvnets.models import MODEL_REGISTRY
+from cvnets.models.classification.base_image_encoder import BaseImageEncoder
+from cvnets.models.classification.config.mobilenetv1 import get_configuration
 from utils.math_utils import bound_fn
 
-from . import register_cls_models, BaseEncoder
-from .config.mobilenetv1 import get_configuration
-from ...layers import (
-    ConvLayer,
-    LinearLayer,
-    GlobalPool,
-    Dropout,
-    SeparableConv,
-    Identity,
-)
 
-
-@register_cls_models(name="mobilenetv1")
-class MobileNetv1(BaseEncoder):
+@MODEL_REGISTRY.register(name="mobilenetv1", type="classification")
+class MobileNetv1(BaseImageEncoder):
     """
     This class defines the `MobileNet architecture <https://arxiv.org/abs/1704.04861>`_
     """
@@ -47,7 +48,7 @@ class MobileNetv1(BaseEncoder):
 
         self.model_conf_dict = dict()
         input_channels = cfg["conv1_out"]
-        self.conv_1 = ConvLayer(
+        self.conv_1 = ConvLayer2d(
             opts=opts,
             in_channels=image_channels,
             out_channels=input_channels,
@@ -129,9 +130,7 @@ class MobileNetv1(BaseEncoder):
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         """Add model specific arguments"""
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--model.classification.mobilenetv1.width-multiplier",
             type=float,
@@ -163,7 +162,7 @@ class MobileNetv1(BaseEncoder):
                 stride = 1
 
             mv1_block.append(
-                SeparableConv(
+                SeparableConv2d(
                     opts=opts,
                     in_channels=input_channel,
                     out_channels=out_channels,
@@ -178,7 +177,7 @@ class MobileNetv1(BaseEncoder):
 
         for i in range(n_repeat):
             mv1_block.append(
-                SeparableConv(
+                SeparableConv2d(
                     opts=opts,
                     in_channels=input_channel,
                     out_channels=out_channels,

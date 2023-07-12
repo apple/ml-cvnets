@@ -1,11 +1,11 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
 import os
 import random
-from typing import Dict, Optional, List, Tuple, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -13,9 +13,30 @@ from packaging import version
 from torch import Tensor
 
 from common import MIN_TORCH_VERSION
-from cvnets.layers import norm_layers_tuple
 from utils import logger
 from utils.ddp_utils import is_master
+
+
+def unwrap_model_fn(model: torch.nn.Module) -> torch.nn.Module:
+    """Helper function to unwrap the model.
+
+    Args:
+        model: An instance of torch.nn.Module.
+
+    Returns:
+        Unwrapped instance of torch.nn.Module.
+    """
+    unwrapped_model = model
+    while True:
+        if hasattr(unwrapped_model, "module"):
+            # added by DataParallel and DistributedDataParallel
+            unwrapped_model = unwrapped_model.module
+        elif hasattr(unwrapped_model, "_fsdp_wrapped_module"):
+            # added by FSDP
+            unwrapped_model = unwrapped_model._fsdp_wrapped_module
+        else:
+            break
+    return unwrapped_model
 
 
 def check_compatibility() -> None:
@@ -29,13 +50,13 @@ def check_compatibility() -> None:
 
 
 def check_frozen_norm_layer(model: torch.nn.Module) -> Tuple[bool, int]:
+    from cvnets.layers import norm_layers_tuple
 
-    if hasattr(model, "module"):
-        model = model.module
+    unwrapped_model = unwrap_model_fn(model)
 
     count_norm = 0
     frozen_state = False
-    for m in model.modules():
+    for m in unwrapped_model.modules():
         if isinstance(m, norm_layers_tuple):
             frozen_state = m.weight.requires_grad
 

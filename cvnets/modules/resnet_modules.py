@@ -1,14 +1,16 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn, Tensor
-from typing import Optional, Tuple
+import argparse
+from typing import Optional
 
-from ..layers import ConvLayer, Identity, get_activation_fn, Dropout
-from ..modules import BaseModule
-from ..misc.profiler import module_profile
+from torch import Tensor, nn
+
+from cvnets.layers import ConvLayer2d, Dropout, Identity, StochasticDepth
+from cvnets.layers.activation import build_activation_layer
+from cvnets.modules import BaseModule, SqueezeExcitation
 
 
 class BasicResNetBlock(BaseModule):
@@ -22,6 +24,9 @@ class BasicResNetBlock(BaseModule):
         stride (Optional[int]): Stride for convolution. Default: 1
         dilation (Optional[int]): Dilation for convolution. Default: 1
         dropout (Optional[float]): Dropout after second convolution. Default: 0.0
+        stochastic_depth_prob (Optional[float]): Stochastic depth drop probability (1 - survival_prob). Default: 0.0
+        squeeze_channels (Optional[int]): The number of channels to use in the Squeeze-Excitation block for SE-ResNet.
+            Default: None.
 
     Shape:
         - Input: :math:`(N, C_{in}, H_{in}, W_{in})`
@@ -33,22 +38,24 @@ class BasicResNetBlock(BaseModule):
 
     def __init__(
         self,
-        opts,
+        opts: argparse.Namespace,
         in_channels: int,
         mid_channels: int,
         out_channels: int,
         stride: Optional[int] = 1,
         dilation: Optional[int] = 1,
         dropout: Optional[float] = 0.0,
+        stochastic_depth_prob: Optional[float] = 0.0,
+        squeeze_channels: Optional[int] = None,
         *args,
         **kwargs
     ) -> None:
 
-        act_type = getattr(opts, "model.activation.name", "relu")
-        neg_slope = getattr(opts, "model.activation.neg_slope", 0.1)
-        inplace = getattr(opts, "model.activation.inplace", False)
+        act_type = getattr(opts, "model.activation.name")
+        neg_slope = getattr(opts, "model.activation.neg_slope")
+        inplace = getattr(opts, "model.activation.inplace")
 
-        cbr_1 = ConvLayer(
+        cbr_1 = ConvLayer2d(
             opts=opts,
             in_channels=in_channels,
             out_channels=mid_channels,
@@ -58,7 +65,7 @@ class BasicResNetBlock(BaseModule):
             use_norm=True,
             use_act=True,
         )
-        cb_2 = ConvLayer(
+        cb_2 = ConvLayer2d(
             opts=opts,
             in_channels=mid_channels,
             out_channels=out_channels,
@@ -77,7 +84,7 @@ class BasicResNetBlock(BaseModule):
 
         down_sample = Identity()
         if stride == 2:
-            down_sample = ConvLayer(
+            down_sample = ConvLayer2d(
                 opts=opts,
                 in_channels=in_channels,
                 out_channels=out_channels,
@@ -87,44 +94,56 @@ class BasicResNetBlock(BaseModule):
                 use_act=False,
             )
 
+        se_block = Identity()
+        if squeeze_channels is not None:
+            se_block = SqueezeExcitation(
+                opts=opts,
+                in_channels=out_channels,
+                squeeze_channels=squeeze_channels,
+            )
+
         super().__init__()
         # Both self.conv1 and self.downsample layers downsample the input when stride != 1
         self.block = block
         self.down_sample = down_sample
 
-        self.final_act = get_activation_fn(
+        self.final_act = build_activation_layer(
+            opts,
             act_type=act_type,
             inplace=inplace,
             negative_slope=neg_slope,
             num_parameters=out_channels,
         )
+
+        self.stochastic_depth = StochasticDepth(p=stochastic_depth_prob, mode="row")
+        self.se_block = se_block
+
         self.stride = stride
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.dilation = dilation
         self.dropout = dropout
+        self.stochastic_depth_prob = stochastic_depth_prob
+        self.squeeze_channels = squeeze_channels
 
     def forward(self, x: Tensor, *args, **kwargs) -> Tensor:
         out = self.block(x)
+        out = self.se_block(out)
         res = self.down_sample(x)
+        out = self.stochastic_depth(out)
         out = out + res
         return self.final_act(out)
 
-    def profile_module(
-        self, input: Tensor, *args, **kwargs
-    ) -> Tuple[Tensor, float, float]:
-        out, n_params, n_macs = module_profile(module=self.block, x=input)
-        _, n_params_down, n_macs_down = module_profile(module=self.down_sample, x=input)
-        return out, n_params + n_params_down, n_macs + n_macs_down
-
     def __repr__(self) -> str:
-        return "{}(in_channels={}, out_channels={}, stride={}, dilation={}, dropout={})".format(
+        return "{}(in_channels={}, out_channels={}, stride={}, dilation={}, dropout={}, stochastic_depth_prob={}, squeeze_channels={})".format(
             self.__class__.__name__,
             self.in_channels,
             self.out_channels,
             self.stride,
             self.dilation,
             self.dropout,
+            self.stochastic_depth_prob,
+            self.squeeze_channels,
         )
 
 
@@ -139,6 +158,8 @@ class BottleneckResNetBlock(BaseModule):
         stride (Optional[int]): Stride for convolution. Default: 1
         dilation (Optional[int]): Dilation for convolution. Default: 1
         dropout (Optional[float]): Dropout after third convolution. Default: 0.0
+        stochastic_depth_prob (Optional[float]): Stochastic depth drop probability (1 - survival_prob). Default: 0.0
+        squeeze_channels (Optional[int]): The number of channels to use in the Squeeze-Excitation block for SE-ResNet.
 
     Shape:
         - Input: :math:`(N, C_{in}, H_{in}, W_{in})`
@@ -150,21 +171,23 @@ class BottleneckResNetBlock(BaseModule):
 
     def __init__(
         self,
-        opts,
+        opts: argparse.Namespace,
         in_channels: int,
         mid_channels: int,
         out_channels: int,
         stride: Optional[int] = 1,
         dilation: Optional[int] = 1,
         dropout: Optional[float] = 0.0,
+        stochastic_depth_prob: Optional[float] = 0.0,
+        squeeze_channels: Optional[int] = None,
         *args,
         **kwargs
     ) -> None:
-        act_type = getattr(opts, "model.activation.name", "relu")
-        neg_slope = getattr(opts, "model.activation.neg_slope", 0.1)
-        inplace = getattr(opts, "model.activation.inplace", False)
+        act_type = getattr(opts, "model.activation.name")
+        neg_slope = getattr(opts, "model.activation.neg_slope")
+        inplace = getattr(opts, "model.activation.inplace")
 
-        cbr_1 = ConvLayer(
+        cbr_1 = ConvLayer2d(
             opts=opts,
             in_channels=in_channels,
             out_channels=mid_channels,
@@ -173,7 +196,7 @@ class BottleneckResNetBlock(BaseModule):
             use_norm=True,
             use_act=True,
         )
-        cbr_2 = ConvLayer(
+        cbr_2 = ConvLayer2d(
             opts=opts,
             in_channels=mid_channels,
             out_channels=mid_channels,
@@ -183,7 +206,7 @@ class BottleneckResNetBlock(BaseModule):
             use_act=True,
             dilation=dilation,
         )
-        cb_3 = ConvLayer(
+        cb_3 = ConvLayer2d(
             opts=opts,
             in_channels=mid_channels,
             out_channels=out_channels,
@@ -201,7 +224,7 @@ class BottleneckResNetBlock(BaseModule):
 
         down_sample = Identity()
         if stride == 2:
-            down_sample = ConvLayer(
+            down_sample = ConvLayer2d(
                 opts=opts,
                 in_channels=in_channels,
                 out_channels=out_channels,
@@ -211,7 +234,7 @@ class BottleneckResNetBlock(BaseModule):
                 use_act=False,
             )
         elif in_channels != out_channels:
-            down_sample = ConvLayer(
+            down_sample = ConvLayer2d(
                 opts=opts,
                 in_channels=in_channels,
                 out_channels=out_channels,
@@ -221,16 +244,28 @@ class BottleneckResNetBlock(BaseModule):
                 use_act=False,
             )
 
+        se_block = Identity()
+        if squeeze_channels is not None:
+            se_block = SqueezeExcitation(
+                opts=opts,
+                in_channels=out_channels,
+                squeeze_channels=squeeze_channels,
+            )
+
         super().__init__()
         self.block = block
 
         self.down_sample = down_sample
-        self.final_act = get_activation_fn(
+        self.final_act = build_activation_layer(
+            opts,
             act_type=act_type,
             inplace=inplace,
             negative_slope=neg_slope,
             num_parameters=out_channels,
         )
+
+        self.stochastic_depth = StochasticDepth(p=stochastic_depth_prob, mode="row")
+        self.se_block = se_block
 
         self.stride = stride
         self.in_channels = in_channels
@@ -238,22 +273,19 @@ class BottleneckResNetBlock(BaseModule):
         self.mid_channels = mid_channels
         self.dilation = dilation
         self.dropout = dropout
+        self.stochastic_depth_prob = stochastic_depth_prob
+        self.squeeze_channels = squeeze_channels
 
     def forward(self, x: Tensor, *args, **kwargs) -> Tensor:
         out = self.block(x)
+        out = self.se_block(out)
         res = self.down_sample(x)
+        out = self.stochastic_depth(out)
         out = out + res
         return self.final_act(out)
 
-    def profile_module(
-        self, input: Tensor, *args, **kwargs
-    ) -> Tuple[Tensor, float, float]:
-        out, n_params, n_macs = module_profile(module=self.block, x=input)
-        _, n_params_down, n_macs_down = module_profile(module=self.down_sample, x=input)
-        return out, n_params + n_params_down, n_macs + n_macs_down
-
     def __repr__(self) -> str:
-        return "{}(in_channels={}, mid_channels={}, out_channels={}, stride={}, dilation={}, dropout={})".format(
+        return "{}(in_channels={}, mid_channels={}, out_channels={}, stride={}, dilation={}, dropout={}, stochastic_depth_prob={}, squeeze_channels={})".format(
             self.__class__.__name__,
             self.in_channels,
             self.mid_channels,
@@ -261,4 +293,6 @@ class BottleneckResNetBlock(BaseModule):
             self.stride,
             self.dilation,
             self.dropout,
+            self.stochastic_depth_prob,
+            self.squeeze_channels,
         )

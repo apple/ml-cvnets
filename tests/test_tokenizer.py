@@ -1,10 +1,11 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
 import sys
 from argparse import Namespace
+
 import torch
 
 sys.path.append("..")

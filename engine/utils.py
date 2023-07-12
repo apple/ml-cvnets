@@ -1,18 +1,17 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
+import argparse
+from typing import Dict, List, Optional, Union
 
-from utils import logger
 import torch
 from torch import Tensor
-from typing import Optional, Dict, Union, List, Any
-import gc
 from torch.cuda.amp import autocast
 
-from utils.ddp_utils import is_master
-from utils.tensor_utils import create_rand_tensor
+from utils import logger
 from utils.common_utils import create_directories
+from utils.ddp_utils import is_master
 
 str_to_torch_dtype = {"float16": torch.float16, "bfloat16": torch.bfloat16}
 
@@ -37,49 +36,14 @@ def autocast_fn(enabled: bool, amp_precision: Optional[str] = "float16"):
         return autocast(enabled=False)
 
 
-def print_summary(
-    opts,
-    model,
-    criteria: Optional = None,
-    optimizer: Optional = None,
-    scheduler: Optional = None,
-) -> None:
-    if is_master(opts):
-        logger.log(logger.color_text("Model"))
-        print(model)
-        dev = getattr(opts, "dev.device", torch.device("cpu"))
-        try:
-            inp_tensor = create_rand_tensor(opts, device=dev)
-
-            if hasattr(model, "module"):
-                model.module.profile_model(inp_tensor)
-            else:
-                model.profile_model(inp_tensor)
-            del inp_tensor
-        except Exception as e:
-            pass
-
-        if criteria is not None:
-            # print criteria
-            logger.log(logger.color_text("Loss function"))
-            print("{}".format(criteria))
-
-        if optimizer is not None:
-            logger.log(logger.color_text("Optimizer"))
-            print("{}".format(optimizer))
-
-        if scheduler is not None:
-            logger.log(logger.color_text("Learning rate scheduler"))
-            print("{}".format(scheduler))
-
-        gc.collect()
-
-
 def get_batch_size(x: Union[Tensor, Dict, List]) -> int:
     if isinstance(x, Tensor):
         return x.shape[0]
-    elif isinstance(x, Dict) and "image" in x:
-        return get_batch_size(x["image"])
+    elif isinstance(x, Dict):
+        for key in ("image", "video", "audio"):
+            if key in x:
+                return get_batch_size(x[key])
+        raise NotImplementedError(f"Invalid dict keys {x.keys()}")
     elif isinstance(x, List):
         return len(x)
     else:
@@ -104,35 +68,10 @@ def log_metrics(
     for g_id, lr_val in enumerate(lrs):
         log_writer.add_scalar("LR/Group-{}".format(g_id), round(lr_val, 6), epoch)
 
-    log_writer.add_scalar("Train/Loss", round(train_loss, 2), epoch)
-    log_writer.add_scalar("Val/Loss", round(val_loss, 2), epoch)
     log_writer.add_scalar("Common/Best Metric", round(best_metric, 2), epoch)
-    if val_ema_loss is not None:
-        log_writer.add_scalar("Val_EMA/Loss", round(val_ema_loss, 2), epoch)
-
-    # If val checkpoint metric is different from loss, add that too
-    if ckpt_metric_name is not None and ckpt_metric_name != "loss":
-        if train_ckpt_metric is not None:
-            log_writer.add_scalar(
-                "Train/{}".format(ckpt_metric_name.title()),
-                round(train_ckpt_metric, 2),
-                epoch,
-            )
-        if val_ckpt_metric is not None:
-            log_writer.add_scalar(
-                "Val/{}".format(ckpt_metric_name.title()),
-                round(val_ckpt_metric, 2),
-                epoch,
-            )
-        if val_ema_ckpt_metric is not None:
-            log_writer.add_scalar(
-                "Val_EMA/{}".format(ckpt_metric_name.title()),
-                round(val_ema_ckpt_metric, 2),
-                epoch,
-            )
 
 
-def get_log_writers(opts: Dict[str, Any], save_location: Optional[str]):
+def get_log_writers(opts: argparse.Namespace, save_location: Optional[str]):
     is_master_node = is_master(opts)
 
     log_writers = []
@@ -167,5 +106,25 @@ def get_log_writers(opts: Dict[str, Any], save_location: Optional[str]):
             logger.log("Unable to import bolt. Disabling bolt logging")
         else:
             log_writers.append(BoltLogger())
+
+    hub_logging = getattr(opts, "common.hub.logging", False)
+    if hub_logging:
+        try:
+            from internal.utils.hub_logger import HubLogger
+        except ModuleNotFoundError:
+            HubLogger = None
+
+        if HubLogger is None:
+            logger.log("Unable to import hub. Disabling hub logging")
+        else:
+            try:
+                hub_logger = HubLogger(opts)
+            except Exception as ex:
+                logger.log(
+                    f"Unable to initialize hub logger. Disabling hub logging: {ex}"
+                )
+                hub_logger = None
+            if hub_logger is not None:
+                log_writers.append(hub_logger)
 
     return log_writers

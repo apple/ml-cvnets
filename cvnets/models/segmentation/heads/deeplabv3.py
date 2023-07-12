@@ -1,21 +1,22 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn, Tensor
 import argparse
-from typing import Optional, Dict, Tuple
+from typing import Dict, Optional, Tuple
 
-from .base_seg_head import BaseSegHead
-from . import register_segmentation_head
-from ....layers import ConvLayer
-from ....modules import ASPP
-from ....misc.profiler import module_profile
-from ....misc.init_utils import initialize_weights
+from torch import Tensor, nn
+
+from cvnets.layers import ConvLayer2d
+from cvnets.misc.init_utils import initialize_weights
+from cvnets.models import MODEL_REGISTRY
+from cvnets.models.segmentation.heads.base_seg_head import BaseSegHead
+from cvnets.modules import ASPP
+from options.parse_args import JsonValidator
 
 
-@register_segmentation_head(name="deeplabv3")
+@MODEL_REGISTRY.register(name="deeplabv3", type="segmentation_head")
 class DeeplabV3(BaseSegHead):
     """
     This class defines the segmentation head in `DeepLabv3 architecture <https://arxiv.org/abs/1706.05587>`_
@@ -55,7 +56,7 @@ class DeeplabV3(BaseSegHead):
             ),
         )
 
-        self.classifier = ConvLayer(
+        self.classifier = ConvLayer2d(
             opts=opts,
             in_channels=out_channels,
             out_channels=self.n_seg_classes,
@@ -73,7 +74,7 @@ class DeeplabV3(BaseSegHead):
         This function updates the classification layer in a model. Useful for finetuning purposes.
         """
         in_channels = self.classifier.in_channels
-        conv_layer = ConvLayer(
+        conv_layer = ConvLayer2d(
             opts=opts,
             in_channels=in_channels,
             out_channels=n_classes,
@@ -89,12 +90,10 @@ class DeeplabV3(BaseSegHead):
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         """DeepLabv3 specific arguments"""
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--model.segmentation.deeplabv3.aspp-rates",
-            type=tuple,
+            type=JsonValidator(Tuple[int, int, int]),
             default=(6, 12, 18),
             help="Atrous rates in DeepLabV3+ model",
         )
@@ -125,31 +124,3 @@ class DeeplabV3(BaseSegHead):
         # classify
         x = self.classifier(x)
         return x
-
-    def profile_module(self, enc_out: Dict) -> Tuple[Tensor, float, float]:
-        # Note: Model profiling is for reference only and may contain errors.
-        # It relies heavily on the user to implement the underlying functions accurately.
-
-        params, macs = 0.0, 0.0
-
-        if self.use_l5_exp:
-            x, p, m = module_profile(module=self.aspp, x=enc_out["out_l5_exp"])
-        else:
-            x, p, m = module_profile(module=self.aspp, x=enc_out["out_l5"])
-        params += p
-        macs += m
-
-        out, p, m = module_profile(module=self.classifier, x=x)
-        params += p
-        macs += m
-
-        print(
-            "{:<15} \t {:<5}: {:>8.3f} M \t {:<5}: {:>8.3f} M".format(
-                self.__class__.__name__,
-                "Params",
-                round(params / 1e6, 3),
-                "MACs",
-                round(macs / 1e6, 3),
-            )
-        )
-        return out, params, macs

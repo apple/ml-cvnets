@@ -1,38 +1,46 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
 import argparse
-from typing import Tuple, Dict, Union, Any, List
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
-from torch import nn, Tensor
+from torch import Tensor, nn
 from torch.nn import functional as F
-from torchvision.models.detection.anchor_utils import AnchorGenerator
 
 # Faster and Mask-RCNN related imports
+from torchvision.models.detection.anchor_utils import AnchorGenerator
 from torchvision.models.detection.mask_rcnn import MaskRCNN
 from torchvision.ops import MultiScaleRoIAlign
 
-from utils import logger
-from . import register_detection_models, BaseDetection
-from .base_detection import DetectionPredTuple
-from .utils.rcnn_utils import (
+from cvnets import parameter_list
+from cvnets.layers import ConvLayer2d, Identity
+from cvnets.models import MODEL_REGISTRY
+from cvnets.models.classification.base_image_encoder import BaseImageEncoder
+from cvnets.models.detection import DetectionPredTuple
+from cvnets.models.detection.base_detection import BaseDetection
+from cvnets.models.detection.utils.rcnn_utils import (
     FastRCNNConvFCHead,
-    RPNHead,
+    FastRCNNPredictor,
     MaskRCNNHeads,
     MaskRCNNPredictor,
-    FastRCNNPredictor,
+    RPNHead,
 )
-from ... import parameter_list
-from ...layers import ConvLayer, Identity
-from ...models.classification import BaseEncoder
+from utils import logger
 
 
 class MaskRCNNEncoder(nn.Module):
     def __init__(
-        self, opts, encoder: BaseEncoder, output_strides: List, projection_channels: int
+        self,
+        opts: argparse.Namespace,
+        encoder: BaseImageEncoder,
+        output_strides: List,
+        projection_channels: int,
+        encoder_lr_multiplier: Optional[float] = 1.0,
+        *args,
+        **kwargs,
     ) -> None:
         use_fpn = not getattr(opts, "model.detection.mask_rcnn.disable_fpn", False)
         super().__init__()
@@ -64,7 +72,7 @@ class MaskRCNNEncoder(nn.Module):
             else:
                 raise NotImplementedError
 
-            conv_layer = ConvLayer(
+            conv_layer = ConvLayer2d(
                 opts=opts,
                 in_channels=in_channels,
                 out_channels=projection_channels,
@@ -76,7 +84,7 @@ class MaskRCNNEncoder(nn.Module):
             self.backbone_map[os] = backbone_os_str
 
             if use_fpn:
-                fpn_layer = ConvLayer(
+                fpn_layer = ConvLayer2d(
                     opts=opts,
                     in_channels=projection_channels,
                     out_channels=projection_channels,
@@ -92,7 +100,7 @@ class MaskRCNNEncoder(nn.Module):
             list((set(self.backbone_output_strides) ^ set(output_strides)))
         )
         for os in extra_layer_os:
-            conv_layer = ConvLayer(
+            conv_layer = ConvLayer2d(
                 opts=opts,
                 in_channels=projection_channels,
                 out_channels=projection_channels,
@@ -109,6 +117,7 @@ class MaskRCNNEncoder(nn.Module):
         self.extra_layers = extra_layers
         self.out_channels = projection_channels
         self.augmented_tensor = None
+        self.encoder_lr_multiplier = encoder_lr_multiplier
 
     def get_augmented_tensor(self) -> Tensor:
         return self.augmented_tensor
@@ -147,19 +156,120 @@ class MaskRCNNEncoder(nn.Module):
                 prev_os = os
         return outputs_backbone
 
+    def get_trainable_parameters(
+        self,
+        weight_decay: float = 0.0,
+        no_decay_bn_filter_bias: bool = False,
+        *args,
+        **kwargs,
+    ) -> Tuple[List, List]:
+        # We need to pop the module name. Otherwise, we may pass two
+        # variables with the same name to get_trainable_parameters function
+        module_name = kwargs.pop("module_name", "")
 
-@register_detection_models("mask_rcnn")
+        """Returns a list of trainable parameters"""
+        all_params = []
+        all_params_lr = []
+
+        # encoder parameters
+        if (
+            hasattr(self.encoder, "enable_layer_wise_lr_decay")
+            and self.encoder.enable_layer_wise_lr_decay
+        ):
+            (
+                backbone_param_list,
+                backbone_lr_list,
+            ) = self.encoder.get_trainable_parameters(
+                weight_decay=weight_decay,
+                no_decay_bn_filter_bias=no_decay_bn_filter_bias,
+                module_name=module_name + "encoder.",
+                *args,
+                **kwargs,
+            )
+
+            all_params.extend(backbone_param_list)
+
+            # Scale encoder LR, if applicable
+            if self.encoder_lr_multiplier != 1.0:
+                backbone_lr_list = [
+                    (lr * self.encoder_lr_multiplier) for lr in backbone_lr_list
+                ]
+
+            all_params_lr.extend(backbone_lr_list)
+        else:
+            backbone_param_list = parameter_list(
+                named_parameters=self.encoder.named_parameters,
+                weight_decay=weight_decay,
+                no_decay_bn_filter_bias=no_decay_bn_filter_bias,
+                module_name=module_name + "encoder.",
+                *args,
+                **kwargs,
+            )
+
+            all_params.extend(backbone_param_list)
+
+            all_params_lr.extend(
+                [self.encoder_lr_multiplier] * len(backbone_param_list)
+            )
+
+        if self.backbone_proj_layers:
+            # projection layer parameters
+            projection_param_list = parameter_list(
+                named_parameters=self.backbone_proj_layers.named_parameters,
+                weight_decay=weight_decay,
+                no_decay_bn_filter_bias=no_decay_bn_filter_bias,
+                module_name=module_name + "backbone_proj_layers.",
+                *args,
+                **kwargs,
+            )
+
+            all_params.extend(projection_param_list)
+
+            all_params_lr.extend([1.0] * len(projection_param_list))
+
+        if self.fpn_proj_layers:
+            # projection layer parameters
+            fpn_projection_param_list = parameter_list(
+                named_parameters=self.fpn_proj_layers.named_parameters,
+                weight_decay=weight_decay,
+                no_decay_bn_filter_bias=no_decay_bn_filter_bias,
+                module_name=module_name + "fpn_proj_layers.",
+                *args,
+                **kwargs,
+            )
+
+            all_params.extend(fpn_projection_param_list)
+
+            all_params_lr.extend([1.0] * len(fpn_projection_param_list))
+
+        if self.extra_layers:
+            # extra layer parameters
+            extra_layer_param_list = parameter_list(
+                named_parameters=self.extra_layers.named_parameters,
+                weight_decay=weight_decay,
+                no_decay_bn_filter_bias=no_decay_bn_filter_bias,
+                module_name=module_name + "extra_layers.",
+                *args,
+                **kwargs,
+            )
+
+            all_params.extend(extra_layer_param_list)
+
+            all_params_lr.extend([1.0] * len(extra_layer_param_list))
+        return all_params, all_params_lr
+
+
+@MODEL_REGISTRY.register(name="mask_rcnn", type="detection")
 class MaskRCNNDetector(BaseDetection):
-    """
-    This class implements a `Mask RCNN style object detector <https://arxiv.org/abs/1703.06870>`
+    """This class implements a `Mask RCNN style object detector <https://arxiv.org/abs/1703.06870>`
 
     Args:
         opts: command-line arguments
-        encoder (BaseEncoder): Encoder network (e.g., ResNet or MobileViT)
+        encoder (BaseImageEncoder): Encoder network (e.g., ResNet or MobileViT)
     """
 
-    def __init__(self, opts, encoder: BaseEncoder):
-        super().__init__(opts, encoder)
+    def __init__(self, opts, encoder: BaseImageEncoder, *args, **kwargs) -> None:
+        super().__init__(opts, encoder, *args, **kwargs)
         default_norm = self.set_norm_layer_opts()
 
         output_strides = getattr(
@@ -214,11 +324,15 @@ class MaskRCNNDetector(BaseDetection):
         mask_fm_size = getattr(opts, "model.detection.mask_rcnn.mask_head_fm_size", 14)
 
         # set-up the backbone
+        backbone_lr_multiplier = getattr(
+            opts, "model.detection.mask_rcnn.backbone_lr_multiplier"
+        )
         backbone = MaskRCNNEncoder(
             opts,
             encoder=encoder,
             output_strides=output_strides,
             projection_channels=projection_channels,
+            encoder_lr_multiplier=backbone_lr_multiplier,
         )
 
         # create RPN anchor generator
@@ -370,12 +484,15 @@ class MaskRCNNDetector(BaseDetection):
             # **kwargs
         )
 
-        self.backbone_lr_multiplier = getattr(
-            opts, "model.detection.mask_rcnn.backbone_lr_multiplier", 1.0
-        )
         del self.encoder
 
         self.reset_norm_layer_opts(default_norm=default_norm)
+        self.update_layer_norm_eps()
+
+    def update_layer_norm_eps(self):
+        for m in self.modules():
+            if isinstance(m, nn.LayerNorm):
+                m.eps = 1e-6
 
     def set_norm_layer_opts(self):
         mask_rcnn_norm_layer = getattr(
@@ -394,9 +511,7 @@ class MaskRCNNDetector(BaseDetection):
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         """Add model specific arguments"""
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(cls.__name__)
         group.add_argument(
             "--model.detection.mask-rcnn.backbone-projection-channels",
             type=int,
@@ -622,108 +737,55 @@ class MaskRCNNDetector(BaseDetection):
         no_decay_bn_filter_bias: bool = False,
         *args,
         **kwargs,
-    ):
-        """Returns a list of trainable parameters"""
-        if self.backbone_lr_multiplier == 1.0:
-            return super(MaskRCNNDetector, self).get_trainable_parameters(
+    ) -> Tuple[List, List]:
+
+        all_params = []
+        all_params_lr = []
+
+        # backbone parameters
+        if hasattr(self.model.backbone, "get_trainable_parameters"):
+            (
+                backbone_params,
+                backbone_lrs,
+            ) = self.model.backbone.get_trainable_parameters(
                 weight_decay=weight_decay,
                 no_decay_bn_filter_bias=no_decay_bn_filter_bias,
-                *args,
-                **kwargs,
+                module_name="model.backbone.",
             )
+            all_params.extend(backbone_params)
+            all_params_lr.extend(backbone_lrs)
         else:
-
-            all_params = []
-            all_params_lr = []
-
-            # pre-trained encoder parameters
-            backbone_param_list = parameter_list(
-                named_parameters=self.model.backbone.encoder.named_parameters,
-                weight_decay=weight_decay,
-                no_decay_bn_filter_bias=no_decay_bn_filter_bias,
-                module_name="model.backbone.encoder.",
-                *args,
-                **kwargs,
+            logger.error(
+                "Backbone model must implement get_trainable_parameters function."
             )
 
-            all_params.extend(backbone_param_list)
+        # rpn parameters
+        rpn_param_list = parameter_list(
+            named_parameters=self.model.rpn.named_parameters,
+            weight_decay=weight_decay,
+            no_decay_bn_filter_bias=no_decay_bn_filter_bias,
+            module_name="model.rpn.",
+            *args,
+            **kwargs,
+        )
 
-            all_params_lr.extend(
-                [self.backbone_lr_multiplier] * len(backbone_param_list)
-            )
+        all_params.extend(rpn_param_list)
+        all_params_lr.extend([1.0] * len(rpn_param_list))
 
-            if self.model.backbone.backbone_proj_layers:
-                # projection layer parameters
-                projection_param_list = parameter_list(
-                    named_parameters=self.model.backbone.backbone_proj_layers.named_parameters,
-                    weight_decay=weight_decay,
-                    no_decay_bn_filter_bias=no_decay_bn_filter_bias,
-                    module_name="model.backbone.backbone_proj_layers.",
-                    *args,
-                    **kwargs,
-                )
+        # ROI head params
+        roi_param_list = parameter_list(
+            named_parameters=self.model.roi_heads.named_parameters,
+            weight_decay=weight_decay,
+            no_decay_bn_filter_bias=no_decay_bn_filter_bias,
+            module_name="model.roi_heads.",
+            *args,
+            **kwargs,
+        )
 
-                all_params.extend(projection_param_list)
+        all_params.extend(roi_param_list)
+        all_params_lr.extend([1.0] * len(roi_param_list))
 
-                all_params_lr.extend([1.0] * len(projection_param_list))
-
-            if self.model.backbone.fpn_proj_layers:
-                # projection layer parameters
-                fpn_projection_param_list = parameter_list(
-                    named_parameters=self.model.backbone.fpn_proj_layers.named_parameters,
-                    weight_decay=weight_decay,
-                    no_decay_bn_filter_bias=no_decay_bn_filter_bias,
-                    module_name="model.backbone.fpn_proj_layers.",
-                    *args,
-                    **kwargs,
-                )
-
-                all_params.extend(fpn_projection_param_list)
-
-                all_params_lr.extend([1.0] * len(fpn_projection_param_list))
-
-            if self.model.backbone.extra_layers:
-                # extra layer parameters
-                extra_layer_param_list = parameter_list(
-                    named_parameters=self.model.backbone.extra_layers.named_parameters,
-                    weight_decay=weight_decay,
-                    no_decay_bn_filter_bias=no_decay_bn_filter_bias,
-                    module_name="model.backbone.extra_layers.",
-                    *args,
-                    **kwargs,
-                )
-
-                all_params.extend(extra_layer_param_list)
-
-                all_params_lr.extend([1.0] * len(extra_layer_param_list))
-
-            # rpn parameters
-            rpn_param_list = parameter_list(
-                named_parameters=self.model.rpn.named_parameters,
-                weight_decay=weight_decay,
-                no_decay_bn_filter_bias=no_decay_bn_filter_bias,
-                module_name="model.rpn.",
-                *args,
-                **kwargs,
-            )
-
-            all_params.extend(rpn_param_list)
-            all_params_lr.extend([1.0] * len(rpn_param_list))
-
-            # ROI head params
-            roi_param_list = parameter_list(
-                named_parameters=self.model.roi_heads.named_parameters,
-                weight_decay=weight_decay,
-                no_decay_bn_filter_bias=no_decay_bn_filter_bias,
-                module_name="model.roi_heads.",
-                *args,
-                **kwargs,
-            )
-
-            all_params.extend(roi_param_list)
-            all_params_lr.extend([1.0] * len(roi_param_list))
-
-            return all_params, all_params_lr
+        return all_params, all_params_lr
 
     def forward(
         self, x: Dict, *args, **kwargs

@@ -1,27 +1,27 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
+import argparse
+from typing import Optional, Tuple, Union
+
+import numpy as np
 import torch
 from torch import Tensor
-import numpy as np
-from typing import Optional, Union, Tuple
-import argparse
 
-from utils import logger
-
-from . import BaseMatcher, register_matcher
-from ..misc.third_party.ssd_utils import assign_priors
-from ..misc.box_utils import (
+from cvnets.matcher_det import MATCHER_REGISTRY, BaseMatcher
+from cvnets.misc.box_utils import (
     center_form_to_corner_form,
-    corner_form_to_center_form,
     convert_boxes_to_locations,
     convert_locations_to_boxes,
+    corner_form_to_center_form,
 )
+from cvnets.misc.third_party.ssd_utils import assign_priors
+from utils import logger
 
 
-@register_matcher(name="ssd")
+@MATCHER_REGISTRY.register(name="ssd")
 class SSDMatcher(BaseMatcher):
     """
     This class assigns labels to anchors via `SSD matching process <https://arxiv.org/abs/1512.02325>`_
@@ -71,9 +71,7 @@ class SSDMatcher(BaseMatcher):
         """
         Add SSD Matcher specific arguments
         """
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--matcher.ssd.center-variance",
             type=float,

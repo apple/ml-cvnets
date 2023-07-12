@@ -1,53 +1,33 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import os
-import importlib
-from utils import logger
 import argparse
 
-from .base_scheduler import BaseLRScheduler
+from optim.scheduler.base_scheduler import BaseLRScheduler
+from utils import logger
+from utils.registry import Registry
 
-SCHEDULER_REGISTRY = {}
-
-
-def register_scheduler(name: str):
-    def register_scheduler_class(cls):
-        if name in SCHEDULER_REGISTRY:
-            raise ValueError("Cannot register duplicate scheduler ({})".format(name))
-
-        if not issubclass(cls, BaseLRScheduler):
-            raise ValueError(
-                "LR Scheduler ({}: {}) must extend BaseLRScheduler".format(
-                    name, cls.__name__
-                )
-            )
-
-        SCHEDULER_REGISTRY[name] = cls
-        return cls
-
-    return register_scheduler_class
+SCHEDULER_REGISTRY = Registry(
+    "scheduler",
+    base_class=BaseLRScheduler,
+    lazy_load_dirs=["optim/scheduler"],
+    internal_dirs=["internal", "internal/projects/*"],
+)
 
 
-def build_scheduler(opts) -> BaseLRScheduler:
-    scheduler_name = getattr(opts, "scheduler.name", "cosine").lower()
-    lr_scheduler = None
-    if scheduler_name in SCHEDULER_REGISTRY:
-        lr_scheduler = SCHEDULER_REGISTRY[scheduler_name](opts)
-    else:
-        supp_list = list(SCHEDULER_REGISTRY.keys())
-        supp_str = (
-            "LR Scheduler ({}) not yet supported. \n Supported schedulers are:".format(
-                scheduler_name
-            )
-        )
-        for i, m_name in enumerate(supp_list):
-            supp_str += "\n\t {}: {}".format(i, logger.color_text(m_name))
-        logger.error(supp_str)
+def build_scheduler(opts: argparse.Namespace, *args, **kwargs) -> BaseLRScheduler:
+    scheduler_name = getattr(opts, "scheduler.name").lower()
 
-    return lr_scheduler
+    # We registered the base class using a special `name` (i.e., `__base__`)
+    # in order to access the arguments defined inside those classes. However, these classes are not supposed to
+    # be used. Therefore, we raise an error for such cases
+    if scheduler_name == "__base__":
+        logger.error("__base__ can't be used as a projection name. Please check.")
+
+    scheduler = SCHEDULER_REGISTRY[scheduler_name](opts, *args, **kwargs)
+    return scheduler
 
 
 def general_lr_sch_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -99,19 +79,5 @@ def arguments_scheduler(parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     parser = general_lr_sch_args(parser=parser)
 
     # add scheduler specific arguments
-    for k, v in SCHEDULER_REGISTRY.items():
-        parser = v.add_arguments(parser=parser)
+    parser = SCHEDULER_REGISTRY.all_arguments(parser)
     return parser
-
-
-# automatically import the LR schedulers
-lr_sch_dir = os.path.dirname(__file__)
-for file in os.listdir(lr_sch_dir):
-    path = os.path.join(lr_sch_dir, file)
-    if (
-        not file.startswith("_")
-        and not file.startswith(".")
-        and (file.endswith(".py") or os.path.isdir(path))
-    ):
-        lr_sch_name = file[: file.find(".py")] if file.endswith(".py") else file
-        module = importlib.import_module("optim.scheduler." + lr_sch_name)

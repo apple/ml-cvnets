@@ -1,7 +1,12 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
+import os
+from pathlib import Path
+from typing import Any
+
+LIBRARY_ROOT = Path(__file__).parent.parent
 
 MIN_TORCH_VERSION = "1.11.0"
 
@@ -21,4 +26,14 @@ DEFAULT_MAX_ITERATIONS = DEFAULT_MAX_EPOCHS = 10000000
 
 TMP_RES_FOLDER = "results_tmp"
 
-TMP_CACHE_LOC = "/tmp"
+TMP_CACHE_LOC = "/tmp/cvnets"
+
+Path(TMP_CACHE_LOC).mkdir(parents=True, exist_ok=True)
+
+
+def is_test_env() -> bool:
+    return "PYTEST_CURRENT_TEST" in os.environ
+
+
+def if_test_env(then: Any, otherwise: Any) -> Any:
+    return then if "PYTEST_CURRENT_TEST" in os.environ else otherwise

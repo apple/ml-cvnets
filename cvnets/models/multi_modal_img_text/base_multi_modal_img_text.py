@@ -1,34 +1,37 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn, Tensor
 import argparse
-from typing import Optional, Tuple, Dict
 
-from ...layers import norm_layers_tuple
-from ...misc.init_utils import initialize_weights
+from cvnets.models import MODEL_REGISTRY, BaseAnyNNModel
 
 
-class BaseMultiModalImageText(nn.Module):
-    """Base class for multi-modal image-text data"""
+@MODEL_REGISTRY.register(name="__base__", type="multi_modal_image_text")
+class BaseMultiModalImageText(BaseAnyNNModel):
+    """Base class for multi-modal image-text data
+
+    Args:
+        opts: Command-line arguments
+    """
 
     def __init__(self, opts, *args, **kwargs) -> None:
-        super().__init__()
+        super().__init__(opts, *args, **kwargs)
         self.lr_multiplier_img_encoder = getattr(
-            opts, "model.multi_modal_image_text.lr_multiplier_img_encoder", 1.0
+            opts, "model.multi_modal_image_text.lr_multiplier_img_encoder"
         )
         self.lr_multiplier_text_encoder = getattr(
-            opts, "model.multi_modal_image_text.lr_multiplier_text_encoder", 1.0
+            opts, "model.multi_modal_image_text.lr_multiplier_text_encoder"
         )
 
     @classmethod
-    def add_arguments(cls, parser: argparse.ArgumentParser):
+    def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         """Add model specific arguments"""
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        if cls != BaseMultiModalImageText:
+            # Don't re-register arguments in subclasses that don't override `add_arguments()`.
+            return parser
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--model.multi-modal-image-text.name",
             type=str,
@@ -62,39 +65,3 @@ class BaseMultiModalImageText(nn.Module):
         )
 
         return parser
-
-    def reset_parameters(self) -> None:
-        """Reset weights of a given layer"""
-        initialize_weights(opts=self.opts, modules=self.modules())
-
-    def get_trainable_parameters(
-        self,
-        weight_decay: Optional[float] = 0.0,
-        no_decay_bn_filter_bias: Optional[bool] = False,
-        *args,
-        **kwargs
-    ):
-        raise NotImplementedError
-
-    def profile_model(self, input: Tensor) -> Optional[Tuple[Tensor, float, float]]:
-        """
-        Child classes must implement this function to compute FLOPs and parameters
-        """
-        raise NotImplementedError
-
-    def freeze_norm_layers(self) -> None:
-        for m in self.modules():
-            if isinstance(m, norm_layers_tuple):
-                m.eval()
-                m.weight.requires_grad = False
-                m.bias.requires_grad = False
-                m.training = False
-
-    def dummy_input_and_label(self, batch_size: int) -> Dict:
-        """Create dummy input and labels for CI/CD purposes. Child classes must override it
-        if functionality is different.
-        """
-        raise NotImplementedError
-
-    def forward(self, input: Dict, *args, **kwargs) -> Dict:
-        raise NotImplementedError

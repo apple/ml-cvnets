@@ -1,108 +1,75 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import importlib
 import argparse
+from typing import Optional
+
+from cvnets.misc.common import freeze_modules_based_on_opts, load_pretrained_model
+from cvnets.models.base_model import BaseAnyNNModel
 from utils import logger
-import os
+from utils.download_utils import get_local_path
+from utils.registry import Registry
+
+MODEL_REGISTRY = Registry(
+    registry_name="model_registry",
+    base_class=BaseAnyNNModel,
+    lazy_load_dirs=["cvnets/models"],
+    internal_dirs=["internal", "internal/projects/*"],
+)
 
 
-SUPPORTED_TASKS = []
-TASK_REGISTRY = {}
-TASK_ARG_REGISTRY = {}
+def get_model(
+    opts: argparse.Namespace,
+    category: Optional[str] = None,
+    model_name: Optional[str] = None,
+    *args,
+    **kwargs,
+) -> BaseAnyNNModel:
+    """Create a task-specific model from command-line arguments. If model category (or task) and name are
+    passed as an argument, then they are used. Otherwise, `dataset.category` and `model.{category}.name` are
+    read from command-line arguments to read model category and name, respectively.
 
+    Args:
+        opts: Command-line arguments
+        category: Category or task (e.g., segmentation)
+        model_name: Model name for a specific task (e.g., vit for classification)
 
-def register_tasks(name):
-    def register_task_class(cls):
-        if name in TASK_REGISTRY:
-            raise ValueError("Cannot register duplicate task ({})".format(name))
+    Returns:
+        An instance of `cvnets.models.BaseAnyNNModel`.
+    """
 
-        TASK_REGISTRY[name] = cls
-        SUPPORTED_TASKS.append(name)
-        return cls
+    if category is None:
+        category = getattr(opts, "dataset.category")
 
-    return register_task_class
+    if model_name is None:
+        model_name = getattr(opts, f"model.{category}.name")
 
+    if model_name == "__base__":
+        # __base__ is used to register the task-specific base classes. These classes often
+        # provide functionalities that can be re-used by sub-classes, but does not provide
+        # task-specific models.
+        logger.error(
+            f"For {category} task, model name can't be __base__. Please check."
+        )
 
-def register_task_arguments(name):
-    def register_task_arg_fn(fn):
-        if name in TASK_ARG_REGISTRY:
-            raise ValueError(
-                "Cannot register duplicate task arguments ({})".format(name)
-            )
+    model = MODEL_REGISTRY[model_name, category].build_model(opts, *args, **kwargs)
 
-        TASK_ARG_REGISTRY[name] = fn
-        return fn
+    # for some categories, we do not have pre-trained path (e.g., segmentation_head).
+    # Therefore, we need to set the default value.
+    pretrained_wts_path = getattr(opts, f"model.{category}.pretrained", None)
+    if pretrained_wts_path is not None:
+        pretrained_model_path = get_local_path(opts, path=pretrained_wts_path)
+        model = load_pretrained_model(
+            model=model, wt_loc=pretrained_model_path, opts=opts
+        )
 
-    return register_task_arg_fn
-
-
-def common_model_argumnets(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-    # load model scopes
-    parser.add_argument(
-        "--model.resume-exclude-scopes",
-        type=str,
-        default="",
-        help="Comma-separated list of parameter scopes (regex strings) to exclude when loading a pre-trained model",
-    )
-    parser.add_argument(
-        "--model.ignore-missing-scopes",
-        type=str,
-        default="",
-        help="Comma-separated list of parameter scopes (regex strings) to ignore if they are missing from the pre-training model",
-    )
-    parser.add_argument(
-        "--model.rename-scopes-map",
-        type=list,
-        default=None,
-        help="A mapping from checkpoint variable names to match the existing model names."
-        " The mapping is represented as a List[List[str]], e.g. [['before', 'after'], ['this', 'that']]."
-        " Note: only loading from Yaml file is supported for this argument.",
-    )
-    return parser
+    model = freeze_modules_based_on_opts(opts, model)
+    return model
 
 
 def arguments_model(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-    # common arguments
-    parser = common_model_argumnets(parser=parser)
-
-    for k, v in TASK_ARG_REGISTRY.items():
-        parser = v(parser)
+    parser = BaseAnyNNModel.add_arguments(parser=parser)
+    parser = MODEL_REGISTRY.all_arguments(parser=parser)
     return parser
-
-
-def get_model(opts, *args, **kwargs):
-    dataset_category = getattr(opts, "dataset.category", None)
-    if not dataset_category:
-        task_str = "Please specify dataset.category. Supported categories are:"
-        for i, task_name in enumerate(SUPPORTED_TASKS):
-            task_str += "\n\t {}: {}".format(i, task_name)
-        logger.error(task_str)
-
-    dataset_category = dataset_category.lower()
-
-    if dataset_category in TASK_REGISTRY:
-        return TASK_REGISTRY[dataset_category](opts, *args, **kwargs)
-    else:
-        task_str = (
-            "Got {} as a task. Unfortunately, we do not support it yet."
-            "\nSupported tasks are:".format(dataset_category)
-        )
-        for i, task_name in enumerate(SUPPORTED_TASKS):
-            task_str += "\n\t {}: {}".format(i, task_name)
-        logger.error(task_str)
-
-
-# automatically import the tasks
-tasks_dir = os.path.dirname(__file__)
-for file in os.listdir(tasks_dir):
-    path = os.path.join(tasks_dir, file)
-    if (
-        not file.startswith("_")
-        and not file.startswith(".")
-        and (file.endswith(".py") or os.path.isdir(path))
-    ):
-        task_name = file[: file.find(".py")] if file.endswith(".py") else file
-        module = importlib.import_module("cvnets.models." + task_name)

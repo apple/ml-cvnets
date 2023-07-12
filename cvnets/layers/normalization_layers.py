@@ -1,31 +1,18 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
-
-import torch
-from torch import nn
-from typing import Optional
-from utils import logger
 import math
 
-from .normalization import build_normalization_layer, NORM_LAYER_CLS
+from torch import nn
+
+from cvnets.layers.normalization import NORM_LAYER_CLS, build_normalization_layer
+from utils import logger
 
 norm_layers_tuple = tuple(NORM_LAYER_CLS)
 
 
-def get_normalization_layer(
-    opts,
-    num_features: int,
-    norm_type: Optional[str] = None,
-    num_groups: Optional[int] = None,
-    *args,
-    **kwargs
-) -> nn.Module:
-    """
-    Helper function to get normalization layers
-    """
-    return build_normalization_layer(opts, num_features, norm_type, num_groups)
+get_normalization_layer = build_normalization_layer
 
 
 class AdjustBatchNormMomentum(object):

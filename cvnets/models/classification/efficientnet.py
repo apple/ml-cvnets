@@ -1,21 +1,25 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn
 import argparse
 from typing import Any, Optional, Tuple
 
-from . import register_cls_models
-from .base_cls import BaseEncoder
-from .config.efficientnet import get_configuration, EfficientNetBlockConfig
-from ...layers import ConvLayer, LinearLayer, GlobalPool, Dropout
-from ...modules import EfficientNetBlock
+from torch import nn
+
+from cvnets.layers import ConvLayer2d, Dropout, GlobalPool, LinearLayer
+from cvnets.models import MODEL_REGISTRY
+from cvnets.models.classification.base_image_encoder import BaseImageEncoder
+from cvnets.models.classification.config.efficientnet import (
+    EfficientNetBlockConfig,
+    get_configuration,
+)
+from cvnets.modules import EfficientNetBlock
 
 
-@register_cls_models("efficientnet")
-class EfficientNet(BaseEncoder):
+@MODEL_REGISTRY.register(name="efficientnet", type="classification")
+class EfficientNet(BaseImageEncoder):
     """
     This class defines the `EfficientNet architecture <https://arxiv.org/abs/1905.11946>`_
     """
@@ -41,7 +45,7 @@ class EfficientNet(BaseEncoder):
         # building first layer
         image_channels = 3
         in_channels = network_config["layer_1"][0].in_channels
-        self.conv_1 = ConvLayer(
+        self.conv_1 = ConvLayer2d(
             opts=opts,
             in_channels=image_channels,
             out_channels=in_channels,
@@ -80,7 +84,7 @@ class EfficientNet(BaseEncoder):
         # building last several layers
         in_channels = network_config["layer_5"][-1].out_channels
         out_channels = last_channels
-        self.conv_1x1_exp = ConvLayer(
+        self.conv_1x1_exp = ConvLayer2d(
             opts=opts,
             in_channels=in_channels,
             out_channels=out_channels,
@@ -170,9 +174,7 @@ class EfficientNet(BaseEncoder):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--model.classification.efficientnet.mode",
             type=str,

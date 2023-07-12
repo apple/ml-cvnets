@@ -1,21 +1,23 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
 import os
+from typing import List, Optional
+
 import torch
 
+from common import TMP_RES_FOLDER
 from cvnets import get_model
 from options.opts import get_conversion_arguments
-from common import TMP_RES_FOLDER
-from utils.pytorch_to_coreml import convert_pytorch_to_coreml
 from utils import logger
 from utils.checkpoint_utils import CHECKPOINT_EXTN
+from utils.pytorch_to_coreml import convert_pytorch_to_coreml
 
 
-def main_worker_conversion():
-    opts = get_conversion_arguments()
+def main_worker_conversion(args: Optional[List[str]] = None):
+    opts = get_conversion_arguments(args=args)
 
     # set coreml conversion flag to true
     setattr(opts, "common.enable_coreml_compatible_module", True)

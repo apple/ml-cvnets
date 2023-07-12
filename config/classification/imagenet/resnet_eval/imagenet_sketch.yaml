@@ -1,0 +1,44 @@
+taskname: '+ ViT-B/16'
+common:
+  run_label: "val"
+  log_freq: 500
+dataset:
+  root_val: "/mnt/imagenet_sketch/"
+  name: "imagenet_sketch"
+  category: "classification"
+  val_batch_size0: 100
+  eval_batch_size0: 100
+  workers: 8
+  persistent_workers: false
+  pin_memory: true
+image_augmentation:
+  resize:
+    enable: true
+    size: 232 # shorter size is 256
+    interpolation: "bilinear"
+  center_crop:
+    enable: true
+    size: 224
+loss:
+  category: "classification"
+  classification:
+    name: "cross_entropy"
+model:
+  classification:
+    n_classes: 1000
+    name: "resnet"
+    activation:
+      name: "relu"
+    resnet:
+      depth: 50
+  normalization:
+    name: "batch_norm"
+  activation:
+    name: "relu"
+    inplace: true
+  layer:
+    global_pool: "mean"
+stats:
+  val: [ "loss", "top1", "top5" ]
+  checkpoint_metric: "top1"
+  checkpoint_metric_max: true

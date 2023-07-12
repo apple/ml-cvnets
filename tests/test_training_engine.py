@@ -1,33 +1,34 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
 import os.path
 import sys
 from pathlib import Path
+
 import pytest
 
 sys.path.append("..")
 
-import torch
-import shutil
-import multiprocessing
 import math
+import random
+import shutil
+
+import torch
 from torch.cuda.amp import GradScaler
 
-from cvnets import get_model, EMA
+from cvnets import EMA, get_model
+from engine import Trainer
 from loss_fn import build_loss_fn
-
-from utils.common_utils import device_setup, create_directories
-from utils.ddp_utils import is_master
 from optim import build_optimizer
 from optim.scheduler import build_scheduler
-from utils.checkpoint_utils import load_checkpoint, load_model_state
-from engine import Trainer
-
-from tests.dummy_loader import create_train_val_loader
 from tests.configs import get_config
+from tests.dummy_loader import create_train_val_loader
+from tests.test_utils import unset_pretrained_models_from_opts
+from utils.checkpoint_utils import load_checkpoint, load_model_state
+from utils.common_utils import create_directories, device_setup
+from utils.ddp_utils import is_master
 
 
 def main(opts, is_iteration_based, **kwargs):
@@ -66,7 +67,7 @@ def main(opts, is_iteration_based, **kwargs):
     optimizer = build_optimizer(model, opts=opts)
 
     # create the gradient scalar
-    gradient_scalar = GradScaler(enabled=False)
+    gradient_scaler = GradScaler(enabled=False)
 
     # LR scheduler
     scheduler = build_scheduler(opts=opts)
@@ -85,13 +86,13 @@ def main(opts, is_iteration_based, **kwargs):
     start_epoch = 0
     start_iteration = 0
     resume_loc = getattr(opts, "common.resume", None)
-    finetune_loc = getattr(opts, "common.finetune_imagenet1k", None)
+    finetune_loc = getattr(opts, "common.finetune", None)
     auto_resume = getattr(opts, "common.auto_resume", False)
     if resume_loc is not None or auto_resume:
         (
             model,
             optimizer,
-            gradient_scalar,
+            gradient_scaler,
             start_epoch,
             start_iteration,
             best_metric,
@@ -101,7 +102,7 @@ def main(opts, is_iteration_based, **kwargs):
             model=model,
             optimizer=optimizer,
             model_ema=model_ema,
-            gradient_scalar=gradient_scalar,
+            gradient_scaler=gradient_scaler,
         )
     elif finetune_loc is not None:
         model, model_ema = load_model_state(opts=opts, model=model, model_ema=model_ema)
@@ -118,15 +119,10 @@ def main(opts, is_iteration_based, **kwargs):
         start_iteration=start_iteration,
         best_metric=best_metric,
         model_ema=model_ema,
-        gradient_scalar=gradient_scalar,
+        gradient_scaler=gradient_scaler,
     )
 
-    try:
-        training_engine.run(train_sampler=train_sampler)
-    except SystemExit as sys_exit:
-        if str(sys_exit).find("Nan encountered in the loss") > -1:
-            # Because we use random inputs and labels, loss can be NAN. If that is the case, skip the test.
-            pytest.skip(str(sys_exit))
+    training_engine.run(train_sampler=train_sampler)
 
 
 @pytest.mark.parametrize(
@@ -136,11 +132,14 @@ def main(opts, is_iteration_based, **kwargs):
         ("config/classification/imagenet/mobilevit_v2.yaml", True),
         ("config/detection/ssd_coco/resnet.yaml", False),
         ("config/segmentation/ade20k/deeplabv3_mobilenetv2.yaml", False),
-        ("config/video_classification/kinetics/mobilevit_st.yaml", False),
         ("config/multi_modal_img_text/clip_vit.yaml", False),
+        # add a configuration to test range augment
+        ("examples/range_augment/classification/efficientnet_b0.yaml", False),
     ],
 )
-def test_training_engine(config_file: str, is_iteration_based: bool):
+def test_training_engine(
+    config_file: str, is_iteration_based: bool, tmp_path: Path
+) -> None:
     opts = get_config(config_file=config_file)
 
     # device set-up
@@ -151,7 +150,11 @@ def test_training_engine(config_file: str, is_iteration_based: bool):
     is_master_node = is_master(opts)
 
     # create the directory for saving results
-    save_dir = getattr(opts, "common.results_loc", "results")
+    # Parallel tests causes issues when save_dir is accessed by multiple workers.
+    # Therefore, we use a unique random path here and use that as a save location.
+    save_dir = str(tmp_path)
+    setattr(opts, "common.results_loc", save_dir)
+
     run_label = getattr(opts, "common.run_label", "run_1")
     exp_dir = "{}/{}".format(save_dir, run_label)
     setattr(opts, "common.exp_loc", exp_dir)
@@ -163,8 +166,12 @@ def test_training_engine(config_file: str, is_iteration_based: bool):
     create_directories(dir_path=exp_dir, is_master_node=is_master_node)
 
     setattr(opts, "dev.num_gpus", 0)
-    setattr(opts, "ddp.use_distributed", False)
-    setattr(opts, "dataset.workers", 1)
+    setattr(opts, "dataset.workers", 0)
+
+    if getattr(opts, "dataset.name", "coco_ssd"):
+        # coco_map metric requires access to instances_val2017.json file
+        coco_annotations_path = os.path.join(os.path.dirname(__file__), "data", "coco")
+        setattr(opts, "dataset.root_val", coco_annotations_path)
 
     norm_name = getattr(opts, "model.normalization.name", "batch_norm")
 
@@ -181,9 +188,16 @@ def test_training_engine(config_file: str, is_iteration_based: bool):
     setattr(opts, "sampler.vbs.crop_size_height", 32)
     setattr(opts, "sampler.bs.crop_size_width", 32)
     setattr(opts, "sampler.bs.crop_size_height", 32)
-    
+    setattr(opts, "sampler.vbs.min_crop_size_width", 32)
+    setattr(opts, "sampler.vbs.min_crop_size_height", 32)
+    setattr(opts, "sampler.vbs.max_crop_size_width", 64)
+    setattr(opts, "sampler.vbs.max_crop_size_height", 64)
+
     # We need to disable mixed_precision if testing on CPU only.
     setattr(opts, "common.mixed_precision", False)
+
+    # removing pretrained models (if any) for now to reduce test time as well as access issues
+    unset_pretrained_models_from_opts(opts)
 
     main(opts=opts, is_iteration_based=is_iteration_based)
 

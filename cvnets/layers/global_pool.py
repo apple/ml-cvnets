@@ -1,16 +1,16 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
+
+import argparse
+from typing import List, Optional
 
 import torch
 from torch import Tensor
-import argparse
-from typing import List, Optional, Tuple
 
+from cvnets.layers.base_layer import BaseLayer
 from utils import logger
-
-from .base_layer import BaseLayer
 
 
 class GlobalPool(BaseLayer):
@@ -78,10 +78,6 @@ class GlobalPool(BaseLayer):
         else:
             raise NotImplementedError("Currently 2D and 3D global pooling supported")
         return self._global_pool(x, dims=dims)
-
-    def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:
-        input = self.forward(input)
-        return input, 0.0, 0.0
 
     def __repr__(self):
         return "{}(type={})".format(self.__class__.__name__, self.pool_type)

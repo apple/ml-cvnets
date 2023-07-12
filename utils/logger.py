@@ -1,12 +1,13 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import time
-from typing import Optional
-import sys
 import os
+import sys
+import time
+import traceback
+from typing import Optional, Union
 
 text_colors = {
     "logs": "\033[34m",  # 033 is the escape code and 34 is the color code
@@ -41,6 +42,10 @@ def error(message: str) -> None:
     # print("{} - {} - {}".format(time_stamp, error_str, "Exiting!!!"), flush=True)
     # exit(-1)
 
+    if sys.exc_info()[0] is None:
+        traceback.print_stack()
+    else:
+        traceback.print_exc()
     sys.exit("{} - {} - {}. Exiting!!!".format(time_stamp, error_str, message))
 
 
@@ -56,7 +61,10 @@ def log(message: str, end="\n") -> None:
     print("{} - {} - {}".format(time_stamp, log_str, message), end=end)
 
 
-def warning(message: str) -> None:
+def warning(message: Union[str, Warning]) -> None:
+    if isinstance(message, Warning):
+        message = f"{type(message).__name__}({','.join(map(repr, message.args))}"
+
     time_stamp = get_curr_time_stamp()
     warn_str = (
         text_colors["warning"]
@@ -65,6 +73,26 @@ def warning(message: str) -> None:
         + text_colors["end_color"]
     )
     print("{} - {} - {}".format(time_stamp, warn_str, message))
+
+
+def ignore_exception_with_warning(message: str) -> None:
+    """
+    After catching a tolerable exception E1 (e.g. when Model.forward() fails during
+    profiling with try-catch, it'll be helpful to log the exception for future
+    investigation. But printing the error stack trace, as is, could be confusing
+    when an uncaught (non-tolerable) exception "E2" raises down the road. Then, the log
+    will contain two stack traces for E1, E2. When looking for errors in logs, users
+    should look for E2, but they may find E1.
+
+    This function appends "(WARNING)" at the end of all lines of the E1 traceback, so
+    that the user can distinguish E1 from uncaught exception E2.
+
+    Args:
+        message: Extra explanation and context for debugging. (Note: the exception obj
+    will be automatically fetched from python. No need to pass it as an argument or as
+    message)
+    """
+    warning(f"{message}:\n{traceback.format_exc()}".replace("\n", "\n(WARNING)"))
 
 
 def info(message: str, print_line: Optional[bool] = False) -> None:

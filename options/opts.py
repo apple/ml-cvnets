@@ -1,21 +1,21 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
 import argparse
-from typing import Optional
+from typing import List, Optional
 
 from common import SUPPORTED_MODALITIES
 from cvnets import modeling_arguments
 from data.collate_fns import arguments_collate_fn
 from data.datasets import arguments_dataset
-from data.sampler import arguments_sampler
+from data.sampler import add_sampler_arguments
 from data.text_tokenizer import arguments_tokenizer
 from data.transforms import arguments_augmentation
 from data.video_reader import arguments_video_reader
-from loss_fn import arguments_loss_fn
-from metrics import arguments_stats
+from loss_fn import add_loss_fn_arguments
+from metrics import METRICS_REGISTRY, arguments_stats
 from optim import arguments_optimizer
 from optim.scheduler import arguments_scheduler
 from options.utils import load_config_file
@@ -75,6 +75,12 @@ def arguments_common(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
         title="Common arguments", description="Common arguments"
     )
 
+    group.add_argument(
+        "--taskname",
+        type=str,
+        default="",
+        help="Name of the task (can have arbitrary values)",
+    )
     group.add_argument("--common.seed", type=int, default=0, help="Random seed")
     group.add_argument(
         "--common.config-file", type=str, default=None, help="Configuration file"
@@ -102,13 +108,13 @@ def arguments_common(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
         "--common.resume", type=str, default=None, help="Resume location"
     )
     group.add_argument(
-        "--common.finetune_imagenet1k",
+        "--common.finetune",
         type=str,
         default=None,
         help="Checkpoint location to be used for finetuning",
     )
     group.add_argument(
-        "--common.finetune_imagenet1k-ema",
+        "--common.finetune-ema",
         type=str,
         default=None,
         help="EMA Checkpoint location to be used for finetuning",
@@ -186,10 +192,6 @@ def arguments_common(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
         help="Enable tensorboard logging",
     )
     group.add_argument(
-        "--common.bolt-logging", action="store_true", help="Enable bolt logging"
-    )
-
-    group.add_argument(
         "--common.override-kwargs",
         nargs="*",
         action=ParseKwargs,
@@ -219,30 +221,41 @@ def arguments_common(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
         help="Save checkpoints every N updates. Defaults to 0",
     )
 
+    try:
+        from internal.utils.opts import arguments_internal
+
+        parser = arguments_internal(parser=parser)
+    except ModuleNotFoundError:
+        logger.debug("Cannot load internal arguments, skipping.")
+
     return parser
 
 
 def arguments_ddp(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-    group = parser.add_argument_group(
-        title="DDP arguments", description="DDP arguments"
-    )
-    group.add_argument("--ddp.disable", action="store_true", help="Don't use DDP")
+    group = parser.add_argument_group(title="DDP arguments")
     group.add_argument(
-        "--ddp.rank", type=int, default=0, help="Node rank for distributed training"
+        "--ddp.rank",
+        type=int,
+        default=0,
+        help="Node rank for distributed training. Defaults to 0.",
     )
     group.add_argument(
-        "--ddp.world-size", type=int, default=-1, help="World size for DDP"
+        "--ddp.world-size",
+        type=int,
+        default=-1,
+        help="World size for DDP. Defaults to -1, meaning use all GPUs.",
     )
-    group.add_argument("--ddp.dist-url", type=str, default=None, help="DDP URL")
+    group.add_argument(
+        "--ddp.dist-url", type=str, default=None, help="DDP URL. Defaults to None."
+    )
     group.add_argument(
         "--ddp.dist-port",
         type=int,
         default=30786,
-        help="DDP Port. Only used when --ddp.dist-url is not specified",
+        help="DDP Port. Only used when --ddp.dist-url is not specified. Defaults to 30768.",
     )
-    group.add_argument("--ddp.device-id", type=int, default=None, help="Device ID")
     group.add_argument(
-        "--ddp.no-spawn", action="store_true", help="Don't use DDP with spawn"
+        "--ddp.device-id", type=int, default=None, help="Device ID. Defaults to None."
     )
     group.add_argument(
         "--ddp.backend", type=str, default="nccl", help="DDP backend. Default is nccl"
@@ -250,33 +263,41 @@ def arguments_ddp(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     group.add_argument(
         "--ddp.find-unused-params",
         action="store_true",
-        help="Find unused params in model. useful for debugging with DDP",
+        default=False,
+        help="Find unused params in model. useful for debugging with DDP. Defaults to False.",
+    )
+
+    group.add_argument(
+        "--ddp.use-deprecated-data-parallel",
+        action="store_true",
+        default=False,
+        help="Use Data parallel for training. This flag is not recommended for training and should be used only for debugging. \
+            The support for this flag will be deprecating in future.",
     )
 
     return parser
 
 
-def parser_to_opts(parser: argparse.ArgumentParser):
+def parser_to_opts(parser: argparse.ArgumentParser, args: Optional[List[str]] = None):
     # parse args
-    opts = parser.parse_args()
+    opts = parser.parse_args(args)
     opts = load_config_file(opts)
     return opts
 
 
-def get_training_arguments(parse_args: Optional[bool] = True):
+def get_training_arguments(
+    parse_args: Optional[bool] = True, args: Optional[List[str]] = None
+):
     parser = argparse.ArgumentParser(description="Training arguments", add_help=True)
+
+    # dataset related arguments
+    parser = arguments_dataset(parser=parser)
 
     # cvnet arguments, including models
     parser = modeling_arguments(parser=parser)
 
     # sampler related arguments
-    parser = arguments_sampler(parser=parser)
-
-    # dataset related arguments
-    parser = arguments_dataset(parser=parser)
-
-    # Video reader related arguments
-    parser = arguments_video_reader(parser=parser)
+    parser = add_sampler_arguments(parser=parser)
 
     # collate fn  related arguments
     parser = arguments_collate_fn(parser=parser)
@@ -284,8 +305,12 @@ def get_training_arguments(parse_args: Optional[bool] = True):
     # transform related arguments
     parser = arguments_augmentation(parser=parser)
 
+    # Video reader related arguments
+    # Should appear after arguments_augmentations(parser=parser) because "--frame-augmentation.*" depends on "--image-augmentation.*"
+    parser = arguments_video_reader(parser=parser)
+
     # loss function arguments
-    parser = arguments_loss_fn(parser=parser)
+    parser = add_loss_fn_arguments(parser=parser)
 
     # optimizer arguments
     parser = arguments_optimizer(parser=parser)
@@ -303,17 +328,20 @@ def get_training_arguments(parse_args: Optional[bool] = True):
     # text tokenizer arguments
     parser = arguments_tokenizer(parser=parser)
 
+    # metric arguments
+    parser = METRICS_REGISTRY.all_arguments(parser=parser)
+
     if parse_args:
-        return parser_to_opts(parser)
+        return parser_to_opts(parser, args)
     else:
         return parser
 
 
-def get_eval_arguments(parse_args=True):
-    return get_training_arguments(parse_args=parse_args)
+def get_eval_arguments(parse_args=True, args: Optional[List[str]] = None):
+    return get_training_arguments(parse_args=parse_args, args=args)
 
 
-def get_conversion_arguments():
+def get_conversion_arguments(args: Optional[List[str]] = None):
     parser = get_training_arguments(parse_args=False)
 
     # Arguments related to coreml conversion
@@ -345,10 +373,10 @@ def get_conversion_arguments():
     )
 
     # parse args
-    return parser_to_opts(parser)
+    return parser_to_opts(parser, args=args)
 
 
-def get_bencmarking_arguments():
+def get_benchmarking_arguments(args: Optional[List[str]] = None):
     parser = get_training_arguments(parse_args=False)
 
     #
@@ -375,107 +403,10 @@ def get_bencmarking_arguments():
     )
 
     # parse args
-    return parser_to_opts(parser)
+    return parser_to_opts(parser, args=args)
 
 
-def get_segmentation_eval_arguments():
-    parser = get_training_arguments(parse_args=False)
-
-    group = parser.add_argument_group("Segmentation evaluation related arguments")
-    group.add_argument(
-        "--evaluation.segmentation.apply-color-map",
-        action="store_true",
-        help="Apply color map to different classes in segmentation masks. Useful in visualization "
-        "+ some competitions (e.g, PASCAL VOC) accept submissions with colored segmentation masks",
-    )
-    group.add_argument(
-        "--evaluation.segmentation.save-overlay-rgb-pred",
-        action="store_true",
-        help="enable this flag to visualize predicted masks on top of input image",
-    )
-    group.add_argument(
-        "--evaluation.segmentation.save-masks",
-        action="store_true",
-        help="save predicted masks without colormaps. Useful for submitting to "
-        "competitions like Cityscapes",
-    )
-    group.add_argument(
-        "--evaluation.segmentation.overlay-mask-weight",
-        default=0.5,
-        type=float,
-        help="Contribution of mask when overlaying on top of RGB image. ",
-    )
-    group.add_argument(
-        "--evaluation.segmentation.mode",
-        type=str,
-        default="validation_set",
-        required=False,
-        choices=["single_image", "image_folder", "validation_set"],
-        help="Contribution of mask when overlaying on top of RGB image. ",
-    )
-    group.add_argument(
-        "--evaluation.segmentation.path",
-        type=str,
-        default=None,
-        help="Path of the image or image folder (only required for single_image and image_folder modes)",
-    )
-    group.add_argument(
-        "--evaluation.segmentation.num-classes",
-        type=str,
-        default=None,
-        help="Number of segmentation classes used during training",
-    )
-    group.add_argument(
-        "--evaluation.segmentation.resize-input-images",
-        action="store_true",
-        help="Resize input images",
-    )
-
-    # parse args
-    return parser_to_opts(parser)
-
-
-def get_detection_eval_arguments():
-    parser = get_training_arguments(parse_args=False)
-
-    group = parser.add_argument_group("Detection evaluation related arguments")
-    group.add_argument(
-        "--evaluation.detection.save-overlay-boxes",
-        action="store_true",
-        help="enable this flag to visualize predicted masks on top of input image",
-    )
-    group.add_argument(
-        "--evaluation.detection.mode",
-        type=str,
-        default="validation_set",
-        required=False,
-        choices=["single_image", "image_folder", "validation_set"],
-        help="Contribution of mask when overlaying on top of RGB image. ",
-    )
-    group.add_argument(
-        "--evaluation.detection.path",
-        type=str,
-        default=None,
-        help="Path of the image or image folder (only required for single_image and image_folder modes)",
-    )
-    group.add_argument(
-        "--evaluation.detection.num-classes",
-        type=str,
-        default=None,
-        help="Number of segmentation classes used during training",
-    )
-    group.add_argument(
-        "--evaluation.detection.resize-input-images",
-        action="store_true",
-        default=False,
-        help="Resize the input images",
-    )
-
-    # parse args
-    return parser_to_opts(parser)
-
-
-def get_loss_landscape_args():
+def get_loss_landscape_args(args: Optional[List[str]] = None):
     parser = get_training_arguments(parse_args=False)
 
     group = parser.add_argument_group("Loss landscape related arguments")
@@ -511,4 +442,4 @@ def get_loss_landscape_args():
     )
 
     # parse args
-    return parser_to_opts(parser)
+    return parser_to_opts(parser, args=args)

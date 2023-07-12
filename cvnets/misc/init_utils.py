@@ -1,14 +1,14 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn
 from typing import Optional
 
-from utils import logger
+from torch import nn
 
-from ..layers import LinearLayer, GroupLinear, norm_layers_tuple
+from cvnets.layers import GroupLinear, LinearLayer, norm_layers_tuple
+from utils import logger
 
 supported_conv_inits = [
     "kaiming_normal",

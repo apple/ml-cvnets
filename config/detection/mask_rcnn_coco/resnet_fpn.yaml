@@ -38,17 +38,13 @@ sampler:
 loss:
   category: "detection"
   detection:
-    name: "mask_rcnn_loss_with_na"
+    name: "mask_rcnn_loss"
     mask_rcnn_loss:
       classifier_weight: 1
       box_reg_weight: 1
       mask_weight: 1
       objectness_weight: 1
       rpn_box_reg: 1
-    neural_aug:
-      perceptual_metric: "psnr"
-      target_value: [ 40, 20 ]
-      curriculum_method: "cosine"
 optim:
   name: "sgd"
   weight_decay: 4.e-5
@@ -78,11 +74,6 @@ model:
       name: "relu"
     resnet:
       depth: 50
-  learn_augmentation:
-    brightness: true
-    contrast: true
-    noise: true
-    mode: "distribution"
   normalization:
     name: "sync_batch_norm"
     momentum: 0.1
@@ -99,7 +90,7 @@ ema:
 stats:
   val: [ "loss", "coco_map"]
   train: ["loss"]
-  checkpoint_metric: "coco_map"
+  checkpoint_metric: "coco_map.bbox"
   checkpoint_metric_max: true
   coco_map:
     iou_types: [ "bbox", "segm" ]

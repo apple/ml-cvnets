@@ -1,21 +1,20 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from typing import Tuple, List
+from typing import List, Tuple
 
 import torch
-from torch import nn, Tensor
+from torch import Tensor, nn
 
-from ....layers import (
-    ConvLayer,
+from cvnets.layers import (
+    ConvLayer2d,
     LinearLayer,
-    TransposeConvLayer,
+    TransposeConvLayer2d,
     get_normalization_layer,
 )
-from ....misc.init_utils import initialize_conv_layer, initialize_fc_layer
-
+from cvnets.misc.init_utils import initialize_conv_layer, initialize_fc_layer
 
 # Below classes are adapted from Torchvision version=0.12 to make the code compatible with previous torch versions.
 
@@ -43,7 +42,7 @@ class FastRCNNConvFCHead(nn.Sequential):
         for current_channels in conv_layers:
             blocks.extend(
                 [
-                    ConvLayer(
+                    ConvLayer2d(
                         opts,
                         in_channels=previous_channels,
                         out_channels=current_channels,
@@ -89,7 +88,7 @@ class RPNHead(nn.Module):
         for _ in range(conv_depth):
             convs.extend(
                 [
-                    ConvLayer(
+                    ConvLayer2d(
                         opts,
                         in_channels=in_channels,
                         out_channels=in_channels,
@@ -104,7 +103,7 @@ class RPNHead(nn.Module):
                 ]
             )
         self.conv = nn.Sequential(*convs)
-        self.cls_logits = ConvLayer(
+        self.cls_logits = ConvLayer2d(
             opts,
             in_channels=in_channels,
             out_channels=num_anchors,
@@ -114,7 +113,7 @@ class RPNHead(nn.Module):
             use_act=False,
             bias=True,
         )
-        self.bbox_pred = ConvLayer(
+        self.bbox_pred = ConvLayer2d(
             opts,
             in_channels=in_channels,
             out_channels=num_anchors * 4,
@@ -153,7 +152,7 @@ class MaskRCNNHeads(nn.Sequential):
         for layer_features in layers:
             blocks.extend(
                 [
-                    ConvLayer(
+                    ConvLayer2d(
                         opts=opts,
                         in_channels=next_feature,
                         out_channels=layer_features,
@@ -185,7 +184,7 @@ class MaskRCNNPredictor(nn.Sequential):
     ) -> None:
         super().__init__(
             *[
-                TransposeConvLayer(
+                TransposeConvLayer2d(
                     opts,
                     in_channels=in_channels,
                     out_channels=dim_reduced,
@@ -200,7 +199,7 @@ class MaskRCNNPredictor(nn.Sequential):
                 ),
                 replace_syncbn_with_syncbnfp32(opts, num_features=dim_reduced),
                 nn.ReLU(inplace=False),
-                ConvLayer(
+                ConvLayer2d(
                     opts,
                     in_channels=dim_reduced,
                     out_channels=num_classes,

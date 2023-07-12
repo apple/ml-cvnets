@@ -1,14 +1,14 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import torch
-from typing import Optional, Union, List
+from typing import List, Optional, Union
+
 from torch.utils.data import DataLoader
 
-from ..sampler.base_sampler import BaseSamplerDP, BaseSamplerDDP
-from ..datasets.dataset_base import BaseImageDataset
+from data.datasets.dataset_base import BaseDataset
+from data.sampler import Sampler
 
 
 class CVNetsDataLoader(DataLoader):
@@ -16,9 +16,9 @@ class CVNetsDataLoader(DataLoader):
 
     def __init__(
         self,
-        dataset: BaseImageDataset,
+        dataset: BaseDataset,
         batch_size: int,
-        batch_sampler: Union[BaseSamplerDP, BaseSamplerDDP],
+        batch_sampler: Union[Sampler],
         num_workers: Optional[int] = 1,
         pin_memory: Optional[bool] = False,
         persistent_workers: Optional[bool] = False,
@@ -36,6 +36,8 @@ class CVNetsDataLoader(DataLoader):
             persistent_workers=persistent_workers,
             collate_fn=collate_fn,
             prefetch_factor=prefetch_factor,
+            *args,
+            **kwargs
         )
 
     def update_indices(self, new_indices: List, *args, **kwargs):
@@ -47,7 +49,7 @@ class CVNetsDataLoader(DataLoader):
 
     def samples_in_dataset(self):
         """Number of samples in the dataset"""
-        return len(self.batch_sampler.img_indices)
+        return len(self)
 
     def get_sample_indices(self) -> List:
         """Sample IDs"""

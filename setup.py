@@ -1,10 +1,11 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
 import os
 import sys
+
 from setuptools import find_packages, setup
 
 if sys.version_info < (3, 6):

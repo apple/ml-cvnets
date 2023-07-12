@@ -1,16 +1,16 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
+from typing import Optional
+
 import torch
 from torch import Tensor
-from typing import Optional, Tuple
 from torch.nn import functional as F
 
-from .base_layer import BaseLayer
-from .conv_layer import ConvLayer
-from .dropout import Dropout
-from ..misc.profiler import module_profile
+from cvnets.layers.base_layer import BaseLayer
+from cvnets.layers.conv_layer import ConvLayer2d
+from cvnets.layers.dropout import Dropout
 
 
 class LinearSelfAttention(BaseLayer):
@@ -48,7 +48,7 @@ class LinearSelfAttention(BaseLayer):
     ) -> None:
         super().__init__()
 
-        self.qkv_proj = ConvLayer(
+        self.qkv_proj = ConvLayer2d(
             opts=opts,
             in_channels=embed_dim,
             out_channels=1 + (2 * embed_dim),
@@ -59,7 +59,7 @@ class LinearSelfAttention(BaseLayer):
         )
 
         self.attn_dropout = Dropout(p=attn_dropout)
-        self.out_proj = ConvLayer(
+        self.out_proj = ConvLayer2d(
             opts=opts,
             in_channels=embed_dim,
             out_channels=embed_dim,
@@ -100,9 +100,10 @@ class LinearSelfAttention(BaseLayer):
         context_map = (context_map - min_val) / (max_val - min_val)
 
         try:
-            import cv2
-            from glob import glob
             import os
+            from glob import glob
+
+            import cv2
 
             # convert from float to byte
             context_map = (context_map * 255).byte().cpu().numpy()
@@ -212,21 +213,3 @@ class LinearSelfAttention(BaseLayer):
             return self._forward_self_attn(x, *args, **kwargs)
         else:
             return self._forward_cross_attn(x, x_prev=x_prev, *args, **kwargs)
-
-    def profile_module(self, input) -> Tuple[Tensor, float, float]:
-        params = macs = 0.0
-
-        qkv, p, m = module_profile(module=self.qkv_proj, x=input)
-        params += p
-        macs += m
-
-        query, key, value = torch.split(
-            qkv, split_size_or_sections=[1, self.embed_dim, self.embed_dim], dim=1
-        )
-
-        if self.out_proj is not None:
-            out_p, p, m = module_profile(module=self.out_proj, x=value)
-            params += p
-            macs += m
-
-        return input, params, macs

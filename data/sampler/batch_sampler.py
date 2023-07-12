@@ -1,52 +1,46 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
-import copy
-import random
+
 import argparse
-from typing import Optional
-import math
-import numpy as np
+from typing import Iterator, Tuple
 
-from common import DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT
-
-from . import register_sampler, BaseSamplerDDP, BaseSamplerDP
+from common import DEFAULT_IMAGE_HEIGHT, DEFAULT_IMAGE_WIDTH
+from data.sampler import SAMPLER_REGISTRY
+from data.sampler.base_sampler import BaseSampler, BaseSamplerDDP
 
 
-@register_sampler(name="batch_sampler")
-class BatchSampler(BaseSamplerDP):
-    """
-    Standard Batch Sampler for data parallel
+@SAMPLER_REGISTRY.register(name="batch_sampler")
+class BatchSampler(BaseSampler):
+    """Standard Batch Sampler for data parallel. This sampler yields batches of fixed batch size
+    and spatial resolutions.
 
     Args:
         opts: command line argument
-        n_data_samples (int): Number of samples in the dataset
-        is_training (Optional[bool]): Training or validation mode. Default: False
+        n_data_samples: Number of samples in the dataset
+        is_training: Training or validation mode. Default: False
     """
 
     def __init__(
         self,
         opts,
         n_data_samples: int,
-        is_training: Optional[bool] = False,
+        is_training: bool = False,
         *args,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(
             opts=opts, n_data_samples=n_data_samples, is_training=is_training
         )
-        crop_size_w: int = getattr(
-            opts, "sampler.bs.crop_size_width", DEFAULT_IMAGE_WIDTH
-        )
-        crop_size_h: int = getattr(
-            opts, "sampler.bs.crop_size_height", DEFAULT_IMAGE_HEIGHT
-        )
+        # spatial dimensions
+        crop_size_w: int = getattr(opts, "sampler.bs.crop_size_width")
+        crop_size_h: int = getattr(opts, "sampler.bs.crop_size_height")
 
         self.crop_size_w = crop_size_w
         self.crop_size_h = crop_size_h
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[int, int, int]]:
         img_indices = self.get_indices()
 
         start_index = 0
@@ -64,20 +58,20 @@ class BatchSampler(BaseSamplerDP):
                 ]
                 yield batch
 
-    def __repr__(self):
-        repr_str = "{}(".format(self.__class__.__name__)
-        repr_str += "\n\tbase_im_size=(h={}, w={})" "\n\tbase_batch_size={}".format(
-            self.crop_size_h, self.crop_size_w, self.batch_size_gpu0
+    def extra_repr(self) -> str:
+        extra_repr_str = super().extra_repr()
+        extra_repr_str += (
+            f"\n\tbase_im_size=(h={self.crop_size_h}, w={self.crop_size_w})"
+            f"\n\tbase_batch_size={self.batch_size_gpu0}"
         )
-        repr_str += self.extra_repr()
-        repr_str += "\n)"
-        return repr_str
+        return extra_repr_str
 
     @classmethod
-    def add_arguments(cls, parser: argparse.ArgumentParser):
-        group = parser.add_argument_group(
-            title="Batch sampler", description="Arguments related to Batch sampler"
-        )
+    def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        if cls != BatchSampler:
+            # Don't re-register arguments in subclasses that don't override `add_arguments()`.
+            return parser
+        group = parser.add_argument_group(cls.__name__)
         group.add_argument(
             "--sampler.bs.crop-size-width",
             default=DEFAULT_IMAGE_WIDTH,
@@ -93,24 +87,23 @@ class BatchSampler(BaseSamplerDP):
         return parser
 
 
-@register_sampler(name="batch_sampler_ddp")
+@SAMPLER_REGISTRY.register(name="batch_sampler_ddp")
 class BatchSamplerDDP(BaseSamplerDDP):
-    """
-    Standard Batch Sampler for distributed data parallel
+    """DDP variant of BatchSampler
 
     Args:
         opts: command line argument
-        n_data_samples (int): Number of samples in the dataset
-        is_training (Optional[bool]): Training or validation mode. Default: False
+        n_data_samples: Number of samples in the dataset
+        is_training: Training or validation mode. Default: False
     """
 
     def __init__(
         self,
         opts,
         n_data_samples: int,
-        is_training: Optional[bool] = False,
+        is_training: bool = False,
         *args,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(
             opts=opts, n_data_samples=n_data_samples, is_training=is_training
@@ -125,7 +118,7 @@ class BatchSamplerDDP(BaseSamplerDDP):
         self.crop_size_w = crop_size_w
         self.crop_size_h = crop_size_h
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[int, int, int]]:
         indices_rank_i = self.get_indices_rank_i()
         start_index = 0
         batch_size = self.batch_size_gpu0
@@ -145,11 +138,10 @@ class BatchSamplerDDP(BaseSamplerDDP):
                 ]
                 yield batch
 
-    def __repr__(self):
-        repr_str = "{}(".format(self.__class__.__name__)
-        repr_str += "\n\tbase_im_size=(h={}, w={})" "\n\tbase_batch_size={}".format(
-            self.crop_size_h, self.crop_size_w, self.batch_size_gpu0
+    def extra_repr(self) -> str:
+        extra_repr_str = super().extra_repr()
+        extra_repr_str += (
+            f"\n\tbase_im_size=(h={self.crop_size_h}, w={self.crop_size_w})"
+            f"\n\tbase_batch_size={self.batch_size_gpu0}"
         )
-        repr_str += self.extra_repr()
-        repr_str += "\n)"
-        return repr_str
+        return extra_repr_str

@@ -1,10 +1,10 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from typing import Dict
 import math
+from typing import Dict
 
 from utils.math_utils import make_divisible
 

@@ -1,17 +1,17 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
+from typing import Optional
+
 import torch
-from torch import nn, Tensor
-from typing import Tuple, Optional
+from torch import Tensor, nn
 from torch.nn import functional as F
 
-from .base_layer import BaseLayer
-from .linear_layer import LinearLayer
-from .dropout import Dropout
-from ..misc.profiler import module_profile
+from cvnets.layers.base_layer import BaseLayer
+from cvnets.layers.dropout import Dropout
+from cvnets.layers.linear_layer import LinearLayer
 
 
 class SingleHeadAttention(BaseLayer):
@@ -60,7 +60,7 @@ class SingleHeadAttention(BaseLayer):
 
     def forward(
         self,
-        x: Tensor,
+        x_q: Tensor,
         x_kv: Optional[Tensor] = None,
         key_padding_mask: Optional[Tensor] = None,
         attn_mask: Optional[Tensor] = None,
@@ -69,12 +69,12 @@ class SingleHeadAttention(BaseLayer):
     ) -> Tensor:
         # [N, P, C] --> [N, P, 3C]
         if x_kv is None:
-            qkv = self.qkv_proj(x)
+            qkv = self.qkv_proj(x_q)
             # [N, P, 3C] --> [N, P, C] x 3
             query, key, value = torch.chunk(qkv, chunks=3, dim=-1)
         else:
             query = F.linear(
-                x,
+                x_q,
                 weight=self.qkv_proj.weight[: self.embed_dim, ...],
                 bias=self.qkv_proj.bias[: self.embed_dim],
             )
@@ -129,25 +129,3 @@ class SingleHeadAttention(BaseLayer):
         out = self.out_proj(out)
 
         return out
-
-    def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:
-        b_sz, seq_len, in_channels = input.shape
-        params = macs = 0.0
-
-        qkv, p, m = module_profile(module=self.qkv_proj, x=input)
-        params += p
-        macs += m * seq_len * b_sz
-
-        # number of operations in QK^T
-        m_qk = (seq_len * in_channels * in_channels) * b_sz
-        macs += m_qk
-
-        # number of operations in computing weighted sum
-        m_wt = (seq_len * in_channels * in_channels) * b_sz
-        macs += m_wt
-
-        out_p, p, m = module_profile(module=self.out_proj, x=input)
-        params += p
-        macs += m * seq_len * b_sz
-
-        return input, params, macs

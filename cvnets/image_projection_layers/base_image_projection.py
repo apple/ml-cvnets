@@ -1,13 +1,15 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn, Tensor
 import argparse
-from typing import Optional, Tuple, Dict
+from typing import Dict, Optional
 
-from cvnets import parameter_list
+from torch import nn
+
+from cvnets.layers import LinearLayer
+from cvnets.misc.common import parameter_list
 
 
 class BaseImageProjectionHead(nn.Module):
@@ -21,9 +23,7 @@ class BaseImageProjectionHead(nn.Module):
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser):
         """Add model specific arguments"""
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
 
         group.add_argument(
             "--model.image-projection-head.name",
@@ -50,7 +50,7 @@ class BaseImageProjectionHead(nn.Module):
         weight_decay: Optional[float] = 0.0,
         no_decay_bn_filter_bias: Optional[bool] = False,
         *args,
-        **kwargs
+        **kwargs,
     ):
         param_list = parameter_list(
             named_parameters=self.named_parameters,
@@ -61,3 +61,25 @@ class BaseImageProjectionHead(nn.Module):
 
     def forward(self, input: Dict, *args, **kwargs) -> Dict:
         raise NotImplementedError
+
+
+def get_in_feature_dimension(image_classifier: nn.Module) -> int:
+    """Return the input feature dimension to the image classification head."""
+    in_features = None
+    if isinstance(image_classifier, nn.Sequential):
+        # Classifier that uses nn.Sequential usually has global pooling and
+        # multiple linear layers. Find the first linear layer and get its
+        # in_features
+        for layer in image_classifier:
+            if isinstance(layer, (nn.Linear, LinearLayer)):
+                in_features = layer.in_features
+                break
+    elif isinstance(image_classifier, (nn.Linear, LinearLayer)):
+        in_features = image_classifier.in_features
+
+    if in_features is None:
+        raise NotImplementedError(
+            f"Cannot get input feature dimension of {image_classifier}."
+        )
+
+    return in_features

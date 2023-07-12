@@ -1,0 +1,9 @@
+[tool.isort]
+profile = "black"
+
+[tool.black]
+extend-exclude = '.history'
+
+[tool.pytest.ini_options]
+junit_family = 'xunit2'
+addopts = '--junit-xml=./build/test-results/junit_reports/junit.xml'

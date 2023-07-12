@@ -1,17 +1,17 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import torch
-import os
-import importlib
 import argparse
+import importlib
+import os
 from typing import Optional
 
-from utils import logger
+import torch
 
-from ..identity import Identity
+from cvnets.layers.identity import Identity
+from utils import logger
 
 SUPPORTED_NORM_FNS = []
 NORM_LAYER_REGISTRY = {}
@@ -33,12 +33,11 @@ def register_norm_fn(name):
 
 
 def build_normalization_layer(
-    opts,
+    opts: argparse.Namespace,
     num_features: int,
     norm_type: Optional[str] = None,
     num_groups: Optional[int] = None,
-    *args,
-    **kwargs
+    momentum: Optional[float] = None,
 ) -> torch.nn.Module:
     """
     Helper function to build the normalization layer.
@@ -46,24 +45,30 @@ def build_normalization_layer(
     Scenario 1: Set the default normalization layers using command line arguments. This is useful when the same normalization
     layer is used for the entire network (e.g., ResNet).
     Scenario 2: Network uses different normalization layers. In that case, we can override the default normalization
-    layer by specifying the name using `norm_type` argument
+    layer by specifying the name using `norm_type` argument.
     """
-    norm_type = (
-        getattr(opts, "model.normalization.name", "batch_norm")
-        if norm_type is None
-        else norm_type
-    )
-    num_groups = (
-        getattr(opts, "model.normalization.groups", 1)
-        if num_groups is None
-        else num_groups
-    )
-    momentum = getattr(opts, "model.normalization.momentum", 0.1)
+    if norm_type is None:
+        norm_type = getattr(opts, "model.normalization.name")
+    if num_groups is None:
+        num_groups = getattr(opts, "model.normalization.groups")
+    if momentum is None:
+        momentum = getattr(opts, "model.normalization.momentum")
+
     norm_layer = None
-    norm_type = norm_type.lower() if norm_type is not None else None
+    norm_type = norm_type.lower()
 
     if norm_type in NORM_LAYER_REGISTRY:
-        if torch.cuda.device_count() < 1 and norm_type.find("sync_batch") > -1:
+        # For detecting non-cuda envs, we do not use torch.cuda.device_count() < 1
+        # condition because tests always use CPU, even if cuda device is available.
+        # Otherwise, we will get "ValueError: SyncBatchNorm expected input tensor to be
+        # on GPU" Error when running tests on a cuda-enabled node (usually linux).
+        #
+        # Note: We provide default value for getattr(opts, ...) because the configs may
+        # be missing "dev.device" attribute in the test env.
+        if (
+            "cuda" not in str(getattr(opts, "dev.device", "cpu"))
+            and "sync_batch" in norm_type
+        ):
             # for a CPU-device, Sync-batch norm does not work. So, change to batch norm
             norm_type = norm_type.replace("sync_", "")
         norm_layer = NORM_LAYER_REGISTRY[norm_type](
@@ -90,9 +95,9 @@ def arguments_norm_layers(parser: argparse.ArgumentParser):
 
     group.add_argument(
         "--model.normalization.name",
-        default=None,
+        default="batch_norm",
         type=str,
-        help="Normalization layer. Defaults to None",
+        help="Normalization layer. Defaults to 'batch_norm'.",
     )
     group.add_argument(
         "--model.normalization.groups",

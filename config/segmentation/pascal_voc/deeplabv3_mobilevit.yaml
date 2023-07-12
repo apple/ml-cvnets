@@ -52,9 +52,10 @@ sampler:
     crop_size_height: 512
 loss:
   category: "segmentation"
-  ignore_idx: 255
   segmentation:
     name: "cross_entropy"
+    cross_entropy:
+      ignore_index: 255
 optim:
   name: "adamw"
   weight_decay: 0.01
@@ -74,6 +75,7 @@ scheduler:
 model:
   segmentation:
     name: "encoder_decoder"
+    n_classes: 21
     lr_multiplier: 10
     seg_head: "deeplabv3"
     output_stride: 8
@@ -89,6 +91,10 @@ model:
   classification:
     name: "mobilevit"
     classifier_dropout: 0.1
+    n_classes: 1000
+    # Note: The model is pre-trained with OpenCV, which is not supported in current version.
+    # May result in some performance degradation.
+    pretrained: "https://docs-assets.developer.apple.com/ml-research/models/cvnets/classification/mobilevit_s.pt"
     mit:
       mode: "small"
       ffn_dropout: 0.0
@@ -109,7 +115,6 @@ model:
     global_pool: "mean"
     conv_init: "kaiming_normal"
     linear_init: "normal"
-    conv_weight_std: false
 ema:
   enable: true
   momentum: 0.0005

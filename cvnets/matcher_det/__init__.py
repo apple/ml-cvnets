@@ -1,35 +1,21 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
 import argparse
-import os
-import importlib
 
+from cvnets.matcher_det.base_matcher import BaseMatcher
 from utils import logger
-from utils.ddp_utils import is_master
-
-from .base_matcher import BaseMatcher
+from utils.registry import Registry
 
 # register BOX Matcher
-MATCHER_REGISTRY = {}
-
-
-def register_matcher(name):
-    def register_class(cls):
-        if name in MATCHER_REGISTRY:
-            raise ValueError("Cannot register duplicate matcher ({})".format(name))
-
-        if not issubclass(cls, BaseMatcher):
-            raise ValueError(
-                "Matcher ({}: {}) must extend BaseMatcher".format(name, cls.__name__)
-            )
-
-        MATCHER_REGISTRY[name] = cls
-        return cls
-
-    return register_class
+MATCHER_REGISTRY = Registry(
+    "matcher",
+    base_class=BaseMatcher,
+    lazy_load_dirs=["cvnets/matcher_det"],
+    internal_dirs=["internal", "internal/projects/*"],
+)
 
 
 def arguments_box_matcher(parser: argparse.ArgumentParser):
@@ -41,38 +27,17 @@ def arguments_box_matcher(parser: argparse.ArgumentParser):
     )
 
     # add segmentation specific arguments
-    for k, v in MATCHER_REGISTRY.items():
-        parser = v.add_arguments(parser=parser)
-
+    parser = MATCHER_REGISTRY.all_arguments(parser)
     return parser
 
 
 def build_matcher(opts, *args, **kwargs):
     matcher_name = getattr(opts, "matcher.name", None)
-    matcher = None
-    if matcher_name in MATCHER_REGISTRY:
-        matcher = MATCHER_REGISTRY[matcher_name](opts, *args, **kwargs)
-    else:
-        supported_matchers = list(MATCHER_REGISTRY.keys())
-        supp_matcher_str = "Got {} as matcher. Supported matchers are:".format(
-            matcher_name
-        )
-        for i, m_name in enumerate(supported_matchers):
-            supp_matcher_str += "\n\t {}: {}".format(i, logger.color_text(m_name))
+    # We registered the base class using a special `name` (i.e., `__base__`)
+    # in order to access the arguments defined inside those classes. However, these classes are not supposed to
+    # be used. Therefore, we raise an error for such cases
+    if matcher_name == "__base__":
+        logger.error("__base__ can't be used as a projection name. Please check.")
 
-        if is_master(opts):
-            logger.error(supp_matcher_str)
+    matcher = MATCHER_REGISTRY[matcher_name](opts, *args, **kwargs)
     return matcher
-
-
-# automatically import the matchers
-matcher_dir = os.path.dirname(__file__)
-for file in os.listdir(matcher_dir):
-    path = os.path.join(matcher_dir, file)
-    if (
-        not file.startswith("_")
-        and not file.startswith(".")
-        and (file.endswith(".py") or os.path.isdir(path))
-    ):
-        matcher_py = file[: file.find(".py")] if file.endswith(".py") else file
-        module = importlib.import_module("cvnets.matcher_det." + matcher_py)

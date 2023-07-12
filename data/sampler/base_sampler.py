@@ -1,44 +1,43 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import torch
-from torch.utils.data.sampler import Sampler
-from typing import Optional
-import torch.distributed as dist
-import math
 import argparse
 import copy
-import numpy as np
+import math
 import random
+from typing import Any, Iterator, List, Tuple
+
+import numpy as np
+import torch
+import torch.distributed as dist
+from torch.utils.data.sampler import Sampler
 
 
-class BaseSamplerDP(Sampler):
-    """
-    Base class for DataParallel Sampler
+class BaseSampler(Sampler):
+    """Base class for standard and DataParallel Sampler.
+
+    Every subclass should implement `__iter__` method, providing a way to iterate
+    over indices of dataset elements.
 
     Args:
         opts: command line argument
-        n_data_samples (int): Number of samples in the dataset
-        is_training (Optional[bool]): Training or validation mode. Default: False
+        n_data_samples: Number of samples in the dataset
+        is_training: Training mode or not. Default: False
     """
 
     def __init__(
         self,
-        opts,
+        opts: argparse.Namespace,
         n_data_samples: int,
-        is_training: Optional[bool] = False,
+        is_training: bool = False,
         *args,
-        **kwargs
+        **kwargs,
     ) -> None:
         # max between 1 and number of available GPUs. 1 because for supporting CPUs
         n_gpus: int = max(1, torch.cuda.device_count())
-        batch_size_gpu0: int = (
-            getattr(opts, "dataset.train_batch_size0", 32)
-            if is_training
-            else getattr(opts, "dataset.val_batch_size0", 32)
-        )
+        batch_size_gpu0: int = get_batch_size_from_opts(opts, is_training=is_training)
 
         n_samples_per_gpu = int(math.ceil(n_data_samples * 1.0 / n_gpus))
         total_size = n_samples_per_gpu * n_gpus
@@ -55,22 +54,56 @@ class BaseSamplerDP(Sampler):
         self.shuffle = True if is_training else False
         self.epoch = 0
 
-        self.num_repeats = getattr(opts, "sampler.num_repeats", 1) if is_training else 1
-        self.trunc_rep_aug = getattr(
-            opts, "sampler.truncated_repeat_aug_sampler", False
-        )
+        self.num_repeats = 1
+        self.trunc_rep_aug = False
+        if is_training:
+            # enable these arguments for repeated data augmentation
+            # https://openaccess.thecvf.com/content_CVPR_2020/papers/Hoffer_Augment_Your_Batch_Improving_Generalization_Through_Instance_Repetition_CVPR_2020_paper.pdf
+            self.num_repeats = getattr(opts, "sampler.num_repeats")
+            self.trunc_rep_aug = getattr(opts, "sampler.truncated_repeat_aug_sampler")
 
     @classmethod
-    def add_arguments(cls, parser: argparse.ArgumentParser):
+    def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        if cls != BaseSampler:
+            # Don't re-register arguments in subclasses that don't override `add_arguments()`.
+            return parser
+
+        # add sampler-specific arguments
+        group = parser.add_argument_group(cls.__name__)
+        group.add_argument(
+            "--sampler.name",
+            type=str,
+            default="batch_sampler",
+            help="Name of the sampler. Defaults to batch sampler.",
+        )
+        group.add_argument(
+            "--sampler.num-repeats",
+            type=int,
+            default=1,
+            help="Repeat the training dataset samples by this factor in each epoch (aka repeated augmentation). "
+            "This effectively increases samples per epoch. As an example, if dataset has 10000 samples "
+            "and sampler.num_repeats is set to 2, then total samples in each epoch would be 20000. "
+            "Defaults to 1.",
+        )
+
+        group.add_argument(
+            "--sampler.truncated-repeat-aug-sampler",
+            action="store_true",
+            default=False,
+            help="When enabled, it restricts the sampler to load a subset of the training dataset such that"
+            "number of samples obtained after repetition are the same as the original dataset."
+            "As an example, if dataset has 10000 samples, sampler.num_repeats is set to 2, and "
+            "sampler.truncated_repeat_aug_sampler is enabled, then the sampler would sample "
+            "10000 samples in each epoch. Defaults to False.",
+        )
         return parser
 
-    def extra_repr(self):
-        extra_repr_str = "\n\t num_repeat={}" "\n\t trunc_rep_aug={}".format(
-            self.num_repeats, self.trunc_rep_aug
-        )
-        return extra_repr_str
+    def get_indices(self) -> List[int]:
+        """Returns a list of indices of dataset elements to iterate over.
 
-    def get_indices(self):
+        ...note:
+            If repeated augmentation is enabled, then indices will be repeated.
+        """
         img_indices = copy.deepcopy(self.img_indices)
         if self.shuffle:
             random.seed(self.epoch)
@@ -90,49 +123,60 @@ class BaseSamplerDP(Sampler):
                     img_indices = img_indices[:n_samples_before_repeat]
         return img_indices
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[Any, ...]]:
         raise NotImplementedError
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.img_indices) * (1 if self.trunc_rep_aug else self.num_repeats)
 
-    def set_epoch(self, epoch):
+    def set_epoch(self, epoch: int) -> None:
+        """Helper function to set epoch in each sampler."""
         self.epoch = epoch
 
-    def update_scales(self, epoch, is_master_node=False, *args, **kwargs):
-        pass
+    def update_scales(
+        self, epoch: int, is_master_node: bool = False, *args, **kwargs
+    ) -> None:
+        """Helper function to update scales in each sampler. This is typically useful in variable-batch sampler.
 
-    def update_indices(self, new_indices):
+        Subclass is expected to implement this function. By default, we do not do anything
+        """
+
+    def update_indices(self, new_indices: List[int]) -> None:
+        """Update indices to new indices. This function might be useful for sample-efficient training."""
         self.img_indices = new_indices
 
-    def __repr__(self):
-        return "{}()".format(self.__class__.__name__)
+    def extra_repr(self) -> str:
+        extra_repr_str = (
+            f"\n\t num_repeat={self.num_repeats}"
+            f"\n\t trunc_rep_aug={self.trunc_rep_aug}"
+        )
+        return extra_repr_str
+
+    def __repr__(self) -> str:
+        return "{}({}\n)".format(self.__class__.__name__, self.extra_repr())
 
 
 class BaseSamplerDDP(Sampler):
-    """
-    Base class for DistributedDataParallel Sampler
+    """Base class for DistributedDataParallel Sampler.
+
+    Every subclass should implement `__iter__` method, providing a way to iterate
+    over indices of dataset elements.
 
     Args:
         opts: command line argument
-        n_data_samples (int): Number of samples in the dataset
-        is_training (Optional[bool]): Training or validation mode. Default: False
+        n_data_samples: Number of samples in the dataset
+        is_training: Training or validation mode. Default: False
     """
 
     def __init__(
         self,
-        opts,
+        opts: argparse.Namespace,
         n_data_samples: int,
-        is_training: Optional[bool] = False,
+        is_training: bool = False,
         *args,
-        **kwargs
+        **kwargs,
     ) -> None:
-        # max between 1 and number of available GPUs. 1 because for supporting CPUs
-        batch_size_gpu0: int = (
-            getattr(opts, "dataset.train_batch_size0", 32)
-            if is_training
-            else getattr(opts, "dataset.val_batch_size0", 32)
-        )
+        batch_size_gpu0: int = get_batch_size_from_opts(opts, is_training=is_training)
 
         if not dist.is_available():
             raise RuntimeError("Requires distributed package to be available")
@@ -162,37 +206,28 @@ class BaseSamplerDDP(Sampler):
         self.local_rank = rank % gpus_node_i
         self.num_gpus_node_i = gpus_node_i
 
-        self.sharding = (
-            getattr(opts, "sampler.use_shards", False) if is_training else False
-        )
-        self.num_repeats = getattr(opts, "sampler.num_repeats", 1) if is_training else 1
-        self.trunc_rep_aug = (
-            getattr(opts, "sampler.truncated_repeat_aug_sampler", False)
-            if self.num_repeats
-            else False
-        )
-        self.n_samples_per_replica = num_samples_per_replica * (
-            1 if self.trunc_rep_aug else self.num_repeats
-        )
-        self.disable_shuffle_sharding = getattr(
-            opts, "sampler.disable_shuffle_sharding", False
-        )
-
-    def extra_repr(self):
-        extra_repr_str = (
-            "\n\t num_repeat={}"
-            "\n\t trunc_rep_aug={}"
-            "\n\t sharding={}"
-            "\n\t disable_shuffle_sharding={}".format(
-                self.num_repeats,
-                self.trunc_rep_aug,
-                self.sharding,
-                self.disable_shuffle_sharding,
+        self.sharding = False
+        self.num_repeats = 1
+        self.trunc_rep_aug = False
+        self.disable_shuffle_sharding = False
+        if is_training:
+            self.sharding = getattr(opts, "sampler.use_shards")
+            self.num_repeats = getattr(opts, "sampler.num_repeats")
+            self.trunc_rep_aug = getattr(opts, "sampler.truncated_repeat_aug_sampler")
+            self.disable_shuffle_sharding = getattr(
+                opts, "sampler.disable_shuffle_sharding"
             )
-        )
-        return extra_repr_str
 
-    def get_indices_rank_i(self):
+        sample_multiplier = 1 if self.trunc_rep_aug else self.num_repeats
+        self.n_samples_per_replica = num_samples_per_replica * sample_multiplier
+
+    def get_indices_rank_i(self) -> List[int]:
+        """Returns a list of indices of dataset elements for each rank to iterate over.
+
+        ...note:
+            1. If repeated augmentation is enabled, then indices will be repeated.
+            2. If sharding is enabled, then each rank will process a subset of the dataset.
+        """
         img_indices = copy.deepcopy(self.img_indices)
         if self.shuffle:
             random.seed(self.epoch)
@@ -270,26 +305,80 @@ class BaseSamplerDDP(Sampler):
             ]
         return indices_rank_i
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[Any, ...]]:
         raise NotImplementedError
 
-    def __len__(self):
+    def __len__(self) -> int:
         return (len(self.img_indices) // self.num_replicas) * (
             1 if self.trunc_rep_aug else self.num_repeats
         )
 
     @classmethod
-    def add_arguments(cls, parser: argparse.ArgumentParser):
+    def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        if cls != BaseSamplerDDP:
+            # Don't re-register arguments in subclasses that don't override `add_arguments()`.
+            return parser
+
+        group = parser.add_argument_group(cls.__name__)
+        group.add_argument(
+            "--sampler.use-shards",
+            action="store_true",
+            default=False,
+            help="Use data sharding. Only applicable to DDP. Defaults to False.",
+        )
+        group.add_argument(
+            "--sampler.disable-shuffle-sharding",
+            action="store_true",
+            default=False,
+            help="Disable shuffling while sharding for extremely large datasets. Defaults to False.",
+        )
+
         return parser
 
-    def set_epoch(self, epoch):
+    def set_epoch(self, epoch: int) -> None:
+        """Helper function to set epoch in each sampler."""
         self.epoch = epoch
 
-    def update_scales(self, epoch, is_master_node=False, *args, **kwargs):
-        pass
+    def update_scales(
+        self, epoch: int, is_master_node: bool = False, *args, **kwargs
+    ) -> None:
+        """Helper function to update scales in each sampler. This is typically useful in variable-batch sampler
 
-    def update_indices(self, new_indices):
+        Subclass is expected to implement this function. By default, we do not do anything
+        """
+
+    def update_indices(self, new_indices: List[int]) -> None:
+        """Update indices to new indices. This function might be useful for sample-efficient training."""
         self.img_indices = new_indices
 
+    def extra_repr(self) -> str:
+        extra_repr_str = (
+            f"\n\t num_repeat={self.num_repeats}"
+            f"\n\t trunc_rep_aug={self.trunc_rep_aug}"
+            f"\n\t sharding={self.sharding}"
+            f"\n\t disable_shuffle_sharding={self.disable_shuffle_sharding}"
+        )
+        return extra_repr_str
+
     def __repr__(self):
-        return "{}()".format(self.__class__.__name__)
+        return "{}({}\n)".format(self.__class__.__name__, self.extra_repr())
+
+
+def get_batch_size_from_opts(
+    opts: argparse.Namespace, is_training: bool = False
+) -> int:
+    """Helper function to extract batch size for training or validation/test
+
+    Args:
+        opts: command line argument
+        is_training: Training or validation mode. Default: False
+
+    Returns:
+        Returns an integer
+    """
+    batch_size_gpu0 = int(
+        getattr(opts, "dataset.train_batch_size0")
+        if is_training
+        else getattr(opts, "dataset.val_batch_size0")
+    )
+    return batch_size_gpu0

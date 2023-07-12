@@ -1,20 +1,23 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import Tensor
-from typing import Union, Dict, Tuple, Optional
 import argparse
+from typing import Dict, Optional, Tuple, Union
 
-from utils import logger
+from torch import Tensor
 
-from . import BaseSegmentation, register_segmentation_models
-from .heads import build_segmentation_head
-from ..classification import BaseEncoder
+from cvnets.models import MODEL_REGISTRY, BaseAnyNNModel, get_model
+from cvnets.models.classification.base_image_encoder import BaseImageEncoder
+from cvnets.models.segmentation.base_seg import (
+    BaseSegmentation,
+    set_model_specific_opts_before_model_building,
+    unset_model_specific_opts_after_model_building,
+)
 
 
-@register_segmentation_models(name="encoder_decoder")
+@MODEL_REGISTRY.register(name="encoder_decoder", type="segmentation")
 class SegEncoderDecoder(BaseSegmentation):
     """
     This class defines a encoder-decoder architecture for the task of semantic segmentation. Different segmentation
@@ -22,26 +25,24 @@ class SegEncoderDecoder(BaseSegmentation):
 
     Args:
         opts: command-line arguments
-        encoder (BaseEncoder): Backbone network (e.g., MobileViT or ResNet)
+        encoder (BaseImageEncoder): Backbone network (e.g., MobileViT or ResNet)
     """
 
-    def __init__(self, opts, encoder: BaseEncoder, *args, **kwargs) -> None:
+    def __init__(
+        self, opts, encoder: BaseImageEncoder, seg_head, *args, **kwargs
+    ) -> None:
         super().__init__(opts=opts, encoder=encoder)
 
         # delete layers that are not required in segmentation network
         self.encoder.classifier = None
-        use_l5_exp = getattr(opts, "model.segmentation.use_level5_exp", False)
+        use_l5_exp = getattr(opts, "model.segmentation.use_level5_exp")
         if not use_l5_exp:
             self.encoder.conv_1x1_exp = None
 
-        self.seg_head = build_segmentation_head(
-            opts=opts, enc_conf=self.encoder.model_conf_dict, use_l5_exp=use_l5_exp
-        )
+        self.maybe_seg_norm_layer()
+        self.seg_head = seg_head
         self.use_l5_exp = use_l5_exp
-
-    @classmethod
-    def add_arguments(cls, parser: argparse.ArgumentParser):
-        return parser
+        self.set_default_norm_layer()
 
     def get_trainable_parameters(
         self,
@@ -53,19 +54,28 @@ class SegEncoderDecoder(BaseSegmentation):
         """This function separates the parameters for backbone and segmentation head, so that
         different learning rates can be used for backbone and segmentation head
         """
-        encoder_params, enc_lr_mult = self.encoder.get_trainable_parameters(
-            weight_decay=weight_decay,
-            no_decay_bn_filter_bias=no_decay_bn_filter_bias,
-            module_name="encoder.",
-            *args,
-            **kwargs
-        )
+        if getattr(self.encoder, "enable_layer_wise_lr_decay"):
+            encoder_params, enc_lr_mult = self.encoder.get_trainable_parameters(
+                weight_decay=weight_decay,
+                no_decay_bn_filter_bias=no_decay_bn_filter_bias,
+                module_name="encoder.",
+                *args,
+                **kwargs,
+            )
+        else:
+            encoder_params, enc_lr_mult = self.encoder.get_trainable_parameters(
+                weight_decay=weight_decay,
+                no_decay_bn_filter_bias=no_decay_bn_filter_bias,
+                module_name="encoder.",
+                *args,
+                **kwargs,
+            )
         decoder_params, dec_lr_mult = self.seg_head.get_trainable_parameters(
             weight_decay=weight_decay,
             no_decay_bn_filter_bias=no_decay_bn_filter_bias,
             module_name="seg_head.",
             *args,
-            **kwargs
+            **kwargs,
         )
 
         total_params = sum([p.numel() for p in self.parameters()])
@@ -107,91 +117,37 @@ class SegEncoderDecoder(BaseSegmentation):
         if hasattr(self.seg_head, "update_classifier"):
             self.seg_head.update_classifier(opts, n_classes)
 
-    def profile_model(self, input: Tensor) -> None:
-        """
-        This function computes layer-wise FLOPs and parameters for segmentation network
+    @classmethod
+    def build_model(cls, opts: argparse.Namespace, *args, **kwargs) -> BaseAnyNNModel:
 
-        .. note::
-             Model profiling is for reference only and may contain errors as it relies heavily on user
-             to implement the underlying functions accurately.
-        """
-
-        overall_params, overall_macs = 0.0, 0.0
-        input_fvcore = input.clone()
-
-        logger.log("Model statistics for an input of size {}".format(input.size()))
-        logger.double_dash_line(dashes=65)
-        print("{:>35} Summary".format(self.__class__.__name__))
-        logger.double_dash_line(dashes=65)
-
-        # profile encoder
-        enc_str = (
-            logger.text_colors["logs"]
-            + logger.text_colors["bold"]
-            + "Encoder  "
-            + logger.text_colors["end_color"]
-        )
-        print("{:>45}".format(enc_str))
-        enc_end_points, encoder_params, encoder_macs = self.encoder.profile_model(
-            input, is_classification=False
-        )
-        overall_params += encoder_params
-        overall_macs += encoder_macs
-
-        # profile decoder
-        dec_str = (
-            logger.text_colors["logs"]
-            + logger.text_colors["bold"]
-            + "Decoder  "
-            + logger.text_colors["end_color"]
-        )
-        print("{:>45}".format(dec_str))
-
-        out, decoder_params, decoder_macs = self.seg_head.profile_module(enc_end_points)
-        overall_params += decoder_params
-        overall_macs += decoder_macs
-
-        logger.double_dash_line(dashes=65)
-        print("{:<20} = {:>8.3f} M".format("Overall parameters", overall_params / 1e6))
-        overall_params_py = sum([p.numel() for p in self.parameters()])
-        print(
-            "{:<20} = {:>8.3f} M".format(
-                "Overall parameters (sanity check)", overall_params_py / 1e6
-            )
+        output_stride = getattr(opts, "model.segmentation.output_stride", None)
+        image_encoder = get_model(
+            opts,
+            category="classification",
+            output_stride=output_stride,
+            *args,
+            **kwargs,
         )
 
-        # Counting Addition and Multiplication as 1 operation
-        print(
-            "{:<20} = {:>8.3f} M".format(
-                "Overall MACs (theoretical)", overall_macs / 1e6
-            )
+        default_opt_info = set_model_specific_opts_before_model_building(opts)
+        use_l5_exp = getattr(opts, "model.segmentation.use_level5_exp")
+
+        seg_head = get_model(
+            opts=opts,
+            category="segmentation_head",
+            model_name=getattr(opts, "model.segmentation.seg_head"),
+            enc_conf=image_encoder.model_conf_dict,
+            use_l5_exp=use_l5_exp,
+            *args,
+            **kwargs,
         )
 
-        # compute flops using FVCore
-        try:
-            # compute flops using FVCore also
-            from fvcore.nn import FlopCountAnalysis
+        seg_model = cls(opts, encoder=image_encoder, seg_head=seg_head, *args, **kwargs)
 
-            flop_analyzer = FlopCountAnalysis(self.eval(), input_fvcore)
-            flop_analyzer.unsupported_ops_warnings(False)
-            flop_analyzer.uncalled_modules_warnings(False)
-            flops_fvcore = flop_analyzer.total()
-            print(
-                "{:<20} = {:>8.3f} M".format(
-                    "Overall MACs (FVCore)**", flops_fvcore / 1e6
-                )
-            )
-            print(
-                "\n** Theoretical and FVCore MACs may vary as theoretical MACs do not account "
-                "for certain operations which may or may not be accounted in FVCore"
-            )
-        except ModuleNotFoundError as mnfe:
-            logger.warning(
-                "Please install fvcore to profile {} model".format(
-                    self.__class__.__name__
-                )
-            )
-        except Exception:
-            pass
+        unset_model_specific_opts_after_model_building(
+            opts, default_opts_info=default_opt_info
+        )
 
-        logger.double_dash_line(dashes=65)
+        if getattr(opts, "model.segmentation.freeze_batch_norm"):
+            cls.freeze_norm_layers(opts, model=seg_model)
+        return seg_model

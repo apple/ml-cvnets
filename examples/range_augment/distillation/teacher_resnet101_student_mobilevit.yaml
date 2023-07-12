@@ -43,16 +43,20 @@ sampler:
     max_crop_size_height: 320
     check_scale: 32
 loss:
-  category: "distillation"
-  distillation:
-    name: "cls_kl_div_loss_with_na"
-    label_smoothing: 0.1
-    cls_kl_div_loss:
-      mode: "soft"
-  neural_aug:
-    perceptual_metric: "psnr"
-    target_value: [ 40, 20]
-    curriculum_method: "cosine"
+  category: "composite_loss"
+  composite_loss:
+    - loss_category: "distillation"
+      loss_weight: 1.0
+      distillation:
+        name: "soft_kl_loss"
+        soft_kl_loss:
+          temperature: 1.0
+    - loss_category: "neural_augmentation"
+      loss_weight: 1.0
+      neural_augmentation:
+        perceptual_metric: "psnr"
+        target_value: [ 40, 20 ]
+        curriculum_method: "cosine"
 optim:
   name: "adamw"
   no_decay_bn_filter_bias: false

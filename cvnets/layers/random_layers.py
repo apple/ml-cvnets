@@ -1,15 +1,15 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import Tensor
 import random
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
+from torch import Tensor
+
+from cvnets.layers.base_layer import BaseLayer
 from utils.math_utils import bound_fn
-
-from .base_layer import BaseLayer
 
 
 class RandomApply(BaseLayer):
@@ -41,14 +41,6 @@ class RandomApply(BaseLayer):
             for layer in self.module_list:
                 x = layer(x)
         return x
-
-    def profile_module(self, x, *args, **kwargs) -> Tuple[Tensor, float, float]:
-        params, macs = 0.0, 0.0
-        for layer in self.module_list:
-            x, p, m = layer.profile_module(x)
-            params += p
-            macs += m
-        return x, params, macs
 
     def __repr__(self):
         format_string = "{}(apply_k (N={})={}, ".format(

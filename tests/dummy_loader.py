@@ -1,19 +1,17 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
 
 from functools import partial
 
-from utils import logger
-from utils.ddp_utils import is_master
-
-from data.sampler import build_sampler
 from data.collate_fns import build_collate_fn
 from data.loader.dataloader import CVNetsDataLoader
-
-from .dummy_datasets import train_val_datasets
+from data.sampler import build_sampler
+from tests.dummy_datasets import train_val_datasets
+from utils import logger
+from utils.ddp_utils import is_master
 
 
 def create_train_val_loader(opts):

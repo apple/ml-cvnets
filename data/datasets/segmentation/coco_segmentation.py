@@ -1,54 +1,33 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import os
-from typing import Optional, List, Dict, Union
 import argparse
-
-from pycocotools.coco import COCO
-from pycocotools import mask
-import numpy as np
 import os
-from typing import Optional
+from typing import List, Mapping, Optional, Tuple, Union
+
+import numpy as np
+from pycocotools import mask
+from pycocotools.coco import COCO
+from torch import Tensor
+
+from data.datasets import DATASET_REGISTRY
+from data.datasets.segmentation.base_segmentation import BaseImageSegmentationDataset
 
 
-from .. import register_dataset
-from ..dataset_base import BaseImageDataset
-from ...transforms import image_pil as T
-
-
-@register_dataset("coco", "segmentation")
-class COCODataset(BaseImageDataset):
-    """
-    Dataset class for the COCO dataset that maps classes to PASCAL VOC classes
+@DATASET_REGISTRY.register(name="coco", type="segmentation")
+class COCOSegmentationDataset(BaseImageSegmentationDataset):
+    """Dataset class for the COCO dataset that maps classes to PASCAL VOC classes
 
     Args:
         opts: command-line arguments
-        is_training (Optional[bool]): A flag used to indicate training or validation mode. Default: True
-        is_evaluation (Optional[bool]): A flag used to indicate evaluation (or inference) mode. Default: False
     """
 
-    def __init__(
-        self,
-        opts,
-        is_training: Optional[bool] = True,
-        is_evaluation: Optional[bool] = False,
-        *args,
-        **kwargs
-    ) -> None:
-        """
-
-        :param opts: arguments
-        :param is_training: Training or validation mode
-        :param is_evaluation: Evaluation mode
-        """
-        super().__init__(
-            opts=opts, is_training=is_training, is_evaluation=is_evaluation
-        )
+    def __init__(self, opts: argparse.Namespace, *args, **kwargs) -> None:
+        super().__init__(opts=opts, *args, **kwargs)
         year = 2017
-        split = "train" if is_training else "val"
+        split = "train" if self.is_training else "val"
         ann_file = os.path.join(
             self.root, "annotations/instances_{}{}.json".format(split, year)
         )
@@ -59,32 +38,39 @@ class COCODataset(BaseImageDataset):
         self.ids = list(self.coco.imgs.keys())
 
         self.ignore_label = 255
-        self.bgrnd_idx = 0
+        self.background_idx = 0
 
-        setattr(opts, "model.segmentation.n_classes", len(self.class_names()))
+    def __getitem__(
+        self, sample_size_and_index: Tuple[int, int, int], *args, **kwargs
+    ) -> Mapping[str, Union[Tensor, Mapping[str, Tensor]]]:
+        """Returns the sample corresponding to the input sample index. Returned sample is transformed
+        into the size specified by the input.
 
-    def __getitem__(self, batch_indexes_tup):
-        crop_size_h, crop_size_w, img_index = batch_indexes_tup
-        crop_size = (crop_size_h, crop_size_w)
+        Args:
+            sample_size_and_index: Tuple of the form (crop_size_h, crop_size_w, sample_index)
 
-        if self.is_training:
-            _transform = self._training_transforms(
-                size=crop_size, ignore_idx=self.ignore_label
-            )
-        elif self.is_evaluation:
-            _transform = self._evaluation_transforms(size=crop_size)
-        else:
-            _transform = self._validation_transforms(size=crop_size)
+        Returns:
+            A dictionary with `samples` and `targets` as keys corresponding to input and labels of
+            a sample, respectively.
+
+        Shapes:
+            The shape of values in output dictionary, output_data, are as follows:
+
+            output_data["samples"]["image"]: Shape is [Channels, Height, Width]
+            output_data["targets"]["mask"]: Shape is [Height, Width]
+
+        """
+        crop_size_h, crop_size_w, img_index = sample_size_and_index
+
+        _transform = self.get_augmentation_transforms(size=(crop_size_h, crop_size_w))
 
         coco = self.coco
         img_id = self.ids[img_index]
         img_metadata = coco.loadImgs(img_id)[0]
         path = img_metadata["file_name"]
 
-        rgb_img = self.read_image_opencv(os.path.join(self.img_dir, path))
+        rgb_img = self.read_image_pil(os.path.join(self.img_dir, path))
         cocotarget = coco.loadAnns(coco.getAnnIds(imgIds=img_id))
-
-        im_height, im_width = rgb_img.shape[:2]
 
         mask = self._gen_seg_mask(
             cocotarget, img_metadata["height"], img_metadata["width"]
@@ -101,6 +87,7 @@ class COCODataset(BaseImageDataset):
         output_data = {"samples": data["image"], "targets": data["mask"]}
 
         if self.is_evaluation:
+            im_width, im_height = rgb_img.size
             img_name = path.replace("jpg", "png")
             mask = output_data.pop("targets")
             output_data["targets"] = {
@@ -112,7 +99,8 @@ class COCODataset(BaseImageDataset):
 
         return output_data
 
-    def _gen_seg_mask(self, target, h, w):
+    def _gen_seg_mask(self, target, h: int, w: int) -> np.ndarray:
+        """Generates a mask in PASCAL VOC format"""
         mask = np.zeros((h, w), dtype=np.uint8)
         coco_mask = self.coco_mask
         coco_to_pascal = self.coco_to_pascal_mapping()
@@ -132,33 +120,12 @@ class COCODataset(BaseImageDataset):
                 )
         return mask
 
-    def _training_transforms(self, size: tuple, ignore_idx: Optional[int] = 255):
-        aug_list = [
-            T.RandomResize(opts=self.opts),
-            T.RandomCrop(opts=self.opts, size=size),
-            T.RandomHorizontalFlip(opts=self.opts),
-            T.ToTensor(opts=self.opts),
-        ]
-
-        return T.Compose(opts=self.opts, img_transforms=aug_list)
-
-    def _validation_transforms(self, size: tuple, *args, **kwargs):
-        aug_list = [T.Resize(opts=self.opts), T.ToTensor(opts=self.opts)]
-        return T.Compose(opts=self.opts, img_transforms=aug_list)
-
-    def _evaluation_transforms(self, size: tuple, *args, **kwargs):
-        aug_list = []
-        if getattr(self.opts, "evaluation.segmentation.resize_input_images", False):
-            aug_list.append(T.Resize(opts=self.opts))
-
-        aug_list.append(T.ToTensor(opts=self.opts))
-        return T.Compose(opts=self.opts, img_transforms=aug_list)
-
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.ids)
 
     @staticmethod
-    def class_names() -> List:
+    def class_names() -> List[str]:
+        """PASCAL VOC classes names"""
         return [
             "background",
             "aeroplane",
@@ -184,7 +151,8 @@ class COCODataset(BaseImageDataset):
         ]
 
     @staticmethod
-    def coco_to_pascal_mapping():
+    def coco_to_pascal_mapping() -> List[int]:
+        """COCO to PASCAL VOC class mapping"""
         return [
             0,
             5,
@@ -208,23 +176,3 @@ class COCODataset(BaseImageDataset):
             7,
             72,
         ]
-
-    def __repr__(self):
-        from utils.tensor_utils import image_size_from_opts
-
-        im_h, im_w = image_size_from_opts(opts=self.opts)
-
-        if self.is_training:
-            transforms_str = self._training_transforms(size=(im_h, im_w))
-        elif self.is_evaluation:
-            transforms_str = self._evaluation_transforms(size=(im_h, im_w))
-        else:
-            transforms_str = self._validation_transforms(size=(im_h, im_w))
-
-        return "{}(\n\troot={}\n\tis_training={}\n\tsamples={}\n\t\n\ttransforms={}\n)".format(
-            self.__class__.__name__,
-            self.root,
-            self.is_training,
-            len(self.ids),
-            transforms_str,
-        )

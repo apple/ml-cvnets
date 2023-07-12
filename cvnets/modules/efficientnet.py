@@ -1,14 +1,12 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn, Tensor
-from typing import Optional, Union, Tuple
+from torch import Tensor, nn
 
-from ..layers import StochasticDepth
-
-from . import InvertedResidualSE
+from cvnets.layers import StochasticDepth
+from cvnets.modules import InvertedResidualSE
 
 
 class EfficientNetBlock(InvertedResidualSE):
@@ -38,11 +36,6 @@ class EfficientNetBlock(InvertedResidualSE):
             # residual connection
             y = y + x
         return y
-
-    def profile_module(
-        self, input: Tensor, *args, **kwargs
-    ) -> Tuple[Tensor, float, float]:
-        return super().profile_module(input=input)
 
     def __repr__(self) -> str:
         return (

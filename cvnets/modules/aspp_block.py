@@ -1,19 +1,24 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
+import argparse
+from typing import Optional, Tuple
 
 import torch
-from torch import nn, Tensor
-from typing import Optional, Tuple
 import torch.nn.functional as F
+from torch import Tensor, nn
 
+from cvnets.layers import (
+    AdaptiveAvgPool2d,
+    BaseLayer,
+    ConvLayer2d,
+    Dropout2d,
+    SeparableConv2d,
+)
+from cvnets.modules import BaseModule
 from utils import logger
 from utils.ddp_utils import is_master
-
-from ..layers import BaseLayer, ConvLayer, AdaptiveAvgPool2d, SeparableConv, Dropout2d
-from ..modules import BaseModule
-from ..misc.profiler import module_profile
 
 
 class ASPP(BaseModule):
@@ -44,7 +49,7 @@ class ASPP(BaseModule):
         *args,
         **kwargs
     ) -> None:
-        in_proj = ConvLayer(
+        in_proj = ConvLayer2d(
             opts=opts,
             in_channels=in_channels,
             out_channels=out_channels,
@@ -53,7 +58,7 @@ class ASPP(BaseModule):
             use_norm=True,
             use_act=True,
         )
-        out_proj = ConvLayer(
+        out_proj = ConvLayer2d(
             opts=opts,
             in_channels=5 * out_channels,
             out_channels=out_channels,
@@ -62,7 +67,7 @@ class ASPP(BaseModule):
             use_norm=True,
             use_act=True,
         )
-        aspp_layer = ASPPSeparableConv if is_sep_conv else ASPPConv
+        aspp_layer = ASPPSeparableConv2d if is_sep_conv else ASPPConv2d
 
         assert len(atrous_rates) == 3
 
@@ -111,21 +116,6 @@ class ASPP(BaseModule):
         out = self.dropout_layer(out)
         return out
 
-    def profile_module(self, input: Tensor, *args, **kwargs) -> (Tensor, float, float):
-        params, macs = 0.0, 0.0
-        res = []
-        for c in self.convs:
-            out, p, m = module_profile(module=c, x=input)
-            params += p
-            macs += m
-            res.append(out)
-        res = torch.cat(res, dim=1)
-
-        out, p, m = module_profile(module=self.project, x=res)
-        params += p
-        macs += m
-        return out, params, macs
-
     def __repr__(self):
         return "{}(in_channels={}, out_channels={}, atrous_rates={}, is_aspp_sep={}, dropout={})".format(
             self.__class__.__name__,
@@ -137,7 +127,7 @@ class ASPP(BaseModule):
         )
 
 
-class ASPPConv(ConvLayer):
+class ASPPConv2d(ConvLayer2d):
     """
     Convolution with a dilation  for the ASPP module
     Args:
@@ -173,7 +163,7 @@ class ASPPConv(ConvLayer):
         self.block.conv.padding = rate
 
 
-class ASPPSeparableConv(SeparableConv):
+class ASPPSeparableConv2d(SeparableConv2d):
     """
     Separable Convolution with a dilation for the ASPP module
     Args:
@@ -225,7 +215,6 @@ class ASPPPooling(BaseLayer):
     def __init__(
         self, opts, in_channels: int, out_channels: int, *args, **kwargs
     ) -> None:
-
         super().__init__()
         self.aspp_pool = nn.Sequential()
         self.aspp_pool.add_module(
@@ -233,7 +222,7 @@ class ASPPPooling(BaseLayer):
         )
         self.aspp_pool.add_module(
             name="conv_1x1",
-            module=ConvLayer(
+            module=ConvLayer2d(
                 opts=opts,
                 in_channels=in_channels,
                 out_channels=out_channels,
@@ -252,13 +241,6 @@ class ASPPPooling(BaseLayer):
         x = self.aspp_pool(x)
         x = F.interpolate(x, size=x_size, mode="bilinear", align_corners=False)
         return x
-
-    def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:
-        out, params, macs = module_profile(module=self.aspp_pool, x=input)
-        out = F.interpolate(
-            out, size=input.shape[-2:], mode="bilinear", align_corners=False
-        )
-        return out, params, macs
 
     def __repr__(self):
         return "{}(in_channels={}, out_channels={})".format(

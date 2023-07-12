@@ -1,20 +1,27 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
+import copy
 import random
+import sys
+from typing import List, Optional
 
 from torch import Tensor
-import cv2
+
+try:
+    import cv2
+
+    FONT_SIZE = cv2.FONT_HERSHEY_PLAIN
+except ImportError:
+    FONT_SIZE = None
 import numpy as np
-import copy
-from typing import Optional, List, Tuple
 from matplotlib.colors import hsv_to_rgb
+from torch import Tensor
 
-from utils.color_map import Colormap
 from utils import logger
+from utils.color_map import Colormap
 
-FONT_SIZE = cv2.FONT_HERSHEY_PLAIN
 LABEL_COLOR = [255, 255, 255]
 TEXT_THICKNESS = 1
 RECT_BORDER_THICKNESS = 2
@@ -22,6 +29,10 @@ RECT_BORDER_THICKNESS = 2
 
 def visualize_boxes_xyxy(image: np.ndarray, boxes: np.ndarray) -> np.ndarray:
     """Utility function to draw bounding boxes of objects on a given image"""
+    if "cv2" not in sys.modules:
+        logger.error(
+            "OpenCV is an optional dependency. Please run pip install opencv-contrib-python==4.5.5.64."
+        )
     boxes = boxes.astype(np.int)
 
     new_image = copy.deepcopy(image)
@@ -36,14 +47,16 @@ def visualize_boxes_xyxy(image: np.ndarray, boxes: np.ndarray) -> np.ndarray:
     return new_image
 
 
-def create_colored_mask(mask: np.ndarray, num_classes: int, *args, **kwargs) -> np.ndarray:
+def create_colored_mask(
+    mask: np.ndarray, num_classes: int, *args, **kwargs
+) -> np.ndarray:
     """Create a colored mask with random colors"""
     colored_mask = np.ones((mask.shape[0], mask.shape[1], 3), dtype=np.uint8)
     # 0 for background.
     random_hue = random.randint(1, num_classes)
 
     random_mask_color = hsv_to_rgb((random_hue / num_classes, 0.75, 0.75))
-    colored_mask[..., :] = [int(c * 255.) for c in random_mask_color]
+    colored_mask[..., :] = [int(c * 255.0) for c in random_mask_color]
     colored_mask *= mask[..., None]
     return colored_mask
 
@@ -58,9 +71,14 @@ def draw_bounding_boxes(
     object_names: Optional[List] = None,
     is_bgr_format: Optional[bool] = False,
     save_path: Optional[str] = None,
-    num_classes: Optional[int] = 81
+    num_classes: Optional[int] = 81,
 ) -> None:
     """Utility function to draw bounding boxes of objects along with their labels and score on a given image"""
+    if "cv2" not in sys.modules:
+        logger.error(
+            "OpenCV is an optional dependency. Please run pip install opencv-contrib-python==4.5.5.64."
+        )
+
     boxes = boxes.astype(np.int)
 
     if is_bgr_format:

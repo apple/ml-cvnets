@@ -1,12 +1,11 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
 from torch import Tensor
-from typing import Tuple
 
-from .base_layer import BaseLayer
+from cvnets.layers.base_layer import BaseLayer
 
 
 class Identity(BaseLayer):
@@ -19,6 +18,3 @@ class Identity(BaseLayer):
 
     def forward(self, x: Tensor) -> Tensor:
         return x
-
-    def profile_module(self, x: Tensor) -> Tuple[Tensor, float, float]:
-        return x, 0.0, 0.0

@@ -1,9 +1,9 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from typing import Union, Optional
+from typing import Optional, Union
 
 
 def make_divisible(

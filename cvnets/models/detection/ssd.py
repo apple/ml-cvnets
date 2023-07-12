@@ -1,47 +1,43 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import copy
+
+import argparse
+import math
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
-from torch import nn, Tensor
-from utils import logger
-import argparse
-from typing import Optional, Tuple, Dict, Union, Any, List
+from torch import Tensor, nn
 from torchvision.ops import batched_nms
-from torch.nn import functional as F
-import math
 
 from cvnets.anchor_generator import build_anchor_generator
+from cvnets.layers import AdaptiveAvgPool2d, ConvLayer2d, SeparableConv2d
 from cvnets.matcher_det import build_matcher
+from cvnets.misc.init_utils import initialize_conv_layer
+from cvnets.models import MODEL_REGISTRY
+from cvnets.models.classification.base_image_encoder import BaseImageEncoder
+from cvnets.models.detection import DetectionPredTuple
+from cvnets.models.detection.base_detection import BaseDetection
+from cvnets.modules import SSDHead
+from utils import logger
 from utils.common_utils import is_coreml_conversion
 
-from . import register_detection_models
-from ... import parameter_list
 
-from .base_detection import BaseDetection, DetectionPredTuple
-from ...layers import ConvLayer, SeparableConv, AdaptiveAvgPool2d
-from ...modules import SSDHead, SSDInstanceHead
-from ...models.classification import BaseEncoder
-from ...misc.init_utils import initialize_conv_layer
-from ...misc.profiler import module_profile
-
-
-@register_detection_models("ssd")
+@MODEL_REGISTRY.register(name="ssd", type="detection")
 class SingleShotMaskDetector(BaseDetection):
     """
     This class implements a `Single Shot Object Detector <https://arxiv.org/abs/1512.02325>`_
 
     Args:
         opts: command-line arguments
-        encoder (BaseEncoder): Encoder network (e.g., ResNet or MobileViT)
+        encoder (BaseImageEncoder): Encoder network (e.g., ResNet or MobileViT)
     """
 
     coordinates = 4  # 4 coordinates (x1, y1, x2, y2) or (x, y, w, h)
 
-    def __init__(self, opts, encoder: BaseEncoder) -> None:
+    def __init__(self, opts, encoder: BaseImageEncoder) -> None:
 
         anchor_gen_name = getattr(opts, "anchor_generator.name", None)
         if anchor_gen_name is None or anchor_gen_name != "ssd":
@@ -96,7 +92,7 @@ class SingleShotMaskDetector(BaseDetection):
             elif os == 32:
                 enc_channels_list.append(self.enc_l5_channels)
             elif os > 32 and os != -1:
-                extra_layers["os_{}".format(os)] = SeparableConv(
+                extra_layers["os_{}".format(os)] = SeparableConv2d(
                     opts=opts,
                     in_channels=in_channels,
                     out_channels=out_channels,
@@ -110,7 +106,7 @@ class SingleShotMaskDetector(BaseDetection):
             elif os == -1:
                 extra_layers["os_{}".format(os)] = nn.Sequential(
                     AdaptiveAvgPool2d(output_size=1),
-                    ConvLayer(
+                    ConvLayer2d(
                         opts=opts,
                         in_channels=in_channels,
                         out_channels=out_channels,
@@ -129,7 +125,7 @@ class SingleShotMaskDetector(BaseDetection):
 
         self.fpn = None
         if getattr(opts, "model.detection.ssd.use_fpn", False):
-            from ...modules import FeaturePyramidNetwork
+            from cvnets.modules import FeaturePyramidNetwork
 
             fpn_channels = getattr(opts, "model.detection.ssd.fpn_out_channels", 256)
             self.fpn = FeaturePyramidNetwork(
@@ -188,9 +184,7 @@ class SingleShotMaskDetector(BaseDetection):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--model.detection.ssd.anchors-aspect-ratio",
             type=int,
@@ -352,7 +346,7 @@ class SingleShotMaskDetector(BaseDetection):
             anchors_fm_ctr = self.anchor_box_generator(
                 fm_height=fm_h, fm_width=fm_w, fm_output_stride=os, device=device
             )
-            anchors.append(anchors_fm_ctr)
+            anchors.append(anchors_fm_ctr.to(device=device))
 
         locations = torch.cat(locations, dim=1)
         confidences = torch.cat(confidences, dim=1)
@@ -491,152 +485,6 @@ class SingleShotMaskDetector(BaseDetection):
                 )
             results.append(output)
         return results
-
-    def profile_backbone(self, x: Tensor) -> Tuple[Dict[str, Tensor], float, float]:
-        params, macs = 0.0, 0.0
-        enc_end_points, p, m = self.encoder.profile_model(x, is_classification=False)
-        params += p
-        macs += m
-
-        end_points = dict()
-        for idx, os in enumerate(self.output_strides):
-            if os == 8:
-                end_points["os_{}".format(os)] = enc_end_points.pop("out_l3")
-            elif os == 16:
-                end_points["os_{}".format(os)] = enc_end_points.pop("out_l4")
-            elif os == 32:
-                end_points["os_{}".format(os)] = enc_end_points.pop("out_l5")
-            else:
-                x = end_points["os_{}".format(self.output_strides[idx - 1])]
-                x, p, m = module_profile(
-                    module=self.extra_layers["os_{}".format(os)], x=x
-                )
-                end_points["os_{}".format(os)] = x
-
-                params += p
-                macs += m
-
-        if self.fpn is not None:
-            end_points, p, m = self.fpn.profile_module(end_points)
-            params += p
-            macs += m
-
-            enc_str = (
-                logger.text_colors["logs"]
-                + logger.text_colors["bold"]
-                + "FPN  "
-                + logger.text_colors["end_color"]
-            )
-            print("{:>45}".format(enc_str))
-            print(
-                "{:<15} \t {:<5}: {:>8.3f} M \t {:<5}: {:>8.3f} M".format(
-                    self.fpn.__class__.__name__,
-                    "Params",
-                    round(p / 1e6, 3),
-                    "MACs",
-                    round(m / 1e6, 3),
-                )
-            )
-            logger.singe_dash_line()
-        return end_points, params, macs
-
-    def profile_model(self, input: Tensor) -> None:
-        """
-        This function computes layer-wise FLOPs and parameters for SSD
-
-        .. note::
-             Model profiling is for reference only and may contain errors as it relies heavily on user
-             to implement the underlying functions accurately.
-        """
-        overall_params, overall_macs = 0.0, 0.0
-        input_fvcore = input.clone()
-
-        logger.log("Model statistics for an input of size {}".format(input.size()))
-        logger.double_dash_line(dashes=65)
-        print("{:>35} Summary".format(self.__class__.__name__))
-        logger.double_dash_line(dashes=65)
-
-        # profile encoder
-        enc_str = (
-            logger.text_colors["logs"]
-            + logger.text_colors["bold"]
-            + "Encoder  "
-            + logger.text_colors["end_color"]
-        )
-        print("{:>45}".format(enc_str))
-        backbone_end_points, encoder_params, encoder_macs = self.profile_backbone(
-            x=input
-        )
-
-        ssd_head_params = ssd_head_macs = 0.0
-        for os, ssd_head in zip(self.output_strides, self.ssd_heads):
-            _, p, m = module_profile(
-                module=ssd_head, x=backbone_end_points["os_{}".format(os)]
-            )
-            ssd_head_params += p
-            ssd_head_macs += m
-
-        overall_params += encoder_params + ssd_head_params
-        overall_macs += encoder_macs + ssd_head_macs
-
-        ssd_str = (
-            logger.text_colors["logs"]
-            + logger.text_colors["bold"]
-            + "SSD  "
-            + logger.text_colors["end_color"]
-        )
-        print("{:>45}".format(ssd_str))
-
-        print(
-            "{:<15} \t {:<5}: {:>8.3f} M \t {:<5}: {:>8.3f} M".format(
-                self.__class__.__name__,
-                "Params",
-                round(ssd_head_params / 1e6, 3),
-                "MACs",
-                round(ssd_head_macs / 1e6, 3),
-            )
-        )
-
-        logger.double_dash_line(dashes=65)
-        print("{:<20} = {:>8.3f} M".format("Overall parameters", overall_params / 1e6))
-        overall_params_py = sum([p.numel() for p in self.parameters()])
-        print(
-            "{:<20} = {:>8.3f} M".format(
-                "Overall parameters (sanity check)", overall_params_py / 1e6
-            )
-        )
-
-        # Counting Addition and Multiplication as 1 operation
-        print(
-            "{:<20} = {:>8.3f} M".format(
-                "Overall MACs (theoretical)", overall_macs / 1e6
-            )
-        )
-
-        # compute flops using FVCore
-        try:
-            # compute flops using FVCore also
-            from fvcore.nn import FlopCountAnalysis
-
-            flop_analyzer = FlopCountAnalysis(self.eval(), input_fvcore)
-            flop_analyzer.unsupported_ops_warnings(False)
-            flop_analyzer.uncalled_modules_warnings(False)
-            flops_fvcore = flop_analyzer.total()
-            print(
-                "{:<20} = {:>8.3f} M".format(
-                    "Overall MACs (FVCore)**", flops_fvcore / 1e6
-                )
-            )
-            print(
-                "\n** Theoretical and FVCore MACs may vary as theoretical MACs do not account "
-                "for certain operations which may or may not be accounted in FVCore"
-            )
-        except Exception:
-            pass
-
-        print("Note: Theoretical MACs depends on user-implementation. Be cautious")
-
-        logger.double_dash_line(dashes=65)
 
     def dummy_input_and_label(self, batch_size: int) -> Dict:
         """Create dummy input and labels for CI/CD purposes."""

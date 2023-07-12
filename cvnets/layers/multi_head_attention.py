@@ -1,19 +1,18 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
+from typing import Optional
+
 import torch
-from torch import nn, Tensor
-from typing import Optional, Tuple
+from torch import Tensor, nn
 from torch.nn import functional as F
 
+from cvnets.layers.base_layer import BaseLayer
+from cvnets.layers.dropout import Dropout
+from cvnets.layers.linear_layer import LinearLayer
 from utils import logger
-
-from .base_layer import BaseLayer
-from .linear_layer import LinearLayer
-from .dropout import Dropout
-from ..misc.profiler import module_profile
 
 
 class MultiHeadAttention(BaseLayer):
@@ -308,25 +307,3 @@ class MultiHeadAttention(BaseLayer):
                 key_padding_mask=key_padding_mask,
                 attn_mask=attn_mask,
             )
-
-    def profile_module(self, input) -> Tuple[Tensor, float, float]:
-        b_sz, seq_len, in_channels = input.shape
-        params = macs = 0.0
-
-        qkv, p, m = module_profile(module=self.qkv_proj, x=input)
-        params += p
-        macs += m * seq_len * b_sz
-
-        # number of operations in QK^T
-        m_qk = (seq_len * seq_len * in_channels) * b_sz
-        macs += m_qk
-
-        # number of operations in computing weighted sum
-        m_wt = (seq_len * seq_len * in_channels) * b_sz
-        macs += m_wt
-
-        out_p, p, m = module_profile(module=self.out_proj, x=input)
-        params += p
-        macs += m * seq_len * b_sz
-
-        return input, params, macs

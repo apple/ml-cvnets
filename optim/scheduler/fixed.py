@@ -1,15 +1,15 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from . import register_scheduler
-from .base_scheduler import BaseLRScheduler
 import argparse
-import math
+
+from optim.scheduler import SCHEDULER_REGISTRY
+from optim.scheduler.base_scheduler import BaseLRScheduler
 
 
-@register_scheduler("fixed")
+@SCHEDULER_REGISTRY.register("fixed")
 class FixedLRScheduler(BaseLRScheduler):
     """
     Fixed learning rate scheduler with optional linear warm-up strategy

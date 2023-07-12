@@ -1,13 +1,14 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn, Tensor
-from typing import Optional, Tuple
-import torch
+from typing import Optional
 
-from . import register_norm_fn
+import torch
+from torch import Tensor, nn
+
+from cvnets.layers.normalization import register_norm_fn
 
 
 @register_norm_fn(name="batch_norm")
@@ -47,11 +48,6 @@ class BatchNorm2d(nn.BatchNorm2d):
             track_running_stats=track_running_stats,
         )
 
-    def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:
-        # Since normalization layers can be fused, we do not count their operations
-        params = sum([p.numel() for p in self.parameters()])
-        return input, params, 0.0
-
 
 @register_norm_fn(name="batch_norm_fp32")
 class BatchNorm2dFP32(BatchNorm2d):
@@ -82,11 +78,6 @@ class BatchNorm2dFP32(BatchNorm2d):
     def forward(self, input: Tensor) -> Tensor:
         inp_dtype = input.dtype
         return super().forward(input.to(torch.float32)).to(inp_dtype)
-
-    def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:
-        # Since normalization layers can be fused, we do not count their operations
-        params = sum([p.numel() for p in self.parameters()])
-        return input, params, 0.0
 
 
 @register_norm_fn(name="batch_norm_1d")
@@ -125,11 +116,6 @@ class BatchNorm1d(nn.BatchNorm1d):
             track_running_stats=track_running_stats,
         )
 
-    def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:
-        # Since normalization layers can be fused, we do not count their operations
-        params = sum([p.numel() for p in self.parameters()])
-        return input, params, 0.0
-
 
 @register_norm_fn(name="batch_norm_3d")
 class BatchNorm3d(nn.BatchNorm3d):
@@ -165,8 +151,3 @@ class BatchNorm3d(nn.BatchNorm3d):
             affine=affine,
             track_running_stats=track_running_stats,
         )
-
-    def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:
-        # Since normalization layers can be fused, we do not count their operations
-        params = sum([p.numel() for p in self.parameters()])
-        return input, params, 0.0

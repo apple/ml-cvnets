@@ -1,22 +1,24 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import copy
-from PIL import Image, ImageFilter
-from utils import logger
-import numpy as np
-import random
-import torch
-import math
 import argparse
+import copy
+import math
+import random
+from typing import Dict, List, Optional, Sequence, Tuple, Union
+
+import numpy as np
+import torch
+from PIL import Image, ImageFilter
 from torchvision import transforms as T
 from torchvision.transforms import functional as F
-from typing import Sequence, Dict, Any, Union, Tuple, List, Optional
 
-from . import register_transformations, BaseTransformation
-from .utils import jaccard_numpy, setup_size
+from data.transforms import TRANSFORMATIONS_REGISTRY, BaseTransformation
+from data.transforms.utils import jaccard_numpy, setup_size
+from options.parse_args import JsonValidator
+from utils import logger
 
 INTERPOLATION_MODE_MAP = {
     "nearest": T.InterpolationMode.NEAREST,
@@ -160,7 +162,7 @@ def _resize_fn(
         data["instance_mask"] = resized_instance_masks
 
         instance_coords = data.pop("instance_coords")
-        instance_coords = instance_coords.astype(np.float)
+        instance_coords = instance_coords.astype(np.float32)
         instance_coords[..., 0::2] *= 1.0 * size_w / w
         instance_coords[..., 1::2] *= 1.0 * size_h / h
         data["instance_coords"] = instance_coords
@@ -204,7 +206,7 @@ def _pad_fn(
     return data
 
 
-@register_transformations(name="fixed_size_crop", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="fixed_size_crop", type="image_pil")
 class FixedSizeCrop(BaseTransformation):
     def __init__(
         self, opts, size: Optional[Union[int, Tuple[int, int]]] = None, *args, **kwargs
@@ -231,9 +233,7 @@ class FixedSizeCrop(BaseTransformation):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--image-augmentation.fixed-size-crop.enable",
             action="store_true",
@@ -301,7 +301,7 @@ class FixedSizeCrop(BaseTransformation):
         )
 
 
-@register_transformations(name="scale_jitter", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="scale_jitter", type="image_pil")
 class ScaleJitter(BaseTransformation):
     """Randomly resizes the input within the scale range"""
 
@@ -354,9 +354,7 @@ class ScaleJitter(BaseTransformation):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--image-augmentation.scale-jitter.enable",
             action="store_true",
@@ -393,7 +391,10 @@ class ScaleJitter(BaseTransformation):
             self.scale_range[1] - self.scale_range[0]
         )
         r = (
-            min(self.target_size[1] / orig_height, self.target_size[0] / orig_width)
+            min(
+                self.target_size[1] / orig_height,
+                self.target_size[0] / orig_width,
+            )
             * scale
         )
         new_width = int(orig_width * r)
@@ -413,36 +414,34 @@ class ScaleJitter(BaseTransformation):
         )
 
 
-@register_transformations(name="random_resized_crop", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="random_resized_crop", type="image_pil")
 class RandomResizedCrop(BaseTransformation, T.RandomResizedCrop):
     """
     This class crops a random portion of an image and resize it to a given size.
     """
 
-    def __init__(self, opts, size: Union[Sequence, int], *args, **kwargs) -> None:
+    def __init__(
+        self, opts: argparse.Namespace, size: Union[Sequence, int], *args, **kwargs
+    ) -> None:
         interpolation = getattr(
-            opts, "image_augmentation.random_resized_crop.interpolation", "bilinear"
+            opts, "image_augmentation.random_resized_crop.interpolation"
         )
-        scale = getattr(
-            opts, "image_augmentation.random_resized_crop.scale", (0.08, 1.0)
-        )
-        ratio = getattr(
-            opts,
-            "image_augmentation.random_resized_crop.aspect_ratio",
-            (3.0 / 4.0, 4.0 / 3.0),
-        )
+        scale = getattr(opts, "image_augmentation.random_resized_crop.scale")
+        ratio = getattr(opts, "image_augmentation.random_resized_crop.aspect_ratio")
 
         BaseTransformation.__init__(self, opts=opts)
 
         T.RandomResizedCrop.__init__(
-            self, size=size, scale=scale, ratio=ratio, interpolation=interpolation
+            self,
+            size=size,
+            scale=scale,
+            ratio=ratio,
+            interpolation=interpolation,
         )
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
 
         group.add_argument(
             "--image-augmentation.random-resized-crop.enable",
@@ -459,7 +458,7 @@ class RandomResizedCrop(BaseTransformation, T.RandomResizedCrop):
         )
         group.add_argument(
             "--image-augmentation.random-resized-crop.scale",
-            type=tuple,
+            type=JsonValidator(Tuple[float, float]),
             default=(0.08, 1.0),
             help="Specifies the lower and upper bounds for the random area of the crop, before resizing."
             " The scale is defined with respect to the area of the original image. Defaults to "
@@ -474,9 +473,24 @@ class RandomResizedCrop(BaseTransformation, T.RandomResizedCrop):
         )
         return parser
 
+    def get_rrc_params(self, image: Image.Image) -> Tuple[int, int, int, int]:
+        return T.RandomResizedCrop.get_params(
+            img=image, scale=self.scale, ratio=self.ratio
+        )
+
     def __call__(self, data: Dict) -> Dict:
+        """
+        Input data format:
+            data: mapping of: {
+                "image": [Height, Width, Channels],
+                "mask": [Height, Width],
+                "box_coordinates": [Num_boxes, x, y, w, h],
+                "box_labels: : [Num_boxes],
+            }
+        Output data format: Same as the input
+        """
         img = data["image"]
-        i, j, h, w = super().get_params(img=img, scale=self.scale, ratio=self.ratio)
+        i, j, h, w = self.get_rrc_params(image=img)
         data = _crop_fn(data=data, top=i, left=j, height=h, width=w)
         return _resize_fn(data=data, size=self.size, interpolation=self.interpolation)
 
@@ -490,7 +504,7 @@ class RandomResizedCrop(BaseTransformation, T.RandomResizedCrop):
         )
 
 
-@register_transformations(name="auto_augment", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="auto_augment", type="image_pil")
 class AutoAugment(BaseTransformation, T.AutoAugment):
     """
     This class implements the `AutoAugment data augmentation <https://arxiv.org/pdf/1805.09501.pdf>`_ method.
@@ -516,9 +530,7 @@ class AutoAugment(BaseTransformation, T.AutoAugment):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
 
         group.add_argument(
             "--image-augmentation.auto-augment.enable",
@@ -559,7 +571,7 @@ class AutoAugment(BaseTransformation, T.AutoAugment):
         )
 
 
-@register_transformations(name="rand_augment", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="rand_augment", type="image_pil")
 class RandAugment(BaseTransformation, T.RandAugment):
     """
     This class implements the `RandAugment data augmentation <https://arxiv.org/abs/1909.13719>`_ method.
@@ -590,9 +602,7 @@ class RandAugment(BaseTransformation, T.RandAugment):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
 
         group.add_argument(
             "--image-augmentation.rand-augment.enable",
@@ -650,7 +660,7 @@ class RandAugment(BaseTransformation, T.RandAugment):
         )
 
 
-@register_transformations(name="trivial_augment_wide", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="trivial_augment_wide", type="image_pil")
 class TrivialAugmentWide(BaseTransformation, T.TrivialAugmentWide):
     """
     This class implements the `TrivialAugment (Wide) data augmentation <https://arxiv.org/abs/2103.10158>`_ method.
@@ -658,10 +668,14 @@ class TrivialAugmentWide(BaseTransformation, T.TrivialAugmentWide):
 
     def __init__(self, opts, *args, **kwargs) -> None:
         num_magnitude_bins = getattr(
-            opts, "image_augmentation.trivial_augment_wide.num_magnitude_bins", 31
+            opts,
+            "image_augmentation.trivial_augment_wide.num_magnitude_bins",
+            31,
         )
         interpolation = getattr(
-            opts, "image_augmentation.trivial_augment_wide.interpolation", "bilinear"
+            opts,
+            "image_augmentation.trivial_augment_wide.interpolation",
+            "bilinear",
         )
 
         BaseTransformation.__init__(self, opts=opts)
@@ -677,9 +691,7 @@ class TrivialAugmentWide(BaseTransformation, T.TrivialAugmentWide):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
 
         group.add_argument(
             "--image-augmentation.trivial-augment-wide.enable",
@@ -723,22 +735,20 @@ class TrivialAugmentWide(BaseTransformation, T.TrivialAugmentWide):
         )
 
 
-@register_transformations(name="random_horizontal_flip", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="random_horizontal_flip", type="image_pil")
 class RandomHorizontalFlip(BaseTransformation):
     """
     This class implements random horizontal flipping method
     """
 
     def __init__(self, opts, *args, **kwargs) -> None:
-        p = getattr(opts, "image_augmentation.random_horizontal_flip.p", 0.5)
+        p = getattr(opts, "image_augmentation.random_horizontal_flip.p")
         super().__init__(opts=opts)
         self.p = p
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--image-augmentation.random-horizontal-flip.enable",
             action="store_true",
@@ -783,7 +793,7 @@ class RandomHorizontalFlip(BaseTransformation):
         return "{}(p={})".format(self.__class__.__name__, self.p)
 
 
-@register_transformations(name="random_rotate", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="random_rotate", type="image_pil")
 class RandomRotate(BaseTransformation):
     """
     This class implements random rotation method
@@ -796,9 +806,7 @@ class RandomRotate(BaseTransformation):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--image-augmentation.random-rotate.enable",
             action="store_true",
@@ -828,7 +836,10 @@ class RandomRotate(BaseTransformation):
         rand_angle = random.uniform(-self.angle, self.angle)
         img = data.pop("image")
         data["image"] = F.rotate(
-            img, angle=rand_angle, interpolation=F.InterpolationMode.BILINEAR, fill=0
+            img,
+            angle=rand_angle,
+            interpolation=F.InterpolationMode.BILINEAR,
+            fill=0,
         )
         if "mask" in data:
             mask = data.pop("mask")
@@ -846,7 +857,7 @@ class RandomRotate(BaseTransformation):
         )
 
 
-@register_transformations(name="resize", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="resize", type="image_pil")
 class Resize(BaseTransformation):
     """
     This class implements resizing operation.
@@ -908,9 +919,7 @@ class Resize(BaseTransformation):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--image-augmentation.resize.enable",
             action="store_true",
@@ -947,7 +956,7 @@ class Resize(BaseTransformation):
         )
 
 
-@register_transformations(name="center_crop", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="center_crop", type="image_pil")
 class CenterCrop(BaseTransformation):
     """
     This class implements center cropping method.
@@ -974,9 +983,7 @@ class CenterCrop(BaseTransformation):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
 
         group.add_argument(
             "--image-augmentation.center-crop.enable",
@@ -1005,7 +1012,7 @@ class CenterCrop(BaseTransformation):
         )
 
 
-@register_transformations(name="ssd_cropping", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="ssd_cropping", type="image_pil")
 class SSDCroping(BaseTransformation):
     """
     This class implements cropping method for `Single shot object detector <https://arxiv.org/abs/1512.02325>`_.
@@ -1029,9 +1036,7 @@ class SSDCroping(BaseTransformation):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
 
         group.add_argument(
             "--image-augmentation.ssd-crop.enable",
@@ -1185,7 +1190,7 @@ class SSDCroping(BaseTransformation):
         return data
 
 
-@register_transformations(name="photo_metric_distort", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="photo_metric_distort", type="image_pil")
 class PhotometricDistort(BaseTransformation):
     """
     This class implements Photometeric distorion.
@@ -1249,9 +1254,7 @@ class PhotometricDistort(BaseTransformation):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--image-augmentation.photo-metric-distort.enable",
             action="store_true",
@@ -1354,7 +1357,7 @@ class PhotometricDistort(BaseTransformation):
         return data
 
 
-@register_transformations(name="box_percent_coords", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="box_percent_coords", type="image_pil")
 class BoxPercentCoords(BaseTransformation):
     """
     This class converts the box coordinates to percent
@@ -1369,7 +1372,7 @@ class BoxPercentCoords(BaseTransformation):
             image = data["image"]
             width, height = F.get_image_size(image)
 
-            boxes = boxes.astype(np.float)
+            boxes = boxes.astype(np.float32)
 
             boxes[..., 0::2] /= width
             boxes[..., 1::2] /= height
@@ -1378,7 +1381,7 @@ class BoxPercentCoords(BaseTransformation):
         return data
 
 
-@register_transformations(name="instance_processor", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="instance_processor", type="image_pil")
 class InstanceProcessor(BaseTransformation):
     """
     This class processes the instance masks.
@@ -1443,11 +1446,11 @@ class InstanceProcessor(BaseTransformation):
                 resized_instances = torch.stack(resized_instances, dim=0)
 
             data["instance_mask"] = resized_instances
-            data["instance_coords"] = instance_coords.astype(np.float)
+            data["instance_coords"] = instance_coords.astype(np.float32)
         return data
 
 
-@register_transformations(name="random_resize", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="random_resize", type="image_pil")
 class RandomResize(BaseTransformation):
     """
     This class implements random resizing method.
@@ -1493,9 +1496,7 @@ class RandomResize(BaseTransformation):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--image-augmentation.random-resize.enable",
             action="store_true",
@@ -1573,7 +1574,7 @@ class RandomResize(BaseTransformation):
         )
 
 
-@register_transformations(name="random_short_size_resize", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="random_short_size_resize", type="image_pil")
 class RandomShortSizeResize(BaseTransformation):
     """
     This class implements random resizing such that shortest side is between specified minimum and maximum values.
@@ -1582,13 +1583,19 @@ class RandomShortSizeResize(BaseTransformation):
     def __init__(self, opts, *args, **kwargs) -> None:
         super().__init__(opts=opts)
         short_size_min = getattr(
-            opts, "image_augmentation.random_short_size_resize.short_side_min", None
+            opts,
+            "image_augmentation.random_short_size_resize.short_side_min",
+            None,
         )
         short_size_max = getattr(
-            opts, "image_augmentation.random_short_size_resize.short_side_max", None
+            opts,
+            "image_augmentation.random_short_size_resize.short_side_max",
+            None,
         )
         max_img_dim = getattr(
-            opts, "image_augmentation.random_short_size_resize.max_img_dim", None
+            opts,
+            "image_augmentation.random_short_size_resize.max_img_dim",
+            None,
         )
         if short_size_min is None:
             logger.error(
@@ -1617,7 +1624,9 @@ class RandomShortSizeResize(BaseTransformation):
             )
 
         interpolation = getattr(
-            opts, "image_augmentation.random_short_size_resize.interpolation", "bicubic"
+            opts,
+            "image_augmentation.random_short_size_resize.interpolation",
+            "bicubic",
         )
 
         self.short_side_min = short_size_min
@@ -1627,9 +1636,7 @@ class RandomShortSizeResize(BaseTransformation):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--image-augmentation.random-short-size-resize.enable",
             action="store_true",
@@ -1683,7 +1690,7 @@ class RandomShortSizeResize(BaseTransformation):
         )
 
 
-@register_transformations(name="random_erasing", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="random_erasing", type="image_pil")
 class RandomErasing(BaseTransformation, T.RandomErasing):
     """
     This class randomly selects a region in a tensor and erases its pixels.
@@ -1699,9 +1706,7 @@ class RandomErasing(BaseTransformation, T.RandomErasing):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
 
         group.add_argument(
             "--image-augmentation.random-erase.enable",
@@ -1727,7 +1732,7 @@ class RandomErasing(BaseTransformation, T.RandomErasing):
         )
 
 
-@register_transformations(name="random_gaussian_blur", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="random_gaussian_blur", type="image_pil")
 class RandomGaussianBlur(BaseTransformation):
     """
     This method randomly blurs the input image.
@@ -1739,9 +1744,7 @@ class RandomGaussianBlur(BaseTransformation):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
 
         group.add_argument(
             "--image-augmentation.random-gaussian-noise.enable",
@@ -1766,7 +1769,7 @@ class RandomGaussianBlur(BaseTransformation):
         return data
 
 
-@register_transformations(name="random_crop", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="random_crop", type="image_pil")
 class RandomCrop(BaseTransformation):
     """
     This method randomly crops an image area.
@@ -1802,9 +1805,7 @@ class RandomCrop(BaseTransformation):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
 
         group.add_argument(
             "--image-augmentation.random-crop.enable",
@@ -1875,7 +1876,10 @@ class RandomCrop(BaseTransformation):
             if len(cls_count) > 1 and ratio < self.seg_class_max_ratio:
                 break
             i, j, h, w = self.get_params(
-                img_h=img_h, img_w=img_w, target_h=self.height, target_w=self.width
+                img_h=img_h,
+                img_w=img_w,
+                target_h=self.height,
+                target_w=self.width,
             )
         return i, j, h, w
 
@@ -1947,18 +1951,43 @@ class RandomCrop(BaseTransformation):
         )
 
 
-@register_transformations(name="to_tensor", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="to_tensor", type="image_pil")
 class ToTensor(BaseTransformation):
     """
-    This method converts an image into a tensor.
-
-    .. note::
-        We do not perform any mean-std normalization. If mean-std normalization is desired, please modify this class.
+    This method converts an image into a tensor and optionally normalizes by a mean and std.
     """
 
     def __init__(self, opts, *args, **kwargs) -> None:
         super().__init__(opts=opts)
         img_dtype = getattr(opts, "image_augmentation.to_tensor.dtype", "float")
+        mean_std_normalization_enable = getattr(
+            opts, "image_augmentation.to_tensor.mean_std_normalization.enable"
+        )
+        normalization_mean = getattr(
+            opts, "image_augmentation.to_tensor.mean_std_normalization.mean"
+        )
+        normalization_std = getattr(
+            opts, "image_augmentation.to_tensor.mean_std_normalization.std"
+        )
+
+        if mean_std_normalization_enable:
+            assert (
+                normalization_mean is not None
+            ), "--image_augmentation.to_tensor.mean_std_normalization.mean must be specified when --image_augmentation.to_tensor.mean_std_normalization.enable is set to true."
+            assert (
+                normalization_std is not None
+            ), "--image_augmentation.to_tensor.mean_std_normalization.std must be specified when --image_augmentation.to_tensor.mean_std_normalization.enable is set to true."
+
+            if isinstance(normalization_mean, list):
+                assert (
+                    len(normalization_mean) == 3
+                ), "--image_augmentation.to_tensor.mean_std_normalization.mean must be a list of length 3 or a scalar."
+
+            if isinstance(normalization_std, list):
+                assert (
+                    len(normalization_std) == 3
+                ), "--image_augmentation.to_tensor.mean_std_normalization.std must be a list of length 3 or a scalar."
+
         self.img_dtype = torch.float
         self.norm_factor = 255
         if img_dtype in ["half", "float16"]:
@@ -1966,6 +1995,10 @@ class ToTensor(BaseTransformation):
         elif img_dtype in ["uint8"]:
             self.img_dtype = torch.uint8
             self.norm_factor = 1
+
+        self.mean_std_normalization_enable = mean_std_normalization_enable
+        self.normalization_mean = normalization_mean
+        self.normalization_std = normalization_std
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -1975,12 +2008,44 @@ class ToTensor(BaseTransformation):
             default="float",
             help="Tensor data type. Default is float",
         )
+        parser.add_argument(
+            "--image-augmentation.to-tensor.mean-std-normalization.enable",
+            action="store_true",
+            default=False,
+            help="This flag is used to normalize a tensor by a dataset's mean and std. Defaults to False.",
+        )
+        parser.add_argument(
+            "--image-augmentation.to-tensor.mean-std-normalization.mean",
+            type=float,
+            nargs="+",
+            default=None,
+            help="The mean used to normalize the input. Defaults to None.",
+        )
+        parser.add_argument(
+            "--image-augmentation.to-tensor.mean-std-normalization.std",
+            type=float,
+            nargs="+",
+            default=None,
+            help="The standard deviation used to normalize the input. Defaults to None.",
+        )
         return parser
 
     def __repr__(self):
-        return "{}(dtype={}, norm_factor={})".format(
-            self.__class__.__name__, self.img_dtype, self.norm_factor
-        )
+        if self.mean_std_normalization_enable:
+            return "{}(dtype={}, norm_factor={}, mean_std_normalization_enable={}, normalization_mean={}, normalization_std={})".format(
+                self.__class__.__name__,
+                self.img_dtype,
+                self.norm_factor,
+                self.mean_std_normalization_enable,
+                self.normalization_mean,
+                self.normalization_std,
+            )
+        else:
+            return "{}(dtype={}, norm_factor={})".format(
+                self.__class__.__name__,
+                self.img_dtype,
+                self.norm_factor,
+            )
 
     def __call__(self, data: Dict) -> Dict:
         # HWC --> CHW
@@ -1991,6 +2056,13 @@ class ToTensor(BaseTransformation):
             img = F.pil_to_tensor(img).contiguous()
 
         data["image"] = img.to(dtype=self.img_dtype).div(self.norm_factor)
+
+        if self.mean_std_normalization_enable:
+            data["image"] = F.normalize(
+                data["image"],
+                mean=self.normalization_mean,
+                std=self.normalization_std,
+            )
 
         if "mask" in data:
             mask = data.pop("mask")
@@ -2022,28 +2094,7 @@ class ToTensor(BaseTransformation):
         return data
 
 
-@register_transformations(name="compose", type="image_pil")
-class Compose(BaseTransformation):
-    """
-    This method applies a list of transforms in a sequential fashion.
-    """
-
-    def __init__(self, opts, img_transforms: List, *args, **kwargs) -> None:
-        super().__init__(opts=opts)
-        self.img_transforms = img_transforms
-
-    def __call__(self, data: Dict) -> Dict:
-        for t in self.img_transforms:
-            data = t(data)
-        return data
-
-    def __repr__(self) -> str:
-        transform_str = ", ".join("\n\t\t\t" + str(t) for t in self.img_transforms)
-        repr_str = "{}({}\n\t\t)".format(self.__class__.__name__, transform_str)
-        return repr_str
-
-
-@register_transformations(name="random_order", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="random_order", type="image_pil")
 class RandomOrder(BaseTransformation):
     """
     This method applies a list of all or few transforms in a random order.
@@ -2060,9 +2111,7 @@ class RandomOrder(BaseTransformation):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--image-augmentation.random-order.enable",
             action="store_true",
@@ -2092,7 +2141,7 @@ class RandomOrder(BaseTransformation):
         return repr_str
 
 
-@register_transformations(name="rand_augment_timm", type="image_pil")
+@TRANSFORMATIONS_REGISTRY.register(name="rand_augment_timm", type="image_pil")
 class RandAugmentTimm(BaseTransformation):
     """
     This class implements the `RandAugment data augmentation <https://arxiv.org/abs/1909.13719>`_ method,
@@ -2119,9 +2168,7 @@ class RandAugmentTimm(BaseTransformation):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
 
         group.add_argument(
             "--image-augmentation.rand-augment.use-timm-library",

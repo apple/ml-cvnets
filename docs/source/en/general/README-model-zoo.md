@@ -1,6 +1,6 @@
 # Model Zoo
 
-⚠️ For recent papers along with pre-trained models, training/evaluation recipes, and configuration files, please see `[examples](../../../../../examples)` folder. We will update model zoo periodically.⚠️
+⚠️ For recent papers along with pre-trained models, training/evaluation recipes, and configuration files, please see [examples](https://github.com/apple/ml-cvnets/tree/main/examples) folder. We will update model zoo periodically.⚠️
 
 This file contains the links to all the pre-trained models in CVNets and their configs:
 

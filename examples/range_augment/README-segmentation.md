@@ -21,7 +21,7 @@ Evaluation on the validation set can be done using the below command:
 ```
  export CFG_FILE="PATH_TO_MODEL_CONFIGURATION_FILE"
  export MODEL_WEIGHTS="PATH_TO_MODEL_WEIGHTS_FILE"
- CUDA_VISIBLE_DEVICES=0 cvnets-eval-seg --common.config-file $CFG_FILE --common.results-loc seg_results --model.segmentation.pretrained $MODEL_WEIGHTS --evaluation.segmentation.resize-input-images --evaluation.segmentation.mode validation_set
+ CUDA_VISIBLE_DEVICES=0 cvnets-eval-seg --common.config-file $CFG_FILE --common.results-loc seg_results --model.segmentation.pretrained $MODEL_WEIGHTS
 ```
 
 ## Results on the ADE20k dataset
@@ -59,8 +59,6 @@ Evaluation on the validation set can be done using the below command:
  cvnets-eval-seg --common.config-file $CFG_FILE \
  --common.results-loc results \
  --model.segmentation.pretrained $MODEL_WEIGHTS \
- --model.segmentation.n-classes 21 \
- --evaluation.segmentation.resize-input-images \
  --evaluation.segmentation.mode single_image \
  --evaluation.segmentation.path "${IMG_PATH}" \
  --evaluation.segmentation.apply-color-map \

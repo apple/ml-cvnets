@@ -45,10 +45,9 @@ sampler:
 loss:
   category: "distillation"
   distillation:
-    name: "cls_kl_div_loss"
-    label_smoothing: 0.1
-    cls_kl_div_loss:
-      mode: "soft"
+    name: "soft_kl_loss"
+    soft_kl_loss:
+      temperature: 1.0
 optim:
   name: "sgd"
   weight_decay: 4.e-5

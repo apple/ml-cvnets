@@ -1,21 +1,24 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn
 import argparse
-from typing import Tuple, Dict
+from functools import partial
+from typing import Dict, List, Tuple
 
-from . import register_cls_models
-from .base_cls import BaseEncoder
-from .config.resnet import get_configuration
-from ...layers import ConvLayer, LinearLayer, GlobalPool, Identity, Dropout
-from ...modules import BasicResNetBlock, BottleneckResNetBlock
+import numpy as np
+from torch import nn
+
+from cvnets.layers import ConvLayer2d, Dropout, GlobalPool, Identity, LinearLayer
+from cvnets.models import MODEL_REGISTRY
+from cvnets.models.classification.base_image_encoder import BaseImageEncoder
+from cvnets.models.classification.config.resnet import get_configuration
+from cvnets.modules import BasicResNetBlock, BottleneckResNetBlock
 
 
-@register_cls_models("resnet")
-class ResNet(BaseEncoder):
+@MODEL_REGISTRY.register(name="resnet", type="classification")
+class ResNet(BaseImageEncoder):
     """
     This class implements the `ResNet architecture <https://arxiv.org/pdf/1512.03385.pdf>`_
 
@@ -25,21 +28,24 @@ class ResNet(BaseEncoder):
         2. MaxPool operation is replaced with another 3x3 strided depth-wise conv
     """
 
-    def __init__(self, opts, *args, **kwargs) -> None:
+    def __init__(self, opts: argparse.Namespace, *args, **kwargs) -> None:
         image_channels = 3
         input_channels = 64
-        num_classes = getattr(opts, "model.classification.n_classes", 1000)
-        classifier_dropout = getattr(
-            opts, "model.classification.classifier_dropout", 0.2
+        num_classes = getattr(opts, "model.classification.n_classes")
+        classifier_dropout = getattr(opts, "model.classification.classifier_dropout")
+
+        stochastic_depth_prob = getattr(
+            opts, "model.classification.resnet.stochastic_depth_prob"
         )
-        pool_type = getattr(opts, "model.layer.global_pool", "mean")
+
+        pool_type = getattr(opts, "model.layer.global_pool")
 
         cfg = get_configuration(opts=opts)
 
         super().__init__(opts, *args, **kwargs)
         self.model_conf_dict = dict()
 
-        self.conv_1 = ConvLayer(
+        self.conv_1 = ConvLayer2d(
             opts=opts,
             in_channels=image_channels,
             out_channels=input_channels,
@@ -50,7 +56,7 @@ class ResNet(BaseEncoder):
         )
         self.model_conf_dict["conv1"] = {"in": image_channels, "out": input_channels}
 
-        self.layer_1 = ConvLayer(
+        self.layer_1 = ConvLayer2d(
             opts=opts,
             in_channels=input_channels,
             out_channels=input_channels,
@@ -62,31 +68,69 @@ class ResNet(BaseEncoder):
         )
         self.model_conf_dict["layer1"] = {"in": input_channels, "out": input_channels}
 
+        # Stochastic depth variables
+        block_repeats = [cfg[f"layer{i}"].get("num_blocks", 2) for i in range(2, 6)]
+        block_start_indices = np.cumsum([0] + block_repeats[:-1])
+        net_num_blocks = sum(block_repeats)
+        stochastic_depth_fn = partial(
+            self._block_stochastic_depth_prob,
+            stochastic_depth_prob=stochastic_depth_prob,
+            net_num_blocks=net_num_blocks,
+        )
+
+        start_idx = block_start_indices[0]
+        num_blocks = cfg["layer2"]["num_blocks"]
         self.layer_2, out_channels = self._make_layer(
-            opts=opts, in_channels=input_channels, layer_config=cfg["layer2"]
+            opts=opts,
+            in_channels=input_channels,
+            layer_config=cfg["layer2"],
+            stochastic_depth_probs=[
+                stochastic_depth_fn(start_idx=start_idx, idx=idx)
+                for idx in range(num_blocks)
+            ],
         )
         self.model_conf_dict["layer2"] = {"in": input_channels, "out": out_channels}
         input_channels = out_channels
 
+        start_idx = block_start_indices[1]
+        num_blocks = cfg["layer3"]["num_blocks"]
         self.layer_3, out_channels = self._make_layer(
-            opts=opts, in_channels=input_channels, layer_config=cfg["layer3"]
+            opts=opts,
+            in_channels=input_channels,
+            layer_config=cfg["layer3"],
+            stochastic_depth_probs=[
+                stochastic_depth_fn(start_idx=start_idx, idx=idx)
+                for idx in range(num_blocks)
+            ],
         )
         self.model_conf_dict["layer3"] = {"in": input_channels, "out": out_channels}
         input_channels = out_channels
 
+        start_idx = block_start_indices[2]
+        num_blocks = cfg["layer4"]["num_blocks"]
         self.layer_4, out_channels = self._make_layer(
             opts=opts,
             in_channels=input_channels,
             layer_config=cfg["layer4"],
+            stochastic_depth_probs=[
+                stochastic_depth_fn(start_idx=start_idx, idx=idx)
+                for idx in range(num_blocks)
+            ],
             dilate=self.dilate_l4,
         )
         self.model_conf_dict["layer4"] = {"in": input_channels, "out": out_channels}
         input_channels = out_channels
 
+        start_idx = block_start_indices[3]
+        num_blocks = cfg["layer5"]["num_blocks"]
         self.layer_5, out_channels = self._make_layer(
             opts=opts,
             in_channels=input_channels,
             layer_config=cfg["layer5"],
+            stochastic_depth_probs=[
+                stochastic_depth_fn(start_idx=start_idx, idx=idx)
+                for idx in range(num_blocks)
+            ],
             dilate=self.dilate_l5,
         )
         self.model_conf_dict["layer5"] = {"in": input_channels, "out": out_channels}
@@ -121,14 +165,27 @@ class ResNet(BaseEncoder):
         # weight initialization
         self.reset_parameters(opts=opts)
 
+    def _block_stochastic_depth_prob(
+        self,
+        stochastic_depth_prob: float,
+        idx: int,
+        start_idx: int,
+        net_num_blocks: int,
+    ):
+        """Computes the stochastic depth probability for a particular block in the network"""
+        return round(
+            stochastic_depth_prob * (idx + start_idx) / (net_num_blocks - 1), 4
+        )
+
     def _make_layer(
         self,
-        opts,
+        opts: argparse.Namespace,
         in_channels: int,
         layer_config: Dict,
+        stochastic_depth_probs: List[float],
         dilate: bool = False,
         *args,
-        **kwargs
+        **kwargs,
     ) -> Tuple[nn.Sequential, int]:
         block_type = (
             BottleneckResNetBlock
@@ -139,13 +196,15 @@ class ResNet(BaseEncoder):
         num_blocks = layer_config.get("num_blocks", 2)
         stride = layer_config.get("stride", 1)
 
+        squeeze_channels = layer_config.get("squeeze_channels", None)
+
         previous_dilation = self.dilation
         if dilate:
             self.dilation *= stride
             stride = 1
 
         out_channels = block_type.expansion * mid_channels
-        dropout = getattr(opts, "model.classification.resnet.dropout", 0.0)
+        dropout = getattr(opts, "model.classification.resnet.dropout")
 
         block = nn.Sequential()
         block.add_module(
@@ -158,6 +217,8 @@ class ResNet(BaseEncoder):
                 stride=stride,
                 dilation=previous_dilation,
                 dropout=dropout,
+                stochastic_depth_prob=stochastic_depth_probs[0],
+                squeeze_channels=squeeze_channels,
             ),
         )
 
@@ -172,6 +233,8 @@ class ResNet(BaseEncoder):
                     stride=1,
                     dilation=self.dilation,
                     dropout=dropout,
+                    stochastic_depth_prob=stochastic_depth_probs[block_idx],
+                    squeeze_channels=squeeze_channels,
                 ),
             )
 
@@ -179,14 +242,26 @@ class ResNet(BaseEncoder):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument("--model.classification.resnet.depth", type=int, default=50)
         group.add_argument(
             "--model.classification.resnet.dropout",
             type=float,
             default=0.0,
-            help="Dropout in Resnet blocks",
+            help="Dropout in Resnet blocks. Defaults to 0.",
+        )
+
+        group.add_argument(
+            "--model.classification.resnet.stochastic-depth-prob",
+            type=float,
+            default=0.0,
+            help="Stochastic depth drop probability in Resnet blocks. Defaults to 0.",
+        )
+
+        group.add_argument(
+            "--model.classification.resnet.se-resnet",
+            action="store_true",
+            default=False,
+            help="Whether to use SE block to construct SE-ResNet model. Defaults to False.",
         )
         return parser

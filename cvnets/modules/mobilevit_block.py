@@ -1,19 +1,19 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import numpy as np
-from torch import nn, Tensor
 import math
-import torch
-from torch.nn import functional as F
-from typing import Optional, Dict, Tuple, Union, Sequence
+from typing import Dict, Optional, Sequence, Tuple, Union
 
-from .transformer import TransformerEncoder, LinearAttnFFN
-from .base_module import BaseModule
-from ..misc.profiler import module_profile
-from ..layers import ConvLayer, get_normalization_layer
+import numpy as np
+import torch
+from torch import Tensor, nn
+from torch.nn import functional as F
+
+from cvnets.layers import ConvLayer2d, get_normalization_layer
+from cvnets.modules.base_module import BaseModule
+from cvnets.modules.transformer import LinearAttnFFN, TransformerEncoder
 
 
 class MobileViTBlock(BaseModule):
@@ -58,7 +58,7 @@ class MobileViTBlock(BaseModule):
         *args,
         **kwargs
     ) -> None:
-        conv_3x3_in = ConvLayer(
+        conv_3x3_in = ConvLayer2d(
             opts=opts,
             in_channels=in_channels,
             out_channels=in_channels,
@@ -68,7 +68,7 @@ class MobileViTBlock(BaseModule):
             use_act=True,
             dilation=dilation,
         )
-        conv_1x1_in = ConvLayer(
+        conv_1x1_in = ConvLayer2d(
             opts=opts,
             in_channels=in_channels,
             out_channels=transformer_dim,
@@ -78,7 +78,7 @@ class MobileViTBlock(BaseModule):
             use_act=False,
         )
 
-        conv_1x1_out = ConvLayer(
+        conv_1x1_out = ConvLayer2d(
             opts=opts,
             in_channels=transformer_dim,
             out_channels=in_channels,
@@ -89,7 +89,7 @@ class MobileViTBlock(BaseModule):
         )
         conv_3x3_out = None
         if not no_fusion:
-            conv_3x3_out = ConvLayer(
+            conv_3x3_out = ConvLayer2d(
                 opts=opts,
                 in_channels=2 * in_channels,
                 out_channels=in_channels,
@@ -325,37 +325,6 @@ class MobileViTBlock(BaseModule):
         else:
             raise NotImplementedError
 
-    def profile_module(
-        self, input: Tensor, *args, **kwargs
-    ) -> Tuple[Tensor, float, float]:
-        params = macs = 0.0
-
-        res = input
-        out, p, m = module_profile(module=self.local_rep, x=input)
-        params += p
-        macs += m
-
-        patches, info_dict = self.unfolding(feature_map=out)
-
-        patches, p, m = module_profile(module=self.global_rep, x=patches)
-        params += p
-        macs += m
-
-        fm = self.folding(patches=patches, info_dict=info_dict)
-
-        out, p, m = module_profile(module=self.conv_proj, x=fm)
-        params += p
-        macs += m
-
-        if self.fusion is not None:
-            out, p, m = module_profile(
-                module=self.fusion, x=torch.cat((out, res), dim=1)
-            )
-            params += p
-            macs += m
-
-        return res, params, macs
-
 
 class MobileViTBlockv2(BaseModule):
     """
@@ -397,7 +366,7 @@ class MobileViTBlockv2(BaseModule):
     ) -> None:
         cnn_out_dim = attn_unit_dim
 
-        conv_3x3_in = ConvLayer(
+        conv_3x3_in = ConvLayer2d(
             opts=opts,
             in_channels=in_channels,
             out_channels=in_channels,
@@ -408,7 +377,7 @@ class MobileViTBlockv2(BaseModule):
             dilation=dilation,
             groups=in_channels,
         )
-        conv_1x1_in = ConvLayer(
+        conv_1x1_in = ConvLayer2d(
             opts=opts,
             in_channels=in_channels,
             out_channels=cnn_out_dim,
@@ -432,7 +401,7 @@ class MobileViTBlockv2(BaseModule):
             attn_norm_layer=attn_norm_layer,
         )
 
-        self.conv_proj = ConvLayer(
+        self.conv_proj = ConvLayer2d(
             opts=opts,
             in_channels=cnn_out_dim,
             out_channels=in_channels,
@@ -696,28 +665,3 @@ class MobileViTBlockv2(BaseModule):
             return self.forward_spatial(x)
         else:
             raise NotImplementedError
-
-    def profile_module(
-        self, input: Tensor, *args, **kwargs
-    ) -> Tuple[Tensor, float, float]:
-        params = macs = 0.0
-        input = self.resize_input_if_needed(input)
-
-        res = input
-        out, p, m = module_profile(module=self.local_rep, x=input)
-        params += p
-        macs += m
-
-        patches, output_size = self.unfolding_pytorch(feature_map=out)
-
-        patches, p, m = module_profile(module=self.global_rep, x=patches)
-        params += p
-        macs += m
-
-        fm = self.folding_pytorch(patches=patches, output_size=output_size)
-
-        out, p, m = module_profile(module=self.conv_proj, x=fm)
-        params += p
-        macs += m
-
-        return res, params, macs

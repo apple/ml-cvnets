@@ -1,31 +1,34 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import torch
 import time
 
-from metrics import Statistics, metric_monitor
+import torch
+
+from common import DEFAULT_LOG_FREQ, SUPPORTED_VIDEO_CLIP_VOTING_FN
+from engine.utils import autocast_fn, get_batch_size, get_log_writers
+from metrics.stats import Statistics
 from options.parse_args import parse_validation_metric_names
-from utils.ddp_utils import is_master
 from utils import logger
 from utils.common_utils import move_to_device
-from engine.utils import print_summary
-from common import DEFAULT_LOG_FREQ, SUPPORTED_VIDEO_CLIP_VOTING_FN
-
-from .utils import get_batch_size, autocast_fn
+from utils.ddp_utils import is_master
 
 
 class Evaluator(object):
-    def __init__(self, opts, model, eval_loader):
+    # Note: "test_loader" used to be named "eval_loader". We recently renamed data-related "eval_*" names to "test_*"
+    #   to follow the standard train/val/test terminology. Engine-related names (eval_engine, is_evaluation, evaluator,
+    #   etc.) remained unchanged. One of the reasons was to prevent "eval_engine.py"->"test_engine.py" being
+    #   recognized a test suite by pytest.
+    def __init__(self, opts, model, test_loader):
         super(Evaluator, self).__init__()
 
         self.opts = opts
 
         self.model = model
 
-        self.eval_loader = eval_loader
+        self.test_loader = test_loader
 
         self.device = getattr(opts, "dev.device", torch.device("cpu"))
         self.use_distributed = getattr(self.opts, "ddp.use_distributed", False)
@@ -43,8 +46,7 @@ class Evaluator(object):
             self.ckpt_submetric,
         ) = parse_validation_metric_names(self.opts)
 
-        if self.is_master_node:
-            print_summary(opts=self.opts, model=self.model)
+        self.log_writers = get_log_writers(self.opts, save_location=None)
 
         # inference modality based eval function
         self.eval_fn = self.eval_fn_image
@@ -56,7 +58,11 @@ class Evaluator(object):
         log_freq = getattr(self.opts, "common.log_freq", DEFAULT_LOG_FREQ)
 
         evaluation_stats = Statistics(
-            metric_names=self.metric_names, is_master_node=self.is_master_node
+            opts=self.opts,
+            metric_names=self.metric_names,
+            is_master_node=self.is_master_node,
+            is_distributed=self.use_distributed,
+            log_writers=self.log_writers,
         )
 
         model.eval()
@@ -66,10 +72,10 @@ class Evaluator(object):
 
         with torch.no_grad():
             epoch_start_time = time.time()
-            total_samples = len(self.eval_loader)
+            total_samples = len(self.test_loader)
             processed_samples = 0
 
-            for batch_id, batch in enumerate(self.eval_loader):
+            for batch_id, batch in enumerate(self.test_loader):
                 batch = move_to_device(opts=self.opts, x=batch, device=self.device)
 
                 samples, targets = batch["samples"], batch["targets"]
@@ -84,35 +90,37 @@ class Evaluator(object):
                     pred_label = model(samples)
 
                 processed_samples += batch_size
-                metrics = metric_monitor(
-                    self.opts,
-                    pred_label=pred_label,
-                    target_label=targets,
-                    loss=torch.tensor(0.0, dtype=torch.float, device=self.device),
-                    use_distributed=self.use_distributed,
-                    metric_names=self.metric_names,
-                )
 
                 evaluation_stats.update(
-                    metric_vals=metrics, batch_time=0.0, n=batch_size
+                    pred_label=pred_label,
+                    target_label=targets,
+                    extras={
+                        "loss": torch.tensor(0.0, dtype=torch.float, device=self.device)
+                    },
+                    batch_time=0.0,
+                    batch_size=batch_size,
                 )
 
                 if batch_id % log_freq == 0 and self.is_master_node:
                     evaluation_stats.iter_summary(
-                        epoch=-1,
+                        epoch=0,
                         n_processed_samples=processed_samples,
                         total_samples=total_samples,
                         elapsed_time=epoch_start_time,
                         learning_rate=0.0,
                     )
 
-        evaluation_stats.epoch_summary(epoch=-1, stage=self.stage_name)
+        evaluation_stats.epoch_summary(epoch=0, stage=self.stage_name)
 
     def eval_fn_video(self, model):
         log_freq = getattr(self.opts, "common.log_freq", DEFAULT_LOG_FREQ)
 
         evaluation_stats = Statistics(
-            metric_names=self.metric_names, is_master_node=self.is_master_node
+            opts=self.opts,
+            metric_names=self.metric_names,
+            is_master_node=self.is_master_node,
+            is_distributed=self.use_distributed,
+            log_writers=self.log_writers,
         )
 
         model.eval()
@@ -130,10 +138,10 @@ class Evaluator(object):
 
         with torch.no_grad():
             epoch_start_time = time.time()
-            total_samples = len(self.eval_loader)
+            total_samples = len(self.test_loader)
             processed_samples = 0
 
-            for batch_id, batch in enumerate(self.eval_loader):
+            for batch_id, batch in enumerate(self.test_loader):
                 batch = move_to_device(opts=self.opts, x=batch, device=self.device)
 
                 samples, targets = batch["samples"], batch["targets"]
@@ -172,29 +180,27 @@ class Evaluator(object):
                     )
 
                 processed_samples += batch_size
-                metrics = metric_monitor(
-                    self.opts,
-                    pred_label=pred_label,
-                    target_label=targets,
-                    loss=torch.tensor(0.0, dtype=torch.float, device=self.device),
-                    use_distributed=self.use_distributed,
-                    metric_names=self.metric_names,
-                )
 
                 evaluation_stats.update(
-                    metric_vals=metrics, batch_time=0.0, n=batch_size
+                    pred_label=pred_label,
+                    target_label=targets,
+                    extras={
+                        "loss": torch.tensor(0.0, dtype=torch.float, device=self.device)
+                    },
+                    batch_time=0.0,
+                    batch_size=batch_size,
                 )
 
                 if batch_id % log_freq == 0 and self.is_master_node:
                     evaluation_stats.iter_summary(
-                        epoch=-1,
+                        epoch=0,
                         n_processed_samples=processed_samples,
                         total_samples=total_samples,
                         elapsed_time=epoch_start_time,
                         learning_rate=0.0,
                     )
 
-        evaluation_stats.epoch_summary(epoch=-1, stage=self.stage_name)
+        evaluation_stats.epoch_summary(epoch=0, stage=self.stage_name)
 
     def run(self):
         eval_start_time = time.time()

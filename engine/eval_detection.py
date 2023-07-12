@@ -1,36 +1,34 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
+import glob
 import os.path
+from typing import Dict, List, Optional
+
 import numpy as np
 import torch
-import multiprocessing
-from torch.nn import functional as F
-from tqdm import tqdm
-import glob
-from typing import Optional, Dict
-from torch import Tensor, nn
-from torchvision.transforms import functional as F_vision
 from PIL import Image
+from torch import Tensor, nn
+from torch.nn import functional as F
+from torchvision.transforms import functional as F_vision
+from tqdm import tqdm
 
 from common import SUPPORTED_IMAGE_EXTNS
-from options.opts import get_detection_eval_arguments
 from cvnets import get_model
-from cvnets.models.detection.ssd import DetectionPredTuple
-from data import create_eval_loader
+from cvnets.models.detection import DetectionPredTuple
+from data import create_test_loader
 from data.datasets.detection.coco_base import COCODetection
-from utils.tensor_utils import to_numpy, image_size_from_opts
-from utils.common_utils import device_setup, create_directories
-from utils.ddp_utils import is_master
-from utils import logger
-from engine.utils import print_summary
 from engine.detection_utils.coco_map import compute_quant_scores
-from utils.visualization_utils import draw_bounding_boxes
+from engine.utils import autocast_fn, get_batch_size
+from options.opts import get_training_arguments
+from utils import logger, resources
+from utils.common_utils import create_directories, device_setup
+from utils.ddp_utils import is_master
 from utils.download_utils import get_local_path
-
-from .utils import autocast_fn, get_batch_size
+from utils.tensor_utils import image_size_from_opts, to_numpy
+from utils.visualization_utils import draw_bounding_boxes
 
 # Evaluation on MSCOCO detection task
 object_names = COCODetection.class_names()
@@ -162,13 +160,13 @@ def predict_labeled_dataset(opts, **kwargs):
     device = getattr(opts, "dev.device", torch.device("cpu"))
 
     # set-up data loaders
-    val_loader = create_eval_loader(opts)
+    test_loader = create_test_loader(opts)
 
     # set-up the model
     model = get_model(opts)
     model.eval()
+    model.info()
     model = model.to(device=device)
-    print_summary(opts=opts, model=model)
 
     if model.training:
         logger.warning("Model is in training mode. Switching to evaluation mode")
@@ -176,7 +174,7 @@ def predict_labeled_dataset(opts, **kwargs):
 
     with torch.no_grad():
         predictions = []
-        for img_idx, batch in tqdm(enumerate(val_loader)):
+        for img_idx, batch in tqdm(enumerate(test_loader)):
             samples, targets = batch["samples"], batch["targets"]
 
             batch_size = get_batch_size(samples)
@@ -241,8 +239,8 @@ def predict_image(opts, image_fname, **kwargs):
     # set-up the model
     model = get_model(opts)
     model.eval()
+    model.info()
     model = model.to(device=device)
-    print_summary(opts=opts, model=model)
 
     if model.training:
         logger.warning("Model is in training mode. Switching to evaluation mode")
@@ -295,8 +293,8 @@ def predict_images_in_folder(opts, **kwargs):
     # set-up the model
     model = get_model(opts)
     model.eval()
+    model.info()
     model = model.to(device=device)
-    print_summary(opts=opts, model=model)
 
     if model.training:
         logger.warning("Model is in training mode. Switching to evaluation mode")
@@ -322,8 +320,8 @@ def predict_images_in_folder(opts, **kwargs):
             )
 
 
-def main_detection_evaluation(**kwargs):
-    opts = get_detection_eval_arguments()
+def main_detection_evaluation(args: Optional[List[str]] = None, **kwargs):
+    opts = get_training_arguments(args=args)
 
     dataset_name = getattr(opts, "dataset.name", "imagenet")
     if dataset_name.find("coco") > -1:
@@ -351,7 +349,7 @@ def main_detection_evaluation(**kwargs):
     num_gpus = getattr(opts, "dev.num_gpus", 1)
     if num_gpus < 2:
         cls_norm_type = getattr(opts, "model.normalization.name", "batch_norm_2d")
-        if cls_norm_type.find("sync") > -1:
+        if cls_norm_type is not None and cls_norm_type.find("sync") > -1:
             # replace sync_batch_norm with standard batch norm on PU
             setattr(
                 opts, "model.normalization.name", cls_norm_type.replace("sync_", "")
@@ -366,7 +364,7 @@ def main_detection_evaluation(**kwargs):
     setattr(opts, "ddp.use_distributed", False)
 
     # No of data workers = no of CPUs (if not specified or -1)
-    n_cpus = multiprocessing.cpu_count()
+    n_cpus = resources.cpu_count()
     dataset_workers = getattr(opts, "dataset.workers", -1)
 
     if dataset_workers == -1:

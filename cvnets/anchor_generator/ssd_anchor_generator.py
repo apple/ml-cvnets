@@ -1,22 +1,21 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import torch
-from typing import Optional
-import numpy as np
 import argparse
 from itertools import product
-from typing import List
+from typing import List, Optional
+
+import numpy as np
+import torch
 from torch import Tensor
 
+from cvnets.anchor_generator import ANCHOR_GEN_REGISTRY, BaseAnchorGenerator
 from utils import logger
 
-from . import register_anchor_generator, BaseAnchorGenerator
 
-
-@register_anchor_generator(name="ssd")
+@ANCHOR_GEN_REGISTRY.register(name="ssd")
 class SSDAnchorGenerator(BaseAnchorGenerator):
     """
     This class generates anchors (or priors) ``on-the-fly`` for the
@@ -87,9 +86,7 @@ class SSDAnchorGenerator(BaseAnchorGenerator):
         """
         Adds SSD anchor generator-specific arguments to the parser
         """
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--anchor-generator.ssd.output-strides",
             nargs="+",

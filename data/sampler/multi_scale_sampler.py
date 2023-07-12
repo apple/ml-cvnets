@@ -1,66 +1,55 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
-import copy
-import random
+
 import argparse
+import random
+from typing import Iterator, Tuple
+
+from common import DEFAULT_IMAGE_HEIGHT, DEFAULT_IMAGE_WIDTH
+from data.sampler import SAMPLER_REGISTRY
+from data.sampler.base_sampler import BaseSampler, BaseSamplerDDP
+from data.sampler.utils import image_batch_pairs
 from utils import logger
-from typing import Optional
-from common import DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT
-import numpy as np
-
-from . import register_sampler, BaseSamplerDP, BaseSamplerDDP
-from .utils import _image_batch_pairs
 
 
-@register_sampler(name="multi_scale_sampler")
-class MultiScaleSampler(BaseSamplerDP):
-    """
-    Multi-scale Batch Sampler for data parallel
+@SAMPLER_REGISTRY.register(name="multi_scale_sampler")
+class MultiScaleSampler(BaseSampler):
+    """Multi-scale batch sampler for data parallel. This sampler yields batches of fixed batch size, but each batch
+    has different spatial resolution.
 
     Args:
         opts: command line argument
-        n_data_samples (int): Number of samples in the dataset
-        is_training (Optional[bool]): Training or validation mode. Default: False
+        n_data_samples: Number of samples in the dataset
+        is_training: Training or validation mode. Default: False
     """
 
     def __init__(
         self,
         opts,
         n_data_samples: int,
-        is_training: Optional[bool] = False,
+        is_training: bool = False,
         *args,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(
             opts=opts, n_data_samples=n_data_samples, is_training=is_training
         )
 
-        crop_size_w: int = getattr(
-            opts, "sampler.msc.crop_size_width", DEFAULT_IMAGE_WIDTH
-        )
-        crop_size_h: int = getattr(
-            opts, "sampler.msc.crop_size_height", DEFAULT_IMAGE_HEIGHT
-        )
+        crop_size_w = getattr(opts, "sampler.msc.crop_size_width")
+        crop_size_h = getattr(opts, "sampler.msc.crop_size_height")
 
-        min_crop_size_w: int = getattr(opts, "sampler.msc.min_crop_size_width", 160)
-        max_crop_size_w: int = getattr(opts, "sampler.msc.max_crop_size_width", 320)
+        min_crop_size_w = getattr(opts, "sampler.msc.min_crop_size_width")
+        max_crop_size_w = getattr(opts, "sampler.msc.max_crop_size_width")
 
-        min_crop_size_h: int = getattr(opts, "sampler.msc.min_crop_size_height", 160)
-        max_crop_size_h: int = getattr(opts, "sampler.msc.max_crop_size_height", 320)
+        min_crop_size_h = getattr(opts, "sampler.msc.min_crop_size_height")
+        max_crop_size_h = getattr(opts, "sampler.msc.max_crop_size_height")
 
-        scale_inc: bool = getattr(opts, "sampler.msc.scale_inc", False)
-        scale_ep_intervals: list or int = getattr(
-            opts, "sampler.msc.ep_intervals", [40]
-        )
-        scale_inc_factor: float = getattr(opts, "sampler.msc.scale_inc_factor", 0.25)
+        check_scale_div_factor = getattr(opts, "sampler.msc.check_scale")
+        max_img_scales = getattr(opts, "sampler.msc.max_n_scales")
 
-        check_scale_div_factor: int = getattr(opts, "sampler.msc.check_scale", 32)
-        max_img_scales: int = getattr(opts, "sampler.msc.max_n_scales", 10)
-
-        if isinstance(scale_ep_intervals, int):
-            scale_ep_intervals = [scale_ep_intervals]
+        scale_inc = getattr(opts, "sampler.msc.scale_inc")
 
         self.min_crop_size_w = min_crop_size_w
         self.max_crop_size_w = max_crop_size_w
@@ -70,15 +59,12 @@ class MultiScaleSampler(BaseSamplerDP):
         self.crop_size_w = crop_size_w
         self.crop_size_h = crop_size_h
 
-        self.scale_inc_factor = scale_inc_factor
-        self.scale_ep_intervals = scale_ep_intervals
-
         self.max_img_scales = max_img_scales
         self.check_scale_div_factor = check_scale_div_factor
         self.scale_inc = scale_inc
 
         if is_training:
-            self.img_batch_tuples = _image_batch_pairs(
+            self.img_batch_tuples = image_batch_pairs(
                 crop_size_h=self.crop_size_h,
                 crop_size_w=self.crop_size_w,
                 batch_size_gpu0=self.batch_size_gpu0,
@@ -98,81 +84,72 @@ class MultiScaleSampler(BaseSamplerDP):
             self.img_batch_tuples = [(crop_size_h, crop_size_w, self.batch_size_gpu0)]
 
     @classmethod
-    def add_arguments(cls, parser: argparse.ArgumentParser):
-        group = parser.add_argument_group(
-            title="Multi-scale sampler", description="Multi-scale sampler"
-        )
+    def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        if cls != MultiScaleSampler:
+            # Don't re-register arguments in subclasses that don't override `add_arguments()`.
+            return parser
+
+        group = parser.add_argument_group(cls.__name__)
         group.add_argument(
             "--sampler.msc.crop-size-width",
             default=DEFAULT_IMAGE_WIDTH,
             type=int,
-            help="Base crop size (along width) during training",
+            help=f"Base crop size (along width) during training. Defaults to {DEFAULT_IMAGE_WIDTH}.",
         )
         group.add_argument(
             "--sampler.msc.crop-size-height",
             default=DEFAULT_IMAGE_HEIGHT,
             type=int,
-            help="Base crop size (along height) during training",
+            help=f"Base crop size (along height) during training. Defaults to {DEFAULT_IMAGE_HEIGHT}.",
         )
 
         group.add_argument(
             "--sampler.msc.min-crop-size-width",
             default=160,
             type=int,
-            help="Min. crop size along width during training",
+            help="Min. crop size along width during training. Defaults to 160.",
         )
         group.add_argument(
             "--sampler.msc.max-crop-size-width",
             default=320,
             type=int,
-            help="Max. crop size along width during training",
+            help="Max. crop size along width during training. Defaults to 320.",
         )
 
         group.add_argument(
             "--sampler.msc.min-crop-size-height",
             default=160,
             type=int,
-            help="Min. crop size along height during training",
+            help="Min. crop size along height during training. Defaults to 160.",
         )
         group.add_argument(
             "--sampler.msc.max-crop-size-height",
             default=320,
             type=int,
-            help="Max. crop size along height during training",
+            help="Max. crop size along height during training. Defaults to 320.",
         )
         group.add_argument(
             "--sampler.msc.max-n-scales",
             default=5,
             type=int,
-            help="Max. scales in variable batch sampler. For example, [0.25, 0.5, 0.75, 1, 1.25] ",
+            help="Max. scales in variable batch sampler. Defaults to 5.",
         )
         group.add_argument(
             "--sampler.msc.check-scale",
             default=32,
             type=int,
-            help="Image scales should be divisible by this factor",
-        )
-        group.add_argument(
-            "--sampler.msc.ep-intervals",
-            default=[40],
-            type=int,
-            help="Epoch intervals at which scales are adjusted",
-        )
-        group.add_argument(
-            "--sampler.msc.scale-inc-factor",
-            default=0.25,
-            type=float,
-            help="Factor by which we should increase the scale",
+            help="Image scales should be divisible by this factor. Defaults to 32.",
         )
         group.add_argument(
             "--sampler.msc.scale-inc",
             action="store_true",
-            help="Increase image scales during training",
+            default=False,
+            help="Increase image scales during training. Defaults to False.",
         )
 
         return parser
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[int, int, int]]:
         img_indices = self.get_indices()
         start_index = 0
         n_samples = len(img_indices)
@@ -190,75 +167,62 @@ class MultiScaleSampler(BaseSamplerDP):
                 batch = [(crop_h, crop_w, b_id) for b_id in batch_ids]
                 yield batch
 
-    def update_scales(self, epoch, is_master_node=False, *args, **kwargs):
-        pass
+    def update_scales(
+        self, epoch: int, is_master_node: bool = False, *args, **kwargs
+    ) -> None:
+        if type(self).update_scales is not MultiScaleSampler.update_scales:
+            # Do nothing when a subclass overrides this method and calls super().update_scales
+            return
 
-    def __repr__(self):
-        repr_str = "{}(".format(self.__class__.__name__)
-        repr_str += (
-            "\n\t base_im_size=(h={}, w={}), "
-            "\n\t base_batch_size={} "
-            "\n\t scales={} "
-            "\n\t scale_inc={} "
-            "\n\t scale_inc_factor={} "
-            "\n\t ep_intervals={}".format(
-                self.crop_size_h,
-                self.crop_size_w,
-                self.batch_size_gpu0,
-                self.img_batch_tuples,
-                self.scale_inc,
-                self.scale_inc_factor,
-                self.scale_ep_intervals,
+        if is_master_node and self.scale_inc:
+            logger.warning(
+                f"Update scale function is not yet implemented for {self.__class__.__name__}."
             )
+
+    def extra_repr(self) -> str:
+        extra_repr_str = super().extra_repr()
+        extra_repr_str += (
+            f"\n\t base_im_size=(h={self.crop_size_h}, w={self.crop_size_w})"
+            f"\n\t base_batch_size={self.batch_size_gpu0}"
+            f"\n\t scales={self.img_batch_tuples}"
         )
-        repr_str += self.extra_repr()
-        repr_str += "\n)"
-        return repr_str
+        return extra_repr_str
 
 
-@register_sampler(name="multi_scale_sampler_ddp")
+@SAMPLER_REGISTRY.register(name="multi_scale_sampler_ddp")
 class MultiScaleSamplerDDP(BaseSamplerDDP):
-    """
-    Multi-scale Batch Sampler for distributed data parallel
+    """DDP version of MultiScaleSampler
 
     Args:
         opts: command line argument
-        n_data_samples (int): Number of samples in the dataset
-        is_training (Optional[bool]): Training or validation mode. Default: False
+        n_data_samples: Number of samples in the dataset
+        is_training: Training or validation mode. Default: False
     """
 
     def __init__(
         self,
-        opts,
+        opts: argparse.Namespace,
         n_data_samples: int,
-        is_training: Optional[bool] = False,
+        is_training: bool = False,
         *args,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(
             opts=opts, n_data_samples=n_data_samples, is_training=is_training
         )
-        crop_size_w: int = getattr(
-            opts, "sampler.msc.crop_size_width", DEFAULT_IMAGE_WIDTH
-        )
-        crop_size_h: int = getattr(
-            opts, "sampler.msc.crop_size_height", DEFAULT_IMAGE_HEIGHT
-        )
+        crop_size_w = getattr(opts, "sampler.msc.crop_size_width")
+        crop_size_h = getattr(opts, "sampler.msc.crop_size_height")
 
-        min_crop_size_w: int = getattr(opts, "sampler.msc.min_crop_size_width", 160)
-        max_crop_size_w: int = getattr(opts, "sampler.msc.max_crop_size_width", 320)
+        min_crop_size_w = getattr(opts, "sampler.msc.min_crop_size_width")
+        max_crop_size_w = getattr(opts, "sampler.msc.max_crop_size_width")
 
-        min_crop_size_h: int = getattr(opts, "sampler.msc.min_crop_size_height", 160)
-        max_crop_size_h: int = getattr(opts, "sampler.msc.max_crop_size_height", 320)
+        min_crop_size_h = getattr(opts, "sampler.msc.min_crop_size_height")
+        max_crop_size_h = getattr(opts, "sampler.msc.max_crop_size_height")
 
-        scale_inc: bool = getattr(opts, "sampler.msc.scale_inc", False)
-        scale_ep_intervals: list or int = getattr(
-            opts, "sampler.msc.ep_intervals", [40]
-        )
-        scale_inc_factor: float = getattr(opts, "sampler.msc.scale_inc_factor", 0.25)
-        check_scale_div_factor: int = getattr(opts, "sampler.msc.check_scale", 32)
+        check_scale_div_factor = getattr(opts, "sampler.msc.check_scale")
 
-        max_img_scales: int = getattr(opts, "sampler.msc.max_n_scales", 10)
+        max_img_scales = getattr(opts, "sampler.msc.max_n_scales")
+        scale_inc = getattr(opts, "sampler.msc.scale_inc")
 
         self.crop_size_h = crop_size_h
         self.crop_size_w = crop_size_w
@@ -267,14 +231,12 @@ class MultiScaleSamplerDDP(BaseSamplerDDP):
         self.min_crop_size_w = min_crop_size_w
         self.max_crop_size_w = max_crop_size_w
 
-        self.scale_inc_factor = scale_inc_factor
-        self.scale_ep_intervals = scale_ep_intervals
         self.max_img_scales = max_img_scales
         self.check_scale_div_factor = check_scale_div_factor
         self.scale_inc = scale_inc
 
         if is_training:
-            self.img_batch_tuples = _image_batch_pairs(
+            self.img_batch_tuples = image_batch_pairs(
                 crop_size_h=self.crop_size_h,
                 crop_size_w=self.crop_size_w,
                 batch_size_gpu0=self.batch_size_gpu0,
@@ -294,7 +256,7 @@ class MultiScaleSamplerDDP(BaseSamplerDDP):
                 (self.crop_size_h, self.crop_size_w, self.batch_size_gpu0)
             ]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[int, int, int]]:
         indices_rank_i = self.get_indices_rank_i()
 
         start_index = 0
@@ -313,27 +275,23 @@ class MultiScaleSamplerDDP(BaseSamplerDDP):
                 batch = [(crop_h, crop_w, b_id) for b_id in batch_ids]
                 yield batch
 
-    def update_scales(self, epoch, is_master_node=False, *args, **kwargs):
-        pass
-
-    def __repr__(self):
-        repr_str = "{}(".format(self.__class__.__name__)
-        repr_str += (
-            "\n\t base_im_size=(h={}, w={}), "
-            "\n\t base_batch_size={} "
-            "\n\t scales={} "
-            "\n\t scale_inc={} "
-            "\n\t scale_inc_factor={} "
-            "\n\t ep_intervals={}".format(
-                self.crop_size_h,
-                self.crop_size_w,
-                self.batch_size_gpu0,
-                self.img_batch_tuples,
-                self.scale_inc,
-                self.scale_inc_factor,
-                self.scale_ep_intervals,
-            )
+    def extra_repr(self) -> str:
+        extra_repr_str = super().extra_repr()
+        extra_repr_str += (
+            f"\n\t base_im_size=(h={self.crop_size_h}, w={self.crop_size_w})"
+            f"\n\t base_batch_size={self.batch_size_gpu0}"
+            f"\n\t scales={self.img_batch_tuples}"
         )
-        repr_str += self.extra_repr()
-        repr_str += "\n )"
-        return repr_str
+        return extra_repr_str
+
+    def update_scales(
+        self, epoch: int, is_master_node: bool = False, *args, **kwargs
+    ) -> None:
+        if type(self).update_scales is not MultiScaleSamplerDDP.update_scales:
+            # Do nothing when a subclass overrides this method and calls super().update_scales
+            return
+
+        if is_master_node and self.scale_inc:
+            logger.warning(
+                f"Update scale function is not yet implemented for {self.__class__.__name__}"
+            )

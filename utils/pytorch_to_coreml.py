@@ -1,19 +1,20 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import torch
-from torch import Tensor
+from typing import Dict, Optional, Tuple, Union
+
 import coremltools as ct
-from typing import Optional, Dict, Tuple, Union
 import numpy as np
+import torch
 from PIL import Image
+from torch import Tensor
+from torch.utils.mobile_optimizer import optimize_for_mobile
 from torchvision.transforms import functional as F
 
-
+from utils import logger
 from utils.tensor_utils import create_rand_tensor
-from torch.utils.mobile_optimizer import optimize_for_mobile
 
 
 def convert_pytorch_to_coreml(
@@ -48,6 +49,11 @@ def convert_pytorch_to_coreml(
 
     if pytorch_model.training:
         pytorch_model.eval()
+
+    # Prepare model to be exported (only if implemented)
+    if hasattr(pytorch_model, "get_exportable_model"):
+        logger.log("Preparing model for export.")
+        pytorch_model = pytorch_model.get_exportable_model()
 
     with torch.no_grad():
         pytorch_out = pytorch_model(input_tensor)

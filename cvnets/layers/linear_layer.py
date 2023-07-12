@@ -1,17 +1,17 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import torch
-from torch import nn, Tensor
-from typing import Optional, Tuple
 import argparse
+from typing import Optional
+
+import torch
+from torch import Tensor, nn
 from torch.nn import functional as F
 
+from cvnets.layers.base_layer import BaseLayer
 from utils import logger
-
-from .base_layer import BaseLayer
 
 
 class LinearLayer(BaseLayer):
@@ -101,16 +101,6 @@ class LinearLayer(BaseLayer):
             )
         )
         return repr_str
-
-    def profile_module(
-        self, input: Tensor, *args, **kwargs
-    ) -> Tuple[Tensor, float, float]:
-        out_size = list(input.shape)
-        out_size[-1] = self.out_features
-        params = sum([p.numel() for p in self.parameters()])
-        macs = params
-        output = torch.zeros(size=out_size, dtype=input.dtype, device=input.device)
-        return output, params, macs
 
 
 class GroupLinear(BaseLayer):
@@ -240,13 +230,3 @@ class GroupLinear(BaseLayer):
             self.feature_shuffle,
         )
         return repr_str
-
-    def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:
-        params = sum([p.numel() for p in self.parameters()])
-        macs = params
-
-        out_size = list(input.shape)
-        out_size[-1] = self.out_features
-
-        output = torch.zeros(size=out_size, dtype=input.dtype, device=input.device)
-        return output, params, macs

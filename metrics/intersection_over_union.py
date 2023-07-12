@@ -1,16 +1,20 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
+from numbers import Number
+from typing import Any, Dict, Optional, Tuple, Union
+
+import numpy as np
 import torch
 from torch import Tensor
-from typing import Optional, Tuple, Union
 
-from . import register_stats_fn
+from metrics import METRICS_REGISTRY
+from metrics.metric_base import AverageMetric
+from utils import logger
 
 
-@register_stats_fn(name="iou")
 def compute_miou_batch(
     prediction: Union[Tuple[Tensor, Tensor], Tensor],
     target: Tensor,
@@ -47,3 +51,47 @@ def compute_miou_batch(
     area_mask = torch.histc(target.float(), bins=num_classes, min=1, max=num_classes)
     area_union = area_pred + area_mask - area_inter + epsilon
     return area_inter, area_union
+
+
+@METRICS_REGISTRY.register(name="iou")
+class IOUMetric(AverageMetric):
+    def gather_metrics(
+        self,
+        prediction: Union[Tensor, Dict],
+        target: Union[Tensor, Dict],
+        extras: Dict[str, Any],
+    ) -> Union[Tensor, Dict[str, Tensor]]:
+        """
+        This function gathers intersection and union metrics from different processes and converts to float.
+        """
+        if isinstance(prediction, Tensor) and isinstance(target, Tensor):
+            inter, union = compute_miou_batch(prediction=prediction, target=target)
+            return {"inter": inter, "union": union}
+        # elif isinstance(prediction, Dict):
+        #    logger.error("IOU metrics are not supported for a dictionary of predictions")
+        # We will revisit it later, as per the use case.
+
+        # inter_dict = {}
+        # union_dict = {}
+        # for k, v in prediction.items():
+        #     inter, union = compute_miou_batch(prediction=v, target=target)
+        #     inter = tensor_to_python_float(inter, is_distributed=is_distributed)
+        #     union = tensor_to_python_float(union, is_distributed=is_distributed)
+        #     inter_dict[k] = inter
+        #     union_dict[k] = union
+        # return inter_dict, union_dict
+        else:
+            logger.error("Metric monitor supports Tensor only for IoU")
+
+    def compute(self) -> Union[Number, Dict[str, Number]]:
+        averaged = super().compute()
+        iou = averaged["inter"] / averaged["union"]
+
+        if isinstance(iou, Tensor):
+            iou = iou.cpu().numpy()
+
+        # Converting iou from [0, 1] to [0, 100]
+        # other metrics are by default in [0, 100 range]
+        avg_iou = np.mean(iou) * 100.0
+
+        return avg_iou

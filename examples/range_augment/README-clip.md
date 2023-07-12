@@ -63,7 +63,7 @@ for res in 160 192 224 256 288; do
     --model.text.transformer.classes-per-split-zero-shot 200 \
     --model.multi-modal-image-text.clip.cache-text-features-zero-shot \
     --common.override-kwargs image_augmentation.resize.size=$res image_augmentation.center_crop.size=$res \
-    dataset.multi_modal_img_text.zero_shot.root=$IMAGENET_VAL_PATH
+    dataset.multi_modal_img_text.zero_shot.root_val=$IMAGENET_VAL_PATH
 done
 ```
 

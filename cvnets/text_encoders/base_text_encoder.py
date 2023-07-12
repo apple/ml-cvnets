@@ -1,19 +1,19 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import torch
-from torch import nn, Tensor
 import argparse
-from typing import Optional, Tuple, Dict, Any
+from typing import Any, Dict, Optional
 
-from utils import logger
-from utils.ddp_utils import is_master
+import torch
+from torch import Tensor, nn
 
 from cvnets import parameter_list
 from cvnets.layers import norm_layers_tuple
 from cvnets.misc.init_utils import initialize_weights
+from utils import logger
+from utils.ddp_utils import is_master
 
 
 class BaseTextEncoder(nn.Module):
@@ -21,7 +21,7 @@ class BaseTextEncoder(nn.Module):
 
     def __init__(self, opts, projection_dim: int, *args, **kwargs) -> None:
         is_master_node = is_master(opts)
-        vocab_size = getattr(opts, "dataset.text_vocab_size", None)
+        vocab_size = getattr(opts, "dataset.text_vocab_size")
         if getattr(opts, "common.debug_mode", False):
             vocab_size = 100
         if vocab_size is None and is_master_node:
@@ -40,9 +40,7 @@ class BaseTextEncoder(nn.Module):
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         """Add model specific arguments"""
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
 
         group.add_argument(
             "--model.text.name",
@@ -73,12 +71,6 @@ class BaseTextEncoder(nn.Module):
             **kwargs
         )
         return param_list, [1.0] * len(param_list)
-
-    def profile_model(self, input: Tensor) -> Optional[Tuple[Tensor, float, float]]:
-        """
-        Child classes must implement this function to compute FLOPs and parameters
-        """
-        raise NotImplementedError
 
     def freeze_norm_layers(self) -> None:
         for m in self.modules():

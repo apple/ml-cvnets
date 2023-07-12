@@ -1,23 +1,23 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn
 import argparse
 from typing import Dict, List, Optional, Tuple
 
-from utils.math_utils import make_divisible, bound_fn
+from torch import nn
 
-from . import register_cls_models
-from .base_cls import BaseEncoder
-from .config.mobilenetv2 import get_configuration
-from ...layers import ConvLayer, LinearLayer, GlobalPool, Dropout
-from ...modules import InvertedResidual
+from cvnets.layers import ConvLayer2d, Dropout, GlobalPool, LinearLayer
+from cvnets.models import MODEL_REGISTRY
+from cvnets.models.classification.base_image_encoder import BaseImageEncoder
+from cvnets.models.classification.config.mobilenetv2 import get_configuration
+from cvnets.modules import InvertedResidual
+from utils.math_utils import bound_fn, make_divisible
 
 
-@register_cls_models("mobilenetv2")
-class MobileNetV2(BaseEncoder):
+@MODEL_REGISTRY.register(name="mobilenetv2", type="classification")
+class MobileNetV2(BaseImageEncoder):
     """
     This class defines the `MobileNetv2 architecture <https://arxiv.org/abs/1801.04381>`_
     """
@@ -48,7 +48,7 @@ class MobileNetV2(BaseEncoder):
         )
         self.model_conf_dict = dict()
 
-        self.conv_1 = ConvLayer(
+        self.conv_1 = ConvLayer2d(
             opts=opts,
             in_channels=image_channels,
             out_channels=input_channels,
@@ -106,7 +106,7 @@ class MobileNetV2(BaseEncoder):
         self.model_conf_dict["layer5"] = {"in": input_channels, "out": out_channels}
         input_channels = out_channels
 
-        self.conv_1x1_exp = ConvLayer(
+        self.conv_1x1_exp = ConvLayer2d(
             opts=opts,
             in_channels=input_channels,
             out_channels=last_channel,
@@ -147,9 +147,7 @@ class MobileNetV2(BaseEncoder):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--model.classification.mobilenetv2.width-multiplier",
             type=float,

@@ -1,12 +1,13 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn, Tensor
-from typing import Optional, Tuple
+from typing import Optional
 
-from . import register_norm_fn
+from torch import Tensor, nn
+
+from cvnets.layers.normalization import register_norm_fn
 
 
 @register_norm_fn(name="group_norm")
@@ -42,8 +43,3 @@ class GroupNorm(nn.GroupNorm):
         super().__init__(
             num_groups=num_groups, num_channels=num_features, eps=eps, affine=affine
         )
-
-    def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:
-        # Since normalization layers can be fused, we do not count their operations
-        params = sum([p.numel() for p in self.parameters()])
-        return input, params, 0.0

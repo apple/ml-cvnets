@@ -1,48 +1,60 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
+import argparse
+import glob
+import io
 import os
-from typing import Optional, Dict
+import pickle
+import tarfile
+from multiprocessing.pool import Pool
+from typing import AnyStr, Dict, Tuple
+
 import numpy as np
 import torch
-import argparse
 from PIL import Image, ImageFile
-import io
-import pickle
-import multiprocessing
-from multiprocessing.pool import Pool
-import tarfile
-import glob
 
-from utils import logger
-from utils.download_utils import get_local_path
+from data.datasets import DATASET_REGISTRY
+from data.datasets.multi_modal_img_text.base_multi_modal_img_text import (
+    BaseMultiModalImgText,
+)
+from utils import logger, resources
 from utils.ddp_utils import dist_barrier
+from utils.download_utils import get_local_path
 
-from .. import register_dataset
-from .base_multi_modal_img_text import BaseMultiModalImgText
-
+# To enable reading truncated images, we update the default values of following variables in PIL
 Image.MAX_IMAGE_PIXELS = None
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
-def extract_content(tar_file, file_name):
+def extract_content(tar_file: tarfile.TarFile, file_name: str) -> AnyStr:
+    """Extract the context of a particular file inside a tar file and returns it."""
     f = tar_file.extractfile(file_name)
     return f.read()
 
 
-def decode_image(byte_data):
+def decode_image(byte_data) -> Image.Image:
+    """Reads the byte image data and returns the PIL image."""
     return Image.open(io.BytesIO(byte_data)).convert("RGB")
 
 
-def decode_text(byte_data):
+def decode_text(byte_data) -> str:
+    """Reads the byte text data and returns the decoded string."""
     return byte_data.decode("utf-8")
 
 
 def async_download_file_from_s3(
-    opts, tar_file_name: str, cache_loc: str, *args, **kwargs
+    opts: argparse.Namespace, tar_file_name: str, cache_loc: str, *args, **kwargs
 ) -> None:
+    """Helper function to download the files asynchronously from S3.
+
+    Args:
+        opts: command-line arguments
+        tar_file_name: Name of the tar file
+        cache_loc: Caching location on the local machine
+    """
     # async download files form s3
     local_path = get_local_path(
         opts=opts,
@@ -64,41 +76,53 @@ def async_download_file_from_s3(
         os.remove(local_path)
 
 
-@register_dataset(name="img_text_tar", task="multi_modal_img_text")
+@DATASET_REGISTRY.register(name="img_text_tar", type="multi_modal_image_text")
 class ImgTextTarDataset(BaseMultiModalImgText):
-    """
-    ImgTextTarDataset class for datasets that store Image-Text pairs as tar files, each tar file with multiple pairs.
+    """ImgTextTarDataset class for datasets that store Image-Text pairs as tar files, each tar file with multiple pairs.
+
+    The dataset should be stored in following format where `img_text_tar_dataset` is the location of directory that
+    has all tar files.
+
+    img_text_tar_dataset
+    |--- 00000000_0_1000.tar.gz
+    |-------- 00000000_0_image
+    |-------- 00000000_0_text
+    |-------- 00000000_1_image
+    |-------- 00000000_1_text
+    |-------- ...
+
+    |--- 00000000_1000_2000.tar.gz
+    |-------- 00000000_1000_image
+    |-------- 00000000_1000_text
+    |-------- 00000000_1001_image
+    |-------- 00000000_1001_text
+    |-------- ...
 
     Args:
-        opts: command-line arguments
-        is_training (Optional[bool]): A flag used to indicate training or validation mode. Default: True
-        is_evaluation (Optional[bool]): A flag used to indicate evaluation (or inference) mode. Default: False
+        opts: An argparse.Namespace instance.
 
     """
 
-    __separator = "-"
-    __overlap_ratio = 10  # we have an overlap ratio of 10 files
-    __file_extn = ".tar.gz"
+    # Number of files in node i that overlaps (or same) with files in node i+1.
+    __OVERLAP_RATIO = 10
+    # TAR File extension
+    __FILE_EXTN = ".tar.gz"
 
     def __init__(
         self,
         opts,
-        is_training: Optional[bool] = True,
-        is_evaluation: Optional[bool] = False,
         *args,
         **kwargs,
     ) -> None:
 
         super().__init__(
             opts=opts,
-            is_training=is_training,
-            is_evaluation=is_evaluation,
             *args,
             **kwargs,
         )
         self.zeros_shot_dataset = self.get_zero_shot_dataset()
 
-        if is_training:
+        if self.is_training:
             dataset_metadata = self.get_dataset()
 
             total_files = 0
@@ -108,7 +132,8 @@ class ImgTextTarDataset(BaseMultiModalImgText):
 
             if total_files == 0:
                 logger.error(
-                    "Total files can't be 0. Please check if metadata has key -1, which stores the total number of files"
+                    "Total files can't be 0. Please check if metadata has key -1, which stores "
+                    "the total number of files"
                 )
 
             self.dataset: Dict = dataset_metadata
@@ -116,9 +141,7 @@ class ImgTextTarDataset(BaseMultiModalImgText):
             self.dataset_keys = list(self.dataset.keys())
 
             s3_bucket_path = getattr(
-                self.opts,
-                "dataset.multi_modal_img_text.img_text_tar.s3_bucket_path",
-                None,
+                self.opts, "dataset.multi_modal_img_text.img_text_tar.s3_bucket_path"
             )
             if s3_bucket_path is None:
                 if self.is_master_node:
@@ -132,7 +155,8 @@ class ImgTextTarDataset(BaseMultiModalImgText):
 
             self._download_dataset()
 
-    def get_dataset(self) -> Dict:
+    def get_dataset(self, *args, **kwargs) -> Dict[str, str]:
+        """Reads the metadata file and returns a mapping of indices of files stored in a tar file and its name"""
         if self.is_training:
             # read metadata file
             # metadata file is a dictionary storing the start image-text ids along with the tar file name.
@@ -140,7 +164,6 @@ class ImgTextTarDataset(BaseMultiModalImgText):
             metadata_file_loc = getattr(
                 self.opts,
                 "dataset.multi_modal_img_text.img_text_tar.metadata_file",
-                None,
             )
             if metadata_file_loc is None:
                 if self.is_master_node:
@@ -160,17 +183,12 @@ class ImgTextTarDataset(BaseMultiModalImgText):
         else:
             return {}
 
-    def _download_dataset(self):
-        if getattr(self.opts, "ddp.enable", False):
-            if self.is_start_rank_node:
-                logger.error(
-                    "We need DDP for working with {} dataset".format(
-                        self.__class__.__name__
-                    )
-                )
+    def _download_dataset(self) -> None:
+        """Download the dataset"""
+        os.makedirs(self.cache_loc, exist_ok=True)
 
         # The total number of GPUs that a task is using is equal to the world size
-        world_size = getattr(self.opts, "ddp.world_size", -1)
+        world_size = getattr(self.opts, "ddp.world_size")
         if world_size is None or world_size == -1:
             if self.is_start_rank_node:
                 logger.error("DDP world size should be greater than 1. Got: {}")
@@ -203,13 +221,13 @@ class ImgTextTarDataset(BaseMultiModalImgText):
         # value corresponds to the file name.
 
         # find the start and end image-text pair indexes for node_i.
-        # Note that we overlap node_i and node_i+1 by at most 2 files
+        # Note that we overlap node_i and node_i+1 by at most __OVERLAP_RATIO files
         start_idx_node_i = max(
-            0, self.dataset_keys.index(files_node_i[0]) - self.__overlap_ratio
+            0, self.dataset_keys.index(files_node_i[0]) - self.__OVERLAP_RATIO
         )
         end_idx_node_i = min(
             len(self.dataset_keys),
-            self.dataset_keys.index(files_node_i[-1]) + self.__overlap_ratio,
+            self.dataset_keys.index(files_node_i[-1]) + self.__OVERLAP_RATIO,
         )
 
         # Now, download the files concurrently using each rank on node i
@@ -229,7 +247,7 @@ class ImgTextTarDataset(BaseMultiModalImgText):
             False,
         ):
             # download concurrently using many workers for each rank
-            n_cpus = multiprocessing.cpu_count()
+            n_cpus = resources.cpu_count()
             n_process_per_gpu = max(
                 1, n_cpus // torch.cuda.device_count()
             )  # max(1, min(4, n_cpus // torch.cuda.device_count()))
@@ -283,7 +301,7 @@ class ImgTextTarDataset(BaseMultiModalImgText):
                 f"Files are stored at: {self.cache_loc}"
             )
 
-    def __len__(self):
+    def __len__(self) -> int:
         if self.zeros_shot_dataset is not None:
             return len(self.zeros_shot_dataset)
         return self.total_pairs
@@ -291,33 +309,39 @@ class ImgTextTarDataset(BaseMultiModalImgText):
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         """Add dataset-specific arguments to the parser."""
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        if cls != ImgTextTarDataset:
+            # Don't re-register arguments in subclasses that don't override `add_arguments()`.
+            return parser
+        group = parser.add_argument_group(title=cls.__name__)
 
         group.add_argument(
             "--dataset.multi-modal-img-text.img-text-tar.metadata-file",
             type=str,
             default=None,
-            help="Location of the metadata file",
+            help="Location of the metadata file storing information about file indices and corresponding tar files. "
+            "Defaults to None.",
         )
 
         group.add_argument(
             "--dataset.multi-modal-img-text.img-text-tar.s3-bucket-path",
             type=str,
             default=None,
-            help="Path of the s3 bucket where data is stored",
+            help="Path of the s3 bucket where data is stored.",
         )
 
         group.add_argument(
             "--dataset.multi-modal-img-text.img-text-tar.parallel-download",
             action="store_true",
-            help="Download the data in parallel on each rank of the DDP process",
+            default=False,
+            help="Download the data in parallel on each rank of the DDP process. Defaults to False.",
         )
 
         return parser
 
-    def get_dataset_pair(self, img_index):
+    def get_dataset_pair(self, img_index: int) -> Tuple[Image.Image, str, int]:
+        """For a given image index, read the image file, corresponding caption, and class label.
+        If class label is not present, -1 is returned.
+        """
         class_label = -1
         try:
 
@@ -349,26 +373,9 @@ class ImgTextTarDataset(BaseMultiModalImgText):
             tar_file_name = os.path.join(self.cache_loc, tar_file_name_from_metadata)
             # Tar file name is encoded as: <path>/<folder_start_end.tar.gz>
             # each file name in tar file is encoded as: <folder_dataIdx_image> and <folder_dataIdx_text>
-            """ 
-            Example.
-
-            img_text_tar_dataset/00000000_0_1000.tar.gz
-            |--- 00000000_0_image
-            |--- 00000000_0_text
-            |--- 00000000_1_image
-            |--- 00000000_1_text
-            |--- ...
-
-            img_text_tar_dataset/00000000_1000_2000.tar.gz
-            |--- 00000000_1000_image
-            |--- 00000000_1000_text
-            |--- 00000000_1001_image
-            |--- 00000000_1001_text
-            |--- ...
-            """
 
             # remove the tar extension because we have extracted the data when downloaded
-            tar_file_name = tar_file_name.replace(self.__file_extn, "")
+            tar_file_name = tar_file_name.replace(self.__FILE_EXTN, "")
 
             if not os.path.isdir(tar_file_name):
                 async_download_file_from_s3(
@@ -398,13 +405,3 @@ class ImgTextTarDataset(BaseMultiModalImgText):
             input_img = None
             captions_str = None
         return input_img, captions_str, class_label
-
-    def __repr__(self):
-        return "{}(\n\troot={}\n\t is_training={}\n\tzero_shot={}\n\tn_samples={}\n\t{}\n)".format(
-            self.__class__.__name__,
-            self.root,
-            self.is_training,
-            self.zeros_shot_dataset,
-            self.__len__(),
-            self.extra_transform_repr()
-        )

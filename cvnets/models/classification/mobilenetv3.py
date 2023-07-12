@@ -1,22 +1,24 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn
 import argparse
 from typing import Optional, Tuple
 
-from utils.math_utils import make_divisible, bound_fn
+from torch import nn
 
-from . import BaseEncoder, register_cls_models
-from .config.mobilenetv3 import get_configuration
-from ...layers import ConvLayer, LinearLayer, GlobalPool, get_activation_fn, Dropout
-from ...modules import InvertedResidualSE
+from cvnets.layers import ConvLayer2d, Dropout, GlobalPool, LinearLayer
+from cvnets.layers.activation import build_activation_layer
+from cvnets.models import MODEL_REGISTRY
+from cvnets.models.classification.base_image_encoder import BaseImageEncoder
+from cvnets.models.classification.config.mobilenetv3 import get_configuration
+from cvnets.modules import InvertedResidualSE
+from utils.math_utils import bound_fn, make_divisible
 
 
-@register_cls_models("mobilenetv3")
-class MobileNetV3(BaseEncoder):
+@MODEL_REGISTRY.register(name="mobilenetv3", type="classification")
+class MobileNetV3(BaseImageEncoder):
     """
     This class implements the `MobileNetv3 architecture <https://arxiv.org/abs/1905.02244>`_
     """
@@ -43,7 +45,7 @@ class MobileNetV3(BaseEncoder):
         self.conv_1 = nn.Sequential()
         self.conv_1.add_module(
             name="conv_3x3_bn",
-            module=ConvLayer(
+            module=ConvLayer2d(
                 opts=opts,
                 in_channels=image_channels,
                 out_channels=input_channels,
@@ -54,7 +56,8 @@ class MobileNetV3(BaseEncoder):
             ),
         )
         self.conv_1.add_module(
-            name="act", module=get_activation_fn(act_type="hard_swish", inplace=True)
+            name="act",
+            module=build_activation_layer(opts, act_type="hard_swish", inplace=True),
         )
 
         self.model_conf_dict["conv1"] = {"in": image_channels, "out": input_channels}
@@ -110,7 +113,7 @@ class MobileNetV3(BaseEncoder):
         out_channels = 6 * input_channels
         self.conv_1x1_exp.add_module(
             name="conv_1x1",
-            module=ConvLayer(
+            module=ConvLayer2d(
                 opts=opts,
                 in_channels=input_channels,
                 out_channels=out_channels,
@@ -121,7 +124,8 @@ class MobileNetV3(BaseEncoder):
             ),
         )
         self.conv_1x1_exp.add_module(
-            name="act", module=get_activation_fn(act_type="hard_swish", inplace=True)
+            name="act",
+            module=build_activation_layer(opts, act_type="hard_swish", inplace=True),
         )
         self.model_conf_dict["exp_before_cls"] = {
             "in": input_channels,
@@ -142,7 +146,8 @@ class MobileNetV3(BaseEncoder):
             ),
         )
         self.classifier.add_module(
-            name="act", module=get_activation_fn(act_type="hard_swish", inplace=True)
+            name="act",
+            module=build_activation_layer(opts, act_type="hard_swish", inplace=True),
         )
         if 0.0 < classifier_dropout < 1.0:
             self.classifier.add_module(
@@ -201,9 +206,7 @@ class MobileNetV3(BaseEncoder):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser):
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--model.classification.mobilenetv3.mode",
             type=str,

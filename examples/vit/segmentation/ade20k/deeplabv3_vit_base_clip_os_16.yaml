@@ -1,0 +1,139 @@
+taskname: '+ ViT-B DeepLabv3 (OS=16) [CLIP CKPT]'
+common:
+  run_label: "train"
+  accum_freq: 1
+  log_freq: 500
+  auto_resume: true
+  # mixed_precision: true
+  save_all_checkpoints: true
+dataset:
+  root_train: "/mnt/vision_datasets/ADEChallengeData2016/"
+  root_val: "/mnt/vision_datasets/ADEChallengeData2016/"
+  name: "ade20k"
+  category: "segmentation"
+  # effective base batch size is 32 (8 40 GB A100 GPUs * 4 batch size per GPU)
+  train_batch_size0: 4
+  val_batch_size0: 4
+  eval_batch_size0: 1
+  workers: 8
+  persistent_workers: true
+  pin_memory: true
+image_augmentation:
+  random_crop:
+    enable: true
+    seg_class_max_ratio: 0.75
+    pad_if_needed: true
+    mask_fill: 0 # background idx is 0
+  random_horizontal_flip:
+    enable: true
+  resize:
+    enable: true
+    size: [512, 512]
+    interpolation: "bicubic"
+  random_short_size_resize:
+    enable: true
+    interpolation: "bicubic"
+    short_side_min: 256
+    short_side_max: 768
+    max_img_dim: 1024
+sampler:
+  name: "batch_sampler"
+  bs:
+    crop_size_width: 512
+    crop_size_height: 512
+loss:
+  category: "composite_loss"
+  composite_loss:
+    - loss_category: "segmentation"
+      loss_weight: 1.0
+      segmentation:
+        name: "cross_entropy"
+        cross_entropy:
+          ignore_idx: -1
+    - loss_category: "neural_augmentation"
+      loss_weight: 1.0
+      neural_augmentation:
+        perceptual_metric: "psnr"
+        target_value: [ 40, 20 ]
+        curriculum_method: "cosine"
+optim:
+  name: "adamw"
+  no_decay_bn_filter_bias: true
+  weight_decay: 0.1
+  adamw:
+    beta1: 0.9
+    beta2: 0.999
+scheduler:
+  name: "cosine"
+  is_iteration_based: false
+  max_epochs: 50
+  warmup_iterations: 500
+  warmup_init_lr: 1.e-6
+  cosine:
+    max_lr: 3.e-5
+    min_lr: 3.e-6
+model:
+  resume_exclude_scopes: [ "text_encoder", "logit_scale", "image_encoder.classifier.proj", "simple_fpn", "image_encoder.cls_token" ]
+  ignore_missing_scopes: [ "classifier" ]
+  rename_scopes_map: [ [ "image_encoder.", "" ] ]
+  segmentation:
+    name: "encoder_decoder"
+    n_classes: 150
+    lr_multiplier: 1
+    output_stride: 16
+    use_aux_head: false
+    norm_layer: "layer_norm_fp32"
+    seg_head: "deeplabv3"
+    deeplabv3:
+      aspp_dropout: 0.1
+      aspp_sep_conv: false
+      aspp_out_channels: 512
+      aspp_rates: [ 6, 12, 18 ]
+    activation:
+      name: "relu"
+  classification:
+    name: "vit"
+    pretrained: "https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/examples/range_augment/clip/clip_vit_base_16.pt"
+    gradient_checkpointing: true
+    vit:
+      mode: "base"
+      norm_layer: "layer_norm_fp32"
+      dropout: 0.0
+      stochastic_dropout: 0.0
+      no_cls_token: true
+    activation:
+      name: "gelu"
+  learn_augmentation:
+    brightness: true
+    contrast: true
+    noise: true
+    mode: "distribution"
+  normalization:
+    name: "sync_batch_norm"
+    momentum: 0.1
+  activation:
+    name: "gelu"
+    inplace: false
+  layer:
+    global_pool: "mean"
+    conv_init: "kaiming_normal"
+    linear_init: "normal"
+ema:
+  enable: true
+  momentum: 0.0001
+stats:
+  val: [ "loss", "iou"]
+  train: ["loss"]
+  checkpoint_metric: "iou"
+  checkpoint_metric_max: true
+
+# During evaluation (with cvnets-eval-seg), we follow following steps:
+#  1. Determine and store the size of input image as metadata
+#  2. Resize image to fixed size
+#  3. Make a prediction
+#  4. Resize the predicted mask to the same size as original input image
+#  5. compute results
+evaluation:
+  segmentation:
+    resize_input_images_fixed_size: true
+    mode: "validation_set"

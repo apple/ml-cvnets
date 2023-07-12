@@ -1,71 +1,58 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
-import copy
-import random
+
 import argparse
-from typing import Optional
-import numpy as np
-import math
+import random
+from typing import Iterator, Tuple
 
+from common import DEFAULT_IMAGE_HEIGHT, DEFAULT_IMAGE_WIDTH
+from data.sampler import SAMPLER_REGISTRY
+from data.sampler.base_sampler import BaseSampler, BaseSamplerDDP
+from data.sampler.utils import image_batch_pairs
 from utils import logger
-from common import DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT
-
-from . import register_sampler, BaseSamplerDP, BaseSamplerDDP
-from .utils import _image_batch_pairs
 
 
-@register_sampler(name="variable_batch_sampler")
-class VariableBatchSampler(BaseSamplerDP):
-    """
-    `Variably-size multi-scale batch sampler <https://arxiv.org/abs/2110.02178?context=cs.LG>` for data parallel
+@SAMPLER_REGISTRY.register(name="variable_batch_sampler")
+class VariableBatchSampler(BaseSampler):
+    """Variably-size multi-scale batch sampler <https://arxiv.org/abs/2110.02178?context=cs.LG>` for data parallel.
+    This sampler yields batches with variable spatial resolution and batch size.
 
     Args:
         opts: command line argument
-        n_data_samples (int): Number of samples in the dataset
-        is_training (Optional[bool]): Training or validation mode. Default: False
+        n_data_samples: Number of samples in the dataset
+        is_training: Training or validation mode. Default: False
     """
 
     def __init__(
         self,
-        opts,
+        opts: argparse.Namespace,
         n_data_samples: int,
-        is_training: Optional[bool] = False,
+        is_training: bool = False,
         *args,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(
             opts=opts, n_data_samples=n_data_samples, is_training=is_training
         )
 
-        crop_size_w: int = getattr(
-            opts, "sampler.vbs.crop_size_width", DEFAULT_IMAGE_WIDTH
-        )
-        crop_size_h: int = getattr(
-            opts, "sampler.vbs.crop_size_height", DEFAULT_IMAGE_HEIGHT
-        )
+        crop_size_w = getattr(opts, "sampler.vbs.crop_size_width")
+        crop_size_h = getattr(opts, "sampler.vbs.crop_size_height")
 
-        min_crop_size_w: int = getattr(opts, "sampler.vbs.min_crop_size_width", 160)
-        max_crop_size_w: int = getattr(opts, "sampler.vbs.max_crop_size_width", 320)
+        min_crop_size_w = getattr(opts, "sampler.vbs.min_crop_size_width")
+        max_crop_size_w = getattr(opts, "sampler.vbs.max_crop_size_width")
 
-        min_crop_size_h: int = getattr(opts, "sampler.vbs.min_crop_size_height", 160)
-        max_crop_size_h: int = getattr(opts, "sampler.vbs.max_crop_size_height", 320)
+        min_crop_size_h = getattr(opts, "sampler.vbs.min_crop_size_height")
+        max_crop_size_h = getattr(opts, "sampler.vbs.max_crop_size_height")
 
-        scale_inc: bool = getattr(opts, "sampler.vbs.scale_inc", False)
-        scale_ep_intervals: list or int = getattr(
-            opts, "sampler.vbs.ep_intervals", [40]
-        )
-        min_scale_inc_factor: float = getattr(
-            opts, "sampler.vbs.min_scale_inc_factor", 1.0
-        )
-        max_scale_inc_factor: float = getattr(
-            opts, "sampler.vbs.max_scale_inc_factor", 1.0
-        )
+        check_scale_div_factor = getattr(opts, "sampler.vbs.check_scale")
+        max_img_scales = getattr(opts, "sampler.vbs.max_n_scales")
 
-        check_scale_div_factor: int = getattr(opts, "sampler.vbs.check_scale", 32)
-        max_img_scales: int = getattr(opts, "sampler.vbs.max_n_scales", 10)
-
+        scale_inc = getattr(opts, "sampler.vbs.scale_inc")
+        min_scale_inc_factor = getattr(opts, "sampler.vbs.min_scale_inc_factor")
+        max_scale_inc_factor = getattr(opts, "sampler.vbs.max_scale_inc_factor")
+        scale_ep_intervals = getattr(opts, "sampler.vbs.ep_intervals")
         if isinstance(scale_ep_intervals, int):
             scale_ep_intervals = [scale_ep_intervals]
 
@@ -86,7 +73,7 @@ class VariableBatchSampler(BaseSamplerDP):
         self.scale_inc = scale_inc
 
         if is_training:
-            self.img_batch_tuples = _image_batch_pairs(
+            self.img_batch_tuples = image_batch_pairs(
                 crop_size_h=self.crop_size_h,
                 crop_size_w=self.crop_size_w,
                 batch_size_gpu0=self.batch_size_gpu0,
@@ -101,7 +88,7 @@ class VariableBatchSampler(BaseSamplerDP):
         else:
             self.img_batch_tuples = [(crop_size_h, crop_size_w, self.batch_size_gpu0)]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[int, int, int]]:
         img_indices = self.get_indices()
         start_index = 0
         n_samples = len(img_indices)
@@ -119,7 +106,10 @@ class VariableBatchSampler(BaseSamplerDP):
                 batch = [(crop_h, crop_w, b_id) for b_id in batch_ids]
                 yield batch
 
-    def update_scales(self, epoch, is_master_node=False, *args, **kwargs):
+    def update_scales(
+        self, epoch: int, is_master_node: bool = False, *args, **kwargs
+    ) -> None:
+        """Update the scales in variable batch sampler at specified epoch intervals during training."""
         if epoch in self.scale_ep_intervals and self.scale_inc:
             self.min_crop_size_w += int(
                 self.min_crop_size_w * self.min_scale_inc_factor
@@ -135,7 +125,7 @@ class VariableBatchSampler(BaseSamplerDP):
                 self.max_crop_size_h * self.max_scale_inc_factor
             )
 
-            self.img_batch_tuples = _image_batch_pairs(
+            self.img_batch_tuples = image_batch_pairs(
                 crop_size_h=self.crop_size_h,
                 crop_size_w=self.crop_size_w,
                 batch_size_gpu0=self.batch_size_gpu0,
@@ -151,168 +141,144 @@ class VariableBatchSampler(BaseSamplerDP):
                 logger.log("Scales updated in {}".format(self.__class__.__name__))
                 logger.log("New scales: {}".format(self.img_batch_tuples))
 
-    def __repr__(self):
-        repr_str = "{}(".format(self.__class__.__name__)
-        repr_str += (
-            "\n\t base_im_size=(h={}, w={}), "
-            "\n\t base_batch_size={} "
-            "\n\t scales={} "
-            "\n\t scale_inc={} "
-            "\n\t min_scale_inc_factor={} "
-            "\n\t max_scale_inc_factor={} "
-            "\n\t ep_intervals={}".format(
-                self.crop_size_h,
-                self.crop_size_w,
-                self.batch_size_gpu0,
-                self.img_batch_tuples,
-                self.scale_inc,
-                self.min_scale_inc_factor,
-                self.max_scale_inc_factor,
-                self.scale_ep_intervals,
-            )
+    def extra_repr(self) -> str:
+        extra_repr_str = super().extra_repr()
+        extra_repr_str += (
+            f"\n\t base_im_size=(h={self.crop_size_h}, w={self.crop_size_w})"
+            f"\n\t base_batch_size={self.batch_size_gpu0}"
+            f"\n\t scales={self.img_batch_tuples}"
+            f"\n\t scale_inc={self.scale_inc}"
+            f"\n\t min_scale_inc_factor={self.min_scale_inc_factor}"
+            f"\n\t max_scale_inc_factor={self.max_scale_inc_factor}"
+            f"\n\t ep_intervals={self.scale_ep_intervals}"
         )
-        repr_str += self.extra_repr()
-        repr_str += "\n)"
-        return repr_str
+
+        return extra_repr_str
 
     @classmethod
-    def add_arguments(cls, parser: argparse.ArgumentParser):
-        group = parser.add_argument_group(
-            title="Variable batch sampler",
-            description="Arguments related to variable batch sampler",
-        )
+    def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        if cls != VariableBatchSampler:
+            # Don't re-register arguments in subclasses that don't override `add_arguments()`.
+            return parser
+        group = parser.add_argument_group(cls.__name__)
         group.add_argument(
             "--sampler.vbs.crop-size-width",
             default=DEFAULT_IMAGE_WIDTH,
             type=int,
-            help="Base crop size (along width) during training",
+            help=f"Base crop size (along width) during training. Defaults to {DEFAULT_IMAGE_WIDTH}.",
         )
         group.add_argument(
             "--sampler.vbs.crop-size-height",
             default=DEFAULT_IMAGE_HEIGHT,
             type=int,
-            help="Base crop size (along height) during training",
+            help=f"Base crop size (along height) during training. Defaults to {DEFAULT_IMAGE_HEIGHT}.",
         )
 
         group.add_argument(
             "--sampler.vbs.min-crop-size-width",
             default=160,
             type=int,
-            help="Min. crop size along width during training",
+            help="Min. crop size along width during training. Defaults to 160.",
         )
         group.add_argument(
             "--sampler.vbs.max-crop-size-width",
             default=320,
             type=int,
-            help="Max. crop size along width during training",
+            help="Max. crop size along width during training. Defaults to 320.",
         )
 
         group.add_argument(
             "--sampler.vbs.min-crop-size-height",
             default=160,
             type=int,
-            help="Min. crop size along height during training",
+            help="Min. crop size along height during training. Defaults to 160.",
         )
         group.add_argument(
             "--sampler.vbs.max-crop-size-height",
             default=320,
             type=int,
-            help="Max. crop size along height during training",
+            help="Max. crop size along height during training. Defaults to 320.",
         )
         group.add_argument(
             "--sampler.vbs.max-n-scales",
             default=5,
             type=int,
-            help="Max. scales in variable batch sampler. For example, [0.25, 0.5, 0.75, 1, 1.25] ",
+            help="Max. scales in variable batch sampler. Defaults to 5.",
         )
         group.add_argument(
             "--sampler.vbs.check-scale",
             default=32,
             type=int,
-            help="Image scales should be divisible by this factor",
+            help="Image scales should be divisible by this factor. Defaults to 32.",
         )
         group.add_argument(
             "--sampler.vbs.ep-intervals",
             default=[40],
             type=int,
-            help="Epoch intervals at which scales are adjusted",
+            help="Epoch intervals at which scales should be adjusted. Defaults to 40.",
         )
         group.add_argument(
             "--sampler.vbs.min-scale-inc-factor",
             default=1.0,
             type=float,
-            help="Factor by which we should increase the minimum scale",
+            help="Factor by which we should increase the minimum scale. Defaults to 1.0",
         )
         group.add_argument(
             "--sampler.vbs.max-scale-inc-factor",
             default=1.0,
             type=float,
-            help="Factor by which we should increase the maximum scale",
+            help="Factor by which we should increase the maximum scale. Defaults to 1.0",
         )
         group.add_argument(
             "--sampler.vbs.scale-inc",
             action="store_true",
-            help="Increase image scales during training",
+            default=False,
+            help="Increase image scales during training. Defaults to False.",
         )
 
         return parser
 
 
-@register_sampler(name="variable_batch_sampler_ddp")
+@SAMPLER_REGISTRY.register(name="variable_batch_sampler_ddp")
 class VariableBatchSamplerDDP(BaseSamplerDDP):
-    """
-    `Variably-size multi-scale batch sampler <https://arxiv.org/abs/2110.02178?context=cs.LG>` for distributed
-    data parallel
+    """DDP version of  VariableBatchSampler
 
     Args:
         opts: command line argument
-        n_data_samples (int): Number of samples in the dataset
-        is_training (Optional[bool]): Training or validation mode. Default: False
+        n_data_samples: Number of samples in the dataset
+        is_training: Training or validation mode. Default: False
     """
 
     def __init__(
         self,
-        opts,
+        opts: argparse.Namespace,
         n_data_samples: int,
-        is_training: Optional[bool] = False,
+        is_training: bool = False,
         *args,
-        **kwargs
+        **kwargs,
     ) -> None:
-        """
-
-        :param opts: arguments
-        :param n_data_samples: number of data samples in the dataset
-        :param is_training: Training or evaluation mode (eval mode includes validation mode)
-        """
         super().__init__(
             opts=opts, n_data_samples=n_data_samples, is_training=is_training
         )
-        crop_size_w: int = getattr(
-            opts, "sampler.vbs.crop_size_width", DEFAULT_IMAGE_WIDTH
-        )
-        crop_size_h: int = getattr(
-            opts, "sampler.vbs.crop_size_height", DEFAULT_IMAGE_HEIGHT
-        )
 
-        min_crop_size_w: int = getattr(opts, "sampler.vbs.min_crop_size_width", 160)
-        max_crop_size_w: int = getattr(opts, "sampler.vbs.max_crop_size_width", 320)
+        crop_size_w = getattr(opts, "sampler.vbs.crop_size_width")
+        crop_size_h = getattr(opts, "sampler.vbs.crop_size_height")
 
-        min_crop_size_h: int = getattr(opts, "sampler.vbs.min_crop_size_height", 160)
-        max_crop_size_h: int = getattr(opts, "sampler.vbs.max_crop_size_height", 320)
+        min_crop_size_w = getattr(opts, "sampler.vbs.min_crop_size_width")
+        max_crop_size_w = getattr(opts, "sampler.vbs.max_crop_size_width")
 
-        scale_inc: bool = getattr(opts, "sampler.vbs.scale_inc", False)
-        scale_ep_intervals: list or int = getattr(
-            opts, "sampler.vbs.ep_intervals", [40]
-        )
-        min_scale_inc_factor: float = getattr(
-            opts, "sampler.vbs.min_scale_inc_factor", 1.0
-        )
-        max_scale_inc_factor: float = getattr(
-            opts, "sampler.vbs.max_scale_inc_factor", 1.0
-        )
-        check_scale_div_factor: int = getattr(opts, "sampler.vbs.check_scale", 32)
+        min_crop_size_h = getattr(opts, "sampler.vbs.min_crop_size_height")
+        max_crop_size_h = getattr(opts, "sampler.vbs.max_crop_size_height")
 
-        max_img_scales: int = getattr(opts, "sampler.vbs.max_n_scales", 10)
+        check_scale_div_factor = getattr(opts, "sampler.vbs.check_scale")
+        max_img_scales = getattr(opts, "sampler.vbs.max_n_scales")
+
+        scale_inc = getattr(opts, "sampler.vbs.scale_inc")
+        min_scale_inc_factor = getattr(opts, "sampler.vbs.min_scale_inc_factor")
+        max_scale_inc_factor = getattr(opts, "sampler.vbs.max_scale_inc_factor")
+        scale_ep_intervals = getattr(opts, "sampler.vbs.ep_intervals")
+        if isinstance(scale_ep_intervals, int):
+            scale_ep_intervals = [scale_ep_intervals]
 
         self.crop_size_h = crop_size_h
         self.crop_size_w = crop_size_w
@@ -329,7 +295,7 @@ class VariableBatchSamplerDDP(BaseSamplerDDP):
         self.scale_inc = scale_inc
 
         if is_training:
-            self.img_batch_tuples = _image_batch_pairs(
+            self.img_batch_tuples = image_batch_pairs(
                 crop_size_h=self.crop_size_h,
                 crop_size_w=self.crop_size_w,
                 batch_size_gpu0=self.batch_size_gpu0,
@@ -346,7 +312,7 @@ class VariableBatchSamplerDDP(BaseSamplerDDP):
                 (self.crop_size_h, self.crop_size_w, self.batch_size_gpu0)
             ]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[int, int, int]]:
         indices_rank_i = self.get_indices_rank_i()
         start_index = 0
         n_samples_rank_i = len(indices_rank_i)
@@ -364,8 +330,9 @@ class VariableBatchSamplerDDP(BaseSamplerDDP):
                 batch = [(crop_h, crop_w, b_id) for b_id in batch_ids]
                 yield batch
 
-    def update_scales(self, epoch, is_master_node=False, *args, **kwargs):
-        if (epoch in self.scale_ep_intervals) and self.scale_inc:  # Training mode
+    def update_scales(self, epoch: int, is_master_node=False, *args, **kwargs) -> None:
+        """Update the scales in variable batch sampler at specified epoch intervals during training."""
+        if (epoch in self.scale_ep_intervals) and self.scale_inc:
             self.min_crop_size_w += int(
                 self.min_crop_size_w * self.min_scale_inc_factor
             )
@@ -380,7 +347,7 @@ class VariableBatchSamplerDDP(BaseSamplerDDP):
                 self.max_crop_size_h * self.max_scale_inc_factor
             )
 
-            self.img_batch_tuples = _image_batch_pairs(
+            self.img_batch_tuples = image_batch_pairs(
                 crop_size_h=self.crop_size_h,
                 crop_size_w=self.crop_size_w,
                 batch_size_gpu0=self.batch_size_gpu0,
@@ -396,26 +363,16 @@ class VariableBatchSamplerDDP(BaseSamplerDDP):
                 logger.log("Scales updated in {}".format(self.__class__.__name__))
                 logger.log("New scales: {}".format(self.img_batch_tuples))
 
-    def __repr__(self):
-        repr_str = "{}(".format(self.__class__.__name__)
-        repr_str += (
-            "\n\t base_im_size=(h={}, w={}), "
-            "\n\t base_batch_size={} "
-            "\n\t scales={} "
-            "\n\t scale_inc={} "
-            "\n\t min_scale_inc_factor={} "
-            "\n\t max_scale_inc_factor={} "
-            "\n\t ep_intervals={} ".format(
-                self.crop_size_h,
-                self.crop_size_w,
-                self.batch_size_gpu0,
-                self.img_batch_tuples,
-                self.scale_inc,
-                self.min_scale_inc_factor,
-                self.max_scale_inc_factor,
-                self.scale_ep_intervals,
-            )
+    def extra_repr(self) -> str:
+        extra_repr_str = super().extra_repr()
+        extra_repr_str += (
+            f"\n\t base_im_size=(h={self.crop_size_h}, w={self.crop_size_w})"
+            f"\n\t base_batch_size={self.batch_size_gpu0}"
+            f"\n\t scales={self.img_batch_tuples}"
+            f"\n\t scale_inc={self.scale_inc}"
+            f"\n\t min_scale_inc_factor={self.min_scale_inc_factor}"
+            f"\n\t max_scale_inc_factor={self.max_scale_inc_factor}"
+            f"\n\t ep_intervals={self.scale_ep_intervals}"
         )
-        repr_str += self.extra_repr()
-        repr_str += "\n )"
-        return repr_str
+
+        return extra_repr_str

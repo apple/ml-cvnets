@@ -1,57 +1,44 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import torch
-from torch import nn, Tensor
 import argparse
-from typing import Optional, Tuple, Dict
 import math
+from typing import Dict, Optional
 
-from utils import logger
-from cvnets.text_encoders import BaseTextEncoder, build_text_encoder
+import torch
+from torch import Tensor, nn
+
 from cvnets.image_projection_layers import build_image_projection_head
-
-from ..classification import build_classification_model, BaseEncoder
-from ...layers import (
-    norm_layers_tuple,
-    LinearLayer,
+from cvnets.image_projection_layers.base_image_projection import (
+    get_in_feature_dimension,
 )
+from cvnets.models import MODEL_REGISTRY, BaseAnyNNModel, get_model
+from cvnets.models.classification.base_image_encoder import BaseImageEncoder
+from cvnets.models.multi_modal_img_text.base_multi_modal_img_text import (
+    BaseMultiModalImageText,
+)
+from cvnets.text_encoders import BaseTextEncoder, build_text_encoder
+from utils import logger
 
-from . import BaseMultiModalImageText, register_multi_modal_image_text
 
-
-@register_multi_modal_image_text(name="clip")
+@MODEL_REGISTRY.register(name="clip", type="multi_modal_image_text")
 class CLIP(BaseMultiModalImageText):
     """Base class for multi-modal image-text data"""
 
-    def __init__(self, opts, *args, **kwargs) -> None:
-        projection_dim = getattr(
-            opts, "model.multi_modal_image_text.clip.projection_dim", -1
-        )
-        if projection_dim < 1:
-            logger.error("Projection dimension should be > 1. Got: {}")
-
-        image_encoder: BaseEncoder = build_classification_model(
-            opts=opts, *args, **kwargs
-        )
-        text_encoder: BaseTextEncoder = build_text_encoder(
-            opts=opts, projection_dim=projection_dim, *args, **kwargs
-        )
-
-        # replace the classifier in image encoder with the task specific classifier
-        image_encoder.classifier = update_image_classifier(
-            opts,
-            image_classifier=image_encoder.classifier,
-            projection_dim=projection_dim,
-        )
-
+    def __init__(
+        self,
+        opts: argparse.Namespace,
+        image_encoder: BaseImageEncoder,
+        text_encoder: BaseTextEncoder,
+        *args,
+        **kwargs
+    ) -> None:
         super().__init__(opts=opts, *args, **kwargs)
-        self.image_encoder: BaseEncoder = image_encoder
+        self.image_encoder: BaseImageEncoder = image_encoder
         self.text_encoder: BaseTextEncoder = text_encoder
         self.logit_scale = nn.Parameter(torch.ones([]) * math.log(1.0 / 0.07))
-        self.projection_dim = projection_dim
         self.use_distributed = getattr(opts, "ddp.use_distributed", False)
         self.cache_text_features_zero_shot = getattr(
             opts,
@@ -64,9 +51,7 @@ class CLIP(BaseMultiModalImageText):
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser):
         """Add model specific arguments"""
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--model.multi-modal-image-text.clip.projection-dim",
             type=int,
@@ -117,9 +102,9 @@ class CLIP(BaseMultiModalImageText):
         # We need to add the logit scale
         logit_scale_param_list = [
             {
-                "params": self.logit_scale,
+                "params": [self.logit_scale],
                 "weight_decay": 0.0,
-                "param_names": "logit_scale",
+                "param_names": ["logit_scale"],
             }
         ]
         logit_scale_lr_mult = [1.0] * len(logit_scale_param_list)
@@ -128,47 +113,6 @@ class CLIP(BaseMultiModalImageText):
             image_param_list + text_param_list + logit_scale_param_list,
             image_lr_mult + text_lr_mult + logit_scale_lr_mult,
         )
-
-    def profile_model(self, input: Tensor) -> Optional[Tuple[Tensor, float, float]]:
-        """
-        Child classes must implement this function to compute FLOPs and parameters
-        """
-        inputs = self.dummy_input_and_label(batch_size=1)
-
-        logger.double_dash_line(dashes=65)
-        overall_params_py = sum([p.numel() for p in self.parameters()])
-        print(
-            "{:<20} = {:>8.3f} M".format("Overall parameters", overall_params_py / 1e6)
-        )
-
-        # compute flops using FVCore
-        try:
-            # compute flops using FVCore also
-            from fvcore.nn import FlopCountAnalysis
-
-            flop_analyzer = FlopCountAnalysis(self.eval(), inputs["image"])
-            flop_analyzer.unsupported_ops_warnings(False)
-            flop_analyzer.uncalled_modules_warnings(False)
-            flops_fvcore = flop_analyzer.total()
-
-            print(
-                "{:<20} = {:>8.3f} M".format(
-                    "Overall MACs (FVCore)**", flops_fvcore / 1e6
-                )
-            )
-        except Exception:
-            print("Unable to compute FLOPs using FVCore")
-            pass
-        logger.double_dash_line(dashes=65)
-        return None
-
-    def freeze_norm_layers(self) -> None:
-        for m in self.modules():
-            if isinstance(m, norm_layers_tuple):
-                m.eval()
-                m.weight.requires_grad = False
-                m.bias.requires_grad = False
-                m.training = False
 
     def dummy_input_and_label(self, batch_size: int) -> Dict:
         """Create dummy input and labels for CI/CD purposes. Child classes must override it
@@ -265,24 +209,46 @@ class CLIP(BaseMultiModalImageText):
                 "augmented_tensor": augmented_tensor,
             }
 
+    @classmethod
+    def build_model(cls, opts, *args, **kwargs) -> BaseAnyNNModel:
+        """Helper function to build the multi-modal image-text model"""
+        projection_dim = getattr(
+            opts, "model.multi_modal_image_text.clip.projection_dim", -1
+        )
+        if projection_dim < 1:
+            logger.error("Projection dimension should be > 1. Got: {}")
+
+        image_encoder: BaseImageEncoder = get_model(
+            opts=opts, category="classification", *args, **kwargs
+        )
+        text_encoder: BaseTextEncoder = build_text_encoder(
+            opts=opts, projection_dim=projection_dim, *args, **kwargs
+        )
+
+        # replace the classifier in image encoder with the task specific classifier
+        image_encoder.classifier = update_image_classifier(
+            opts,
+            image_classifier=image_encoder.classifier,
+            projection_dim=projection_dim,
+        )
+
+        model = cls(
+            opts,
+            image_encoder=image_encoder,
+            text_encoder=text_encoder,
+            *args,
+            **kwargs
+        )
+
+        if getattr(opts, "model.multi_modal_image_text.freeze_batch_norm"):
+            cls.freeze_norm_layers(opts, model)
+        return model
+
 
 def update_image_classifier(
     opts, image_classifier: nn.Module, projection_dim: int, *args, **kwargs
 ) -> nn.Module:
-    in_features = None
-    if isinstance(image_classifier, nn.Sequential):
-        # Classifier that uses nn.Sequential usually has global pooling and multiple linear layers.
-        # Find the first linear layer and get its in_features
-        for layer in image_classifier:
-            if isinstance(layer, (nn.Linear, LinearLayer)):
-                in_features = layer.in_features
-                break
-    elif isinstance(image_classifier, (nn.Linear, LinearLayer)):
-        in_features = image_classifier.in_features
-    else:
-        raise NotImplementedError
-
-    # new classifier
+    in_features = get_in_feature_dimension(image_classifier)
     new_img_classifier = build_image_projection_head(
         opts, in_dim=in_features, out_dim=projection_dim
     )

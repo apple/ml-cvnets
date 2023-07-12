@@ -1,20 +1,21 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import torch
 import time
-from torch.cuda.amp import autocast
 from typing import Optional
 
+import torch
+from torch.cuda.amp import autocast
+
 from cvnets import get_model
-from options.opts import get_bencmarking_arguments
+from engine.utils import autocast_fn
+from options.opts import get_benchmarking_arguments
 from utils import logger
-from utils.tensor_utils import create_rand_tensor
 from utils.common_utils import device_setup
 from utils.pytorch_to_coreml import convert_pytorch_to_coreml
-from engine.utils import autocast_fn
+from utils.tensor_utils import create_rand_tensor
 
 
 def cpu_timestamp(*args, **kwargs):
@@ -45,7 +46,7 @@ def step(
 
 def main_benchmark():
     # set-up
-    opts = get_bencmarking_arguments()
+    opts = get_benchmarking_arguments()
     # device set-up
     opts = device_setup(opts)
 
@@ -70,11 +71,10 @@ def main_benchmark():
     # load the model
     model = get_model(opts)
     model.eval()
+    # print model information
+    model.info()
 
     example_inp = create_rand_tensor(opts=opts, device="cpu", batch_size=batch_size)
-
-    if hasattr(model, "profile_model"):
-        model.profile_model(example_inp)
 
     # cool down for 5 seconds
     time.sleep(5)

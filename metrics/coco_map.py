@@ -1,36 +1,36 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
-import numpy as np
-import torch
-from torch.nn import functional as F
-from typing import Optional, Dict, List
 import io
 import os
-from pycocotools.cocoeval import COCOeval
-from pycocotools.coco import COCO
-from pycocotools import mask as maskUtils
 from contextlib import redirect_stdout
+from typing import Any, Dict, List, Optional, Union
 
-from cvnets.models.detection.base_detection import DetectionPredTuple
-from utils.tensor_utils import all_gather_list
+import numpy as np
+import torch
+from pycocotools import mask as maskUtils
+from pycocotools.coco import COCO
+from pycocotools.cocoeval import COCOeval
+from torch import Tensor
+from torch.nn import functional as F
+
+from cvnets.models.detection import DetectionPredTuple
+from metrics import METRICS_REGISTRY
+from metrics.metric_base import BaseMetric
 from utils import logger
 from utils.ddp_utils import is_master
+from utils.tensor_utils import all_gather_list
 
-from . import register_stats_fn
 
-
-@register_stats_fn(name="coco_map")
-class COCOEvaluator(object):
+@METRICS_REGISTRY.register(name="coco_map")
+class COCOEvaluator(BaseMetric):
     def __init__(
         self,
         opts,
         split: Optional[str] = "val",
         year: Optional[int] = 2017,
-        use_distributed: Optional[bool] = False,
-        *args,
-        **kwargs
+        is_distributed: Optional[bool] = False,
     ):
         # disable printing on console, so that pycocotools print statements are not printed on console
         logger.disable_printing()
@@ -56,40 +56,48 @@ class COCOEvaluator(object):
 
         self.coco_gt = coco_gt
         self.iou_types = iou_types
-        self.use_distributed = use_distributed
+        self.is_distributed = is_distributed
         self.is_master_node = is_master(opts)
 
-        self.coco_results = {iou_type: [] for iou_type in iou_types}
+        self.coco_results = None
+        self.reset()
 
         # enable printing, to enable cvnets log printing
         logger.enable_printing()
 
-    def prepare_predictions(self, predictions: Dict, targets: List):
+    def reset(self) -> None:
+        self.coco_results = {iou_type: [] for iou_type in self.iou_types}
+
+    def update(
+        self,
+        prediction: Union[Tensor, Dict],
+        target: Union[Tensor, Dict],
+        extras: Dict[str, Any] = {},
+        batch_size: Optional[int] = 1,
+    ):
         if not (
-            isinstance(predictions, Dict)
-            and ({"detections"} <= set(list(predictions.keys())))
+            isinstance(prediction, Dict)
+            and ({"detections"} <= set(list(prediction.keys())))
         ):
             logger.error(
                 "For coco evaluation during training, the output from the model should be a dictionary "
                 "and should contain the results in a key called detections"
             )
 
-        detections = predictions["detections"]
+        detections = prediction["detections"]
 
-        if isinstance(targets, list):
-            image_ids = torch.tensor(
-                [t["image_id"] for t in targets], dtype=torch.int64
-            )
+        if isinstance(target, list):
+            image_ids = torch.tensor([t["image_id"] for t in target], dtype=torch.int64)
             image_widths = torch.tensor(
-                [t["image_width"] for t in targets], dtype=torch.int64
+                [t["image_width"] for t in target], dtype=torch.int64
             )
             image_heights = torch.tensor(
-                [t["image_height"] for t in targets], dtype=torch.int64
+                [t["image_height"] for t in target], dtype=torch.int64
             )
         else:
-            image_ids = targets["image_id"]
-            image_widths = targets["image_width"]
-            image_heights = targets["image_height"]
+            image_ids = target["image_id"]
+            image_widths = target["image_width"]
+            image_heights = target["image_height"]
 
         if isinstance(detections, DetectionPredTuple):
             detections = [detections]
@@ -161,7 +169,10 @@ class COCOEvaluator(object):
             if masks is not None and "segm" in batch_results:
                 # masks are [N, H, W]. For interpolation, convert them to [1, N, H, W] and then back to [N, H, W]
                 masks = F.interpolate(
-                    masks.unsqueeze(0), size=(img_h, img_w), mode="bilinear", align_corners=True
+                    masks.unsqueeze(0),
+                    size=(img_h, img_w),
+                    mode="bilinear",
+                    align_corners=True,
                 ).squeeze(0)
                 masks = masks > 0.5
 
@@ -190,26 +201,14 @@ class COCOEvaluator(object):
                 )
 
         for k in batch_results.keys():
-            self.coco_results[k].extend(batch_results[k])
+            new_results: List[Dict] = batch_results[k]
+            if self.is_distributed:
+                # Gather results from all processes
+                gathered_results: List[List[Dict]] = all_gather_list(new_results)
+                # Flatten results as the output of all_gather will be a list of list here
+                new_results = [x for results in gathered_results for x in results]
 
-    def gather_coco_results(self) -> None:
-        # synchronize results across different devices
-        for iou_type, coco_results in self.coco_results.items():
-            # agg_coco_results as List[List].
-            # The outer list is for processes and inner list is for coco_results in the process
-            if self.use_distributed:
-                agg_coco_results = all_gather_list(coco_results)
-
-                merged_coco_results = []
-                # filter the duplicates
-                for (
-                    p_coco_results
-                ) in agg_coco_results:  # retrieve results from each process
-                    merged_coco_results.extend(p_coco_results)
-            else:
-                merged_coco_results = coco_results
-
-            self.coco_results[iou_type] = merged_coco_results
+            self.coco_results[k].extend(new_results)
 
     def summarize_coco_results(self) -> Dict:
         stats_map = dict()
@@ -242,3 +241,6 @@ class COCOEvaluator(object):
 
         logger.enable_printing()
         return stats_map
+
+    def compute(self) -> Dict[str, float]:
+        return self.summarize_coco_results()

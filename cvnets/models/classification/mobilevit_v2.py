@@ -1,22 +1,23 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn
 import argparse
-from typing import Dict, Tuple, Optional
+from typing import Dict, Optional, Tuple
 
-from . import register_cls_models
-from .base_cls import BaseEncoder
-from .config.mobilevit_v2 import get_configuration
-from ...layers import ConvLayer, LinearLayer, GlobalPool, Identity
-from ...modules import InvertedResidual
-from ...modules import MobileViTBlockv2 as Block
+from torch import nn
+
+from cvnets.layers import ConvLayer2d, GlobalPool, Identity, LinearLayer
+from cvnets.models import MODEL_REGISTRY
+from cvnets.models.classification.base_image_encoder import BaseImageEncoder
+from cvnets.models.classification.config.mobilevit_v2 import get_configuration
+from cvnets.modules import InvertedResidual
+from cvnets.modules import MobileViTBlockv2 as Block
 
 
-@register_cls_models("mobilevit_v2")
-class MobileViTv2(BaseEncoder):
+@MODEL_REGISTRY.register(name="mobilevit_v2", type="classification")
+class MobileViTv2(BaseImageEncoder):
     """
     This class defines the `MobileViTv2 <https://arxiv.org/abs/2206.02680>`_ architecture
     """
@@ -33,7 +34,7 @@ class MobileViTv2(BaseEncoder):
 
         # store model configuration in a dictionary
         self.model_conf_dict = dict()
-        self.conv_1 = ConvLayer(
+        self.conv_1 = ConvLayer2d(
             opts=opts,
             in_channels=image_channels,
             out_channels=out_channels,
@@ -100,9 +101,7 @@ class MobileViTv2(BaseEncoder):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--model.classification.mitv2.attn-dropout",
             type=float,

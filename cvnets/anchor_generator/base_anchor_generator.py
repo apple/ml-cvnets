@@ -1,12 +1,13 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
+
+import argparse
+from typing import Optional, Tuple, Union
 
 import torch
 from torch import Tensor
-import argparse
-from typing import Optional, Tuple, Union
 
 
 class BaseAnchorGenerator(torch.nn.Module):

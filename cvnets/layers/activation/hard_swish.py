@@ -1,12 +1,14 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn, Tensor
+from typing import Optional
+
+from torch import Tensor, nn
 from torch.nn import functional as F
-from typing import Tuple, Optional
-from . import register_act_fn
+
+from cvnets.layers.activation import register_act_fn
 
 
 @register_act_fn(name="hard_swish")
@@ -25,8 +27,3 @@ class Hardswish(nn.Hardswish):
         else:
             x_hard_sig = F.relu(input + 3) / 6
             return input * x_hard_sig
-
-    def profile_module(
-        self, input: Tensor, *args, **kwargs
-    ) -> Tuple[Tensor, float, float]:
-        return input, 0.0, 0.0

@@ -1,24 +1,23 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import os
-from typing import Optional, List, Tuple, Dict
 import argparse
+import os
+from typing import List
+
 import numpy as np
 
-from .. import register_dataset
-from ..dataset_base import BaseImageDataset
-from ...transforms import image_pil as T
+from data.datasets import DATASET_REGISTRY
+from data.datasets.segmentation.base_segmentation import BaseImageSegmentationDataset
 
 
-@register_dataset("pascal", "segmentation")
-class PascalVOCDataset(BaseImageDataset):
-    """
-    Dataset class for the PASCAL VOC 2012 dataset
+@DATASET_REGISTRY.register(name="pascal", type="segmentation")
+class PascalVOCDataset(BaseImageSegmentationDataset):
+    """Dataset class for the PASCAL VOC 2012 dataset
 
-    The structure of PASCAL VOC dataset should be something like this: ::
+    The structure of PASCAL VOC dataset should be like this: ::
 
         pascal_voc/VOCdevkit/VOC2012/Annotations
         pascal_voc/VOCdevkit/VOC2012/JPEGImages
@@ -30,24 +29,13 @@ class PascalVOCDataset(BaseImageDataset):
         pascal_voc/VOCdevkit/VOC2012/SegmentationObject
 
     Args:
-        opts: command-line arguments
-        is_training (Optional[bool]): A flag used to indicate training or validation mode. Default: True
-        is_evaluation (Optional[bool]): A flag used to indicate evaluation (or inference) mode. Default: False
+        opts: Command-line arguments
     """
 
-    def __init__(
-        self,
-        opts,
-        is_training: Optional[bool] = True,
-        is_evaluation: Optional[bool] = False,
-        *args,
-        **kwargs
-    ) -> None:
-        super().__init__(
-            opts=opts, is_training=is_training, is_evaluation=is_evaluation
-        )
-        use_coco_data = getattr(opts, "dataset.pascal.use_coco_data", False)
-        coco_root_dir = getattr(opts, "dataset.pascal.coco_root_dir", None)
+    def __init__(self, opts: argparse.Namespace, *args, **kwargs) -> None:
+        super().__init__(opts=opts, *args, **kwargs)
+        use_coco_data = getattr(opts, "dataset.pascal.use_coco_data")
+        coco_root_dir = getattr(opts, "dataset.pascal.coco_root_dir")
         root = self.root
 
         voc_root_dir = os.path.join(root, "VOC2012")
@@ -81,7 +69,7 @@ class PascalVOCDataset(BaseImageDataset):
                 self.images.append(rgb_img_loc)
                 self.masks.append(mask_img_loc)
 
-        # if you want to use Coarse data for training
+        # if COCO data (mapped in PASCAL VOC format) needs to be used during training
         if self.is_training and coco_data_file is not None:
             with open(coco_data_file, "r") as lines:
                 for line in lines:
@@ -94,29 +82,34 @@ class PascalVOCDataset(BaseImageDataset):
                     self.masks.append(mask_img_loc)
         self.use_coco_data = use_coco_data
         self.ignore_label = 255
-        self.bgrnd_idx = 0
-        setattr(opts, "model.segmentation.n_classes", len(self.class_names()))
+        self.background_idx = 0
+        self.check_dataset()
 
     @classmethod
-    def add_arguments(cls, parser: argparse.ArgumentParser):
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+    def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        if cls != PascalVOCDataset:
+            # Don't re-register arguments in subclasses that don't override `add_arguments()`.
+            return parser
+
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--dataset.pascal.use-coco-data",
             action="store_true",
-            help="Use MS-COCO data for training",
+            default=False,
+            help="Use MS-COCO data for training with PASCAL VOC dataset. Defaults to False.",
         )
         group.add_argument(
             "--dataset.pascal.coco-root-dir",
             type=str,
             default=None,
-            help="Location of MS-COCO data",
+            help="Location of MS-COCO data. Defaults to None.",
         )
         return parser
 
     @staticmethod
-    def color_palette():
+    def color_palette() -> List[int]:
+        """Class index to RGB color mapping. The list index corresponds to class id.
+        Note that the color list is flattened."""
         color_codes = [
             [0, 0, 0],
             [128, 0, 0],
@@ -145,7 +138,8 @@ class PascalVOCDataset(BaseImageDataset):
         return list(color_codes)
 
     @staticmethod
-    def class_names() -> List:
+    def class_names() -> List[str]:
+        """Class index to class name mapping. Class index corresponds to list index"""
         return [
             "background",
             "aeroplane",
@@ -169,107 +163,3 @@ class PascalVOCDataset(BaseImageDataset):
             "train",
             "tv_monitor",
         ]
-
-    def _training_transforms(self, size: tuple):
-        first_aug = T.RandomShortSizeResize(opts=self.opts)
-        aug_list = [
-            T.RandomHorizontalFlip(opts=self.opts),
-            T.RandomCrop(opts=self.opts, size=size, ignore_idx=self.ignore_label),
-        ]
-
-        if getattr(self.opts, "image_augmentation.random_gaussian_noise.enable", False):
-            aug_list.append(T.RandomGaussianBlur(opts=self.opts))
-
-        if getattr(self.opts, "image_augmentation.photo_metric_distort.enable", False):
-            aug_list.append(T.PhotometricDistort(opts=self.opts))
-
-        if getattr(self.opts, "image_augmentation.random_rotate.enable", False):
-            aug_list.append(T.RandomRotate(opts=self.opts))
-
-        if getattr(self.opts, "image_augmentation.random_order.enable", False):
-            new_aug_list = [
-                first_aug,
-                T.RandomOrder(opts=self.opts, img_transforms=aug_list),
-                T.ToTensor(opts=self.opts),
-            ]
-            return T.Compose(opts=self.opts, img_transforms=new_aug_list)
-        else:
-            aug_list.insert(0, first_aug)
-            aug_list.append(T.ToTensor(opts=self.opts))
-            return T.Compose(opts=self.opts, img_transforms=aug_list)
-
-    def _validation_transforms(self, size: tuple, *args, **kwargs):
-        aug_list = [T.Resize(opts=self.opts), T.ToTensor(opts=self.opts)]
-        return T.Compose(opts=self.opts, img_transforms=aug_list)
-
-    def _evaluation_transforms(self, size: tuple, *args, **kwargs):
-        aug_list = []
-        if getattr(self.opts, "evaluation.segmentation.resize_input_images", False):
-            # we want to resize while maintaining aspect ratio. So, we pass img_size argument to resize function
-            aug_list.append(T.Resize(opts=self.opts, img_size=min(size)))
-
-        aug_list.append(T.ToTensor(opts=self.opts))
-        return T.Compose(opts=self.opts, img_transforms=aug_list)
-
-    def __getitem__(self, batch_indexes_tup: Tuple) -> Dict:
-        crop_size_h, crop_size_w, img_index = batch_indexes_tup
-        crop_size = (crop_size_h, crop_size_w)
-
-        if self.is_training:
-            _transform = self._training_transforms(size=crop_size)
-        elif self.is_evaluation:
-            _transform = self._evaluation_transforms(size=crop_size)
-        else:
-            _transform = self._validation_transforms(size=crop_size)
-
-        img = self.read_image_pil(self.images[img_index])
-        mask = self.read_mask_pil(self.masks[img_index])
-
-        data = {"image": img}
-        if not self.is_evaluation:
-            data["mask"] = mask
-
-        data = _transform(data)
-
-        if self.is_evaluation:
-            # for evaluation purposes, resize only the input and not mask
-            data["mask"] = self.convert_mask_to_tensor(mask)
-
-        output_data = {"samples": data["image"], "targets": data["mask"]}
-
-        if self.is_evaluation:
-            im_width, im_height = img.size
-            img_name = self.images[img_index].split(os.sep)[-1].replace("jpg", "png")
-            mask = output_data.pop("targets")
-            output_data["targets"] = {
-                "mask": mask,
-                "file_name": img_name,
-                "im_width": im_width,
-                "im_height": im_height,
-            }
-
-        return output_data
-
-    def __len__(self):
-        return len(self.images)
-
-    def __repr__(self):
-        from utils.tensor_utils import image_size_from_opts
-
-        im_h, im_w = image_size_from_opts(opts=self.opts)
-
-        if self.is_training:
-            transforms_str = self._training_transforms(size=(im_h, im_w))
-        elif self.is_evaluation:
-            transforms_str = self._evaluation_transforms(size=(im_h, im_w))
-        else:
-            transforms_str = self._validation_transforms(size=(im_h, im_w))
-
-        return "{}(\n\troot={}\n\tis_training={}\n\tsamples={}\n\tuse_coco={}\n\ttransforms={}\n)".format(
-            self.__class__.__name__,
-            self.root,
-            self.is_training,
-            len(self.images),
-            self.use_coco_data,
-            transforms_str,
-        )

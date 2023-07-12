@@ -1,52 +1,48 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import torch
-from pycocotools.coco import COCO
-from pycocotools import mask as coco_mask
-import os
-from typing import Optional, Tuple, Dict, List
-import numpy as np
 import argparse
+import os
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
+import numpy as np
+import torch
+from pycocotools import mask as coco_mask
+from pycocotools.coco import COCO
+from torch import Tensor
+
+from data.datasets import DATASET_REGISTRY
+from data.datasets.detection.base_detection import BaseDetectionDataset
+from data.transforms import image_pil as T
+from data.transforms.common import Compose
 from utils import logger
 
-from ...transforms import image_pil as T
-from ...datasets import BaseImageDataset, register_dataset
 
-
-@register_dataset(name="coco", task="detection")
-class COCODetection(BaseImageDataset):
-    """
-    Base class for the MS COCO Object Detection Dataset.
+@DATASET_REGISTRY.register(name="coco", type="detection")
+class COCODetection(BaseDetectionDataset):
+    """Base class for the MS COCO Object Detection Dataset. Sub-classes should implement
+    training and validation transform functions.
 
     Args:
         opts: command-line arguments
-        is_training (Optional[bool]): A flag used to indicate training or validation mode. Default: True
-        is_evaluation (Optional[bool]): A flag used to indicate evaluation (or inference) mode. Default: False
 
     .. note::
         This class implements basic functions (e.g., reading image and annotations), and does not implement
         training/validation transforms. Detector specific sub-classes should extend this class and implement those
         methods. See `coco_ssd.py` as an example for SSD.
-
     """
 
     def __init__(
         self,
         opts,
-        is_training: Optional[bool] = True,
-        is_evaluation: Optional[bool] = False,
         *args,
-        **kwargs
+        **kwargs,
     ) -> None:
-        super().__init__(
-            opts=opts, is_training=is_training, is_evaluation=is_evaluation
-        )
+        super().__init__(opts=opts, *args, **kwargs)
 
-        split = "train" if is_training else "val"
+        split = "train" if self.is_training else "val"
         year = 2017
         ann_file = os.path.join(
             self.root, "annotations/instances_{}{}.json".format(split, year)
@@ -59,48 +55,48 @@ class COCODetection(BaseImageDataset):
         self.img_dir = os.path.join(self.root, "images/{}{}".format(split, year))
         self.ids = (
             list(self.coco.imgToAnns.keys())
-            if is_training
+            if self.is_training
             else list(self.coco.imgs.keys())
         )
 
         coco_categories = sorted(self.coco.getCatIds())
-        bkrnd_id = (
-            0 if getattr(opts, "dataset.detection.no_background_id", False) else 1
-        )
+        background_idx = 0 if getattr(opts, "dataset.detection.no_background_id") else 1
         self.coco_id_to_contiguous_id = {
-            coco_id: i + bkrnd_id for i, coco_id in enumerate(coco_categories)
+            coco_id: i + background_idx for i, coco_id in enumerate(coco_categories)
         }
         self.contiguous_id_to_coco_id = {
             v: k for k, v in self.coco_id_to_contiguous_id.items()
         }
-        self.num_classes = len(self.contiguous_id_to_coco_id.keys()) + bkrnd_id
+        self.num_classes = len(self.contiguous_id_to_coco_id.keys()) + background_idx
 
         # enable printing
         logger.enable_printing()
 
         setattr(opts, "model.detection.n_classes", self.num_classes)
 
+    def share_dataset_arguments(self) -> Dict[str, Any]:
+        """Returns the number of classes in detection dataset along with super-class arguments."""
+        share_dataset_specific_opts: Dict[str, Any] = super().share_dataset_arguments()
+        share_dataset_specific_opts["model.detection.n_classes"] = self.num_classes
+        return share_dataset_specific_opts
+
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        if cls != COCODetection:
+            # Don't re-register arguments in subclasses that don't override `add_arguments()`.
+            return parser
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--dataset.detection.no-background-id",
             action="store_true",
-            help="Do not include background id",
+            default=False,
+            help="Do not include background id in detection class labels. Defaults to False.",
         )
         return parser
 
-    def _training_transforms(self, size: tuple, ignore_idx: Optional[int] = 255):
-        """Training transforms should be implemented in sub-class"""
-        raise NotImplementedError
-
-    def _validation_transforms(self, size: tuple, *args, **kwargs):
-        """Validation transforms should be implemented in sub-class"""
-        raise NotImplementedError
-
-    def _evaluation_transforms(self, size: tuple, *args, **kwargs):
+    def _evaluation_transforms(
+        self, size: tuple, *args, **kwargs
+    ) -> T.BaseTransformation:
         """Evaluation or Inference transforms (Resize (Optional) --> Tensor).
 
         .. note::
@@ -109,21 +105,39 @@ class COCODetection(BaseImageDataset):
 
         """
         aug_list = []
-        if getattr(self.opts, "evaluation.detection.resize_input_images", False):
+        if getattr(self.opts, "evaluation.detection.resize_input_images"):
             aug_list.append(T.Resize(opts=self.opts, img_size=size))
 
         aug_list.append(T.ToTensor(opts=self.opts))
-        return T.Compose(opts=self.opts, img_transforms=aug_list)
+        return Compose(opts=self.opts, img_transforms=aug_list)
 
-    def __getitem__(self, batch_indexes_tup: Tuple, *args, **kwargs) -> Dict:
-        crop_size_h, crop_size_w, img_index = batch_indexes_tup
+    def __getitem__(
+        self, sample_size_and_index: Tuple[int, int, int], *args, **kwargs
+    ) -> Mapping[str, Union[Tensor, Mapping[str, Tensor]]]:
+        """Returns the sample corresponding to the input sample index. Returned sample is transformed
+        into the size specified by the input.
 
-        if self.is_training:
-            transform_fn = self._training_transforms(size=(crop_size_h, crop_size_w))
-        elif self.is_evaluation:
-            transform_fn = self._evaluation_transforms(size=(crop_size_h, crop_size_w))
-        else:  # same for validation and evaluation
-            transform_fn = self._validation_transforms(size=(crop_size_h, crop_size_w))
+        Args:
+            sample_size_and_index: Tuple of the form (crop_size_h, crop_size_w, sample_index)
+
+        Returns:
+            A dictionary with `samples` and `targets` as keys corresponding to input and labels of
+            a sample, respectively.
+
+        Shapes:
+            The shape of values in output dictionary, output_data, are as follows:
+
+            output_data["samples"]["image"]: Shape is [Channels, Height, Width]
+            output_data["targets"]["box_labels"]: Shape is [Num of boxes]
+            output_data["targets"]["box_coordinates"]: Shape is [Num of boxes, 4]
+            output_data["targets"]["image_id"]: Shape is [1]
+            output_data["targets"]["image_width"]: Shape is [1]
+            output_data["targets"]["image_height"]: Shape is [1]
+        """
+
+        crop_size_h, crop_size_w, img_index = sample_size_and_index
+
+        transform_fn = self.get_augmentation_transforms(size=(crop_size_h, crop_size_w))
 
         image_id = self.ids[img_index]
 
@@ -167,8 +181,31 @@ class COCODetection(BaseImageDataset):
         return len(self.ids)
 
     def get_boxes_and_labels(
-        self, image_id, image_width, image_height, *args, include_masks=False, **kwargs
+        self,
+        image_id: int,
+        image_width: int,
+        image_height: int,
+        *args,
+        include_masks=False,
+        **kwargs,
     ) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
+        """Get the boxes and label information for a given image_id
+
+        Args:
+            image_id: Image ID
+            image_width: Width of the image
+            image_height: Height of the image
+            include_masks: Return instance masks or not
+
+        Returns:
+            A tuple of length 3:
+                * Numpy array containing bounding box information in xyxy format.
+                    The shape of array is [Num_of_boxes, 4].
+                * Numpy array containing labels for each of the box. The shape of array is [Num_of_boxes]
+                * When include_masks is enabled, a numpy array of instance masks is returned. The shape of the
+                    array is [Num_of_boxes, image_height, image_width]
+
+        """
         ann_ids = self.coco.getAnnIds(imgIds=image_id)
         ann = self.coco.loadAnns(ann_ids)
 
@@ -179,7 +216,8 @@ class COCODetection(BaseImageDataset):
             np.float32,
         ).reshape((-1, 4))
         labels = np.array(
-            [self.coco_id_to_contiguous_id[obj["category_id"]] for obj in ann], np.int64
+            [self.coco_id_to_contiguous_id[obj["category_id"]] for obj in ann],
+            np.int64,
         ).reshape((-1,))
         # remove invalid boxes
         keep = (boxes[:, 3] > boxes[:, 1]) & (boxes[:, 2] > boxes[:, 0])
@@ -212,7 +250,10 @@ class COCODetection(BaseImageDataset):
         else:
             return boxes, labels, None
 
-    def _xywh2xyxy(self, box, image_width, image_height) -> List:
+    def _xywh2xyxy(
+        self, box: List[int], image_width: int, image_height: int
+    ) -> List[int]:
+        """Convert boxes from xywh format to xyxy format"""
         x1, y1, w, h = box
         return [
             max(0, x1),
@@ -222,41 +263,18 @@ class COCODetection(BaseImageDataset):
         ]
 
     def get_image(self, image_id: int) -> Tuple:
+        """Return the PIL image for a given image id"""
         file_name = self.coco.loadImgs(image_id)[0]["file_name"]
         image_file = os.path.join(self.img_dir, file_name)
         image = self.read_image_pil(image_file)
         return image, file_name
 
     def extra_repr(self) -> str:
-        return ""
-
-    def __repr__(self) -> str:
-        from utils.tensor_utils import image_size_from_opts
-
-        im_h, im_w = image_size_from_opts(opts=self.opts)
-
-        if self.is_training:
-            transforms_str = self._training_transforms(size=(im_h, im_w))
-        elif self.is_evaluation:
-            transforms_str = self._evaluation_transforms(size=(im_h, im_w))
-        else:
-            transforms_str = self._validation_transforms(size=(im_h, im_w))
-
-        repr_str = (
-            "{}(\n\troot={}\n\tis_training={}\n\tsamples={}\n\ttransforms={}".format(
-                self.__class__.__name__,
-                self.root,
-                self.is_training,
-                len(self.ids),
-                transforms_str,
-            )
-        )
-        repr_str += self.extra_repr()
-        repr_str += "\n)"
-        return repr_str
+        return super().extra_repr() + f"\n\t num_classes={self.num_classes}"
 
     @staticmethod
-    def class_names() -> List:
+    def class_names() -> List[str]:
+        """Name of the classes in the COCO dataset"""
         return [
             "background",
             "person",

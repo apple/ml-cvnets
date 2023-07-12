@@ -1,21 +1,19 @@
 psutil
-ujson
-scikit-learn>=0.19.2
+scikit-learn
 scikit-image
 
 # requirement for Pytorch, Torchvision, TorchText
-torch==1.12.0
-torchvision==0.13.0
-torchtext==0.13.0 # torchtext version needs to be compatible with PyTorch version
+torch
+torchvision
+torchtext
+torchaudio
+torchdata
 
 # dependency for coremltools
-coremltools>=5.0b4
+coremltools
 
 # dependency for MSCOCO dataset
 pycocotools
-
-# dependency for reading and writing images
-opencv-contrib-python==4.5.5.64
 
 # dependency for cityscape evaluation
 cityscapesscripts
@@ -30,10 +28,13 @@ av
 fvcore
 
 # black for reformatting
-black
+black==22.10.0
+
+isort==5.12.0
 
 # testing
 pytest
+pytest-mock
 
 # torchtext for multi-model learning
 ftfy

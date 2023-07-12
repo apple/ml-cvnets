@@ -1,17 +1,18 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
 import copy
+from typing import Dict, Optional
 
-import torch
-import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import cm
-from matplotlib import animation
+import numpy as np
+import torch
+from matplotlib import animation, cm
 from mpl_toolkits.mplot3d import Axes3D
-from typing import Optional, Dict
+
+from utils.common_utils import unwrap_model_fn
 
 # https://github.com/xxxnell/how-do-vits-work
 
@@ -48,11 +49,8 @@ def create_bases(
     device: Optional[str] = torch.device("cpu"),
     has_module: Optional[bool] = False,
 ):
-    weight_state_0 = (
-        copy.deepcopy(model.module.state_dict())
-        if has_module
-        else copy.deepcopy(model.state_dict())
-    )
+    unwrapped_model = unwrap_model_fn(model)
+    weight_state_0 = unwrapped_model.state_dict()
     bases = [rand_basis(weight_state_0, device) for _ in range(2)]  # Use two bases
     bases = [normalize_filter(bs, weight_state_0) for bs in bases]
     bases = [ignore_bn(bs) for bs in bases]

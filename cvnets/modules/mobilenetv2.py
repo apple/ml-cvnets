@@ -1,16 +1,16 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn, Tensor
-from typing import Optional, Union, Tuple
+from typing import Optional, Union
 
+from torch import Tensor, nn
+
+from cvnets.layers import ConvLayer2d
+from cvnets.layers.activation import build_activation_layer
+from cvnets.modules import BaseModule, SqueezeExcitation
 from utils.math_utils import make_divisible
-
-from . import BaseModule, SqueezeExcitation
-from ..misc.profiler import module_profile
-from ..layers import ConvLayer, get_activation_fn
 
 
 class InvertedResidualSE(BaseModule):
@@ -53,7 +53,7 @@ class InvertedResidualSE(BaseModule):
         **kwargs
     ) -> None:
         hidden_dim = make_divisible(int(round(in_channels * expand_ratio)), 8)
-        act_fn = get_activation_fn(act_type=act_fn_name, inplace=True)
+        act_fn = build_activation_layer(opts, act_type=act_fn_name, inplace=True)
 
         super().__init__()
 
@@ -61,7 +61,7 @@ class InvertedResidualSE(BaseModule):
         if expand_ratio != 1:
             block.add_module(
                 name="exp_1x1",
-                module=ConvLayer(
+                module=ConvLayer2d(
                     opts,
                     in_channels=in_channels,
                     out_channels=hidden_dim,
@@ -74,7 +74,7 @@ class InvertedResidualSE(BaseModule):
 
         block.add_module(
             name="conv_3x3",
-            module=ConvLayer(
+            module=ConvLayer2d(
                 opts,
                 in_channels=hidden_dim,
                 out_channels=hidden_dim,
@@ -99,7 +99,7 @@ class InvertedResidualSE(BaseModule):
 
         block.add_module(
             name="red_1x1",
-            module=ConvLayer(
+            module=ConvLayer2d(
                 opts,
                 in_channels=hidden_dim,
                 out_channels=out_channels,
@@ -123,11 +123,6 @@ class InvertedResidualSE(BaseModule):
     def forward(self, x: Tensor, *args, **kwargs) -> Tensor:
         y = self.block(x)
         return x + y if self.use_res_connect else y
-
-    def profile_module(
-        self, input: Tensor, *args, **kwargs
-    ) -> Tuple[Tensor, float, float]:
-        return module_profile(module=self.block, x=input)
 
     def __repr__(self) -> str:
         return "{}(in_channels={}, out_channels={}, stride={}, exp={}, dilation={}, use_se={}, kernel_size={}, act_fn={})".format(
@@ -186,7 +181,7 @@ class InvertedResidual(BaseModule):
         if expand_ratio != 1:
             block.add_module(
                 name="exp_1x1",
-                module=ConvLayer(
+                module=ConvLayer2d(
                     opts,
                     in_channels=in_channels,
                     out_channels=hidden_dim,
@@ -198,7 +193,7 @@ class InvertedResidual(BaseModule):
 
         block.add_module(
             name="conv_3x3",
-            module=ConvLayer(
+            module=ConvLayer2d(
                 opts,
                 in_channels=hidden_dim,
                 out_channels=hidden_dim,
@@ -213,7 +208,7 @@ class InvertedResidual(BaseModule):
 
         block.add_module(
             name="red_1x1",
-            module=ConvLayer(
+            module=ConvLayer2d(
                 opts,
                 in_channels=hidden_dim,
                 out_channels=out_channels,
@@ -238,11 +233,6 @@ class InvertedResidual(BaseModule):
             return x + self.block(x)
         else:
             return self.block(x)
-
-    def profile_module(
-        self, input: Tensor, *args, **kwargs
-    ) -> Tuple[Tensor, float, float]:
-        return module_profile(module=self.block, x=input)
 
     def __repr__(self) -> str:
         return "{}(in_channels={}, out_channels={}, stride={}, exp={}, dilation={}, skip_conn={})".format(

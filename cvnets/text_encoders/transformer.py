@@ -1,29 +1,28 @@
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
 import argparse
 import math
+from typing import Optional, Sequence
+
 import torch
 from torch import Tensor, nn
-from typing import Optional, Sequence, Any
 from torch.nn import functional as F
 from torch.utils.checkpoint import checkpoint as gradient_checkpoint_fn
 
-from utils import logger
-
 from cvnets.layers import (
+    Dropout,
     Embedding,
     PositionalEmbedding,
-    Dropout,
     get_normalization_layer,
 )
 from cvnets.modules import TransformerEncoder
+from cvnets.text_encoders import TEXT_ENCODER_REGISTRY, BaseTextEncoder
+from utils import logger
 
-from . import BaseTextEncoder, register_text_encoder
 
-
-@register_text_encoder(name="transformer")
+@TEXT_ENCODER_REGISTRY.register(name="transformer")
 class TextTransformer(BaseTextEncoder):
     def __init__(self, opts, projection_dim: int, *args, **kwargs) -> None:
         model_dim = getattr(opts, "model.text.transformer.model_dim", 512)
@@ -62,7 +61,7 @@ class TextTransformer(BaseTextEncoder):
         )
         self.embed_scale = 1.0 if no_scale_embedding else model_dim**-0.5
 
-        context_length = getattr(opts, "dataset.text_context_length", None)
+        context_length = getattr(opts, "dataset.text_context_length")
 
         if getattr(opts, "common.debug_mode", False):
             context_length = 77
@@ -211,9 +210,9 @@ class TextTransformer(BaseTextEncoder):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        if cls != TextTransformer:
+            return parser
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--model.text.transformer.model-dim",
             type=int,
@@ -356,9 +355,20 @@ class TextTransformer(BaseTextEncoder):
         self,
         text_tokens: Tensor,
         key_padding_mask: Optional[Tensor] = None,
+        return_all_tokens: bool = False,
         *args,
         **kwargs
     ) -> Tensor:
+        """
+        Returns token embeddings.
+
+        :param text_tokens: a tensor of token indices. ([Batch, Seq_len])
+        :param key_padding_mask: a tensor of boolean values as the padding mask.
+        :param return_all_tokens: a boolean flag to return all tokens, defaults to False
+            to return only EOT token embedding.
+        :return: a tensor of [Batch, Seq_len, hidden_dim] if return_all_tokens is True,
+            otherwise a tensor of [Batch, hidden_dim].
+        """
         # discrete tokens to continuous embeddings
         # [Batch, Seq_len] --> [Batch, Seq_len, hidden_dim]
         token_emb = self.forward_embedding(text_tokens)
@@ -392,6 +402,13 @@ class TextTransformer(BaseTextEncoder):
 
         # Apply layer norm
         token_emb = self.final_layer_norm(token_emb)
+
+        if return_all_tokens:
+            if self.use_pytorch_mha:
+                # [Seq_len, Batch, hidden_dim] --> [Batch, Seq_len, hidden_dim]
+                token_emb = token_emb.transpose(0, 1)
+
+            return token_emb
 
         # take features from the eot embedding (eot_token is the highest number in each sequence)
         if self.use_pytorch_mha:
@@ -433,10 +450,14 @@ class TextTransformer(BaseTextEncoder):
 
         # for zero-shot evaluation, text templates are the same across all images in the batch
         # Therefore, batch size should be 1.
-        if batch_size != 1:
-            logger.error(
+        if batch_size > 1:
+            text_tokens = text_tokens[0:1]
+            batch_size = 1
+            logger.warning(
                 "For zero-shot evaluation, text templates are the same across all images in the batch."
-                "Therefore, batch size should be 1. Got: {}".format(batch_size)
+                "Got: {}. Please consider adjusting collate function.".format(
+                    batch_size
+                )
             )
 
         text_features = []
@@ -480,7 +501,7 @@ class TextTransformer(BaseTextEncoder):
         text_features = torch.cat(text_features, dim=0)
         # [num_classes, Latent_dim] --> [Latent_dim, num_classes]
         text_features = text_features.transpose(0, 1)
-        return text_features
+        return text_features.contiguous()
 
     def forward(
         self,
@@ -493,6 +514,7 @@ class TextTransformer(BaseTextEncoder):
         if text_tokens.dim() == 4:
             # It's for zero-shot evaluation.
             # Each class in the dataset has multiple captions
+            # Encoding happens separately for each classes/captions due to OOM issue
             return self.forward_zero_shot(
                 text_tokens=text_tokens,
                 key_padding_mask=key_padding_mask,
@@ -508,6 +530,22 @@ class TextTransformer(BaseTextEncoder):
                 *args,
                 **kwargs
             )
+            return text_tokens
+        elif text_tokens.dim() == 3:
+            # Image-text pair with multiple captions per image (e.g. Flickr-30k)
+            # Treat them as separate captions by reshaping into batch dim
+            # [B, N, C] --> [B*N, C] -encode-> [B*N, d] --> [B, N, d]
+            b, n, _ = text_tokens.shape
+            text_tokens = text_tokens.reshape(b * n, -1)
+            if key_padding_mask:
+                key_padding_mask = key_padding_mask.reshape(b * n, -1)
+            text_tokens = self.encode_text(
+                text_tokens=text_tokens,
+                key_padding_mask=key_padding_mask,
+                *args,
+                **kwargs
+            )
+            text_tokens = text_tokens.reshape(b, n, -1)
             return text_tokens
         else:
             raise NotImplementedError

@@ -48,7 +48,8 @@ loss:
   category: "classification"
   classification:
     name: "cross_entropy"
-    label_smoothing: 0.1
+    cross_entropy:
+      label_smoothing: 0.1
 optim:
   name: "sgd"
   weight_decay: 4.e-5

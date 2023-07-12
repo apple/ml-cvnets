@@ -1,34 +1,32 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 import copy
-import torch
-import multiprocessing
-import os
-from tqdm import tqdm
 import glob
-from typing import Optional, Tuple, List
+import os
+from typing import List, Optional, Tuple
+
+import torch
+from PIL import Image
 from torch import Tensor, nn
 from torch.nn import functional as F
 from torchvision.transforms import functional as F_vision
-from PIL import Image
+from tqdm import tqdm
 
-from utils import logger
-from utils.tensor_utils import image_size_from_opts
-from options.opts import get_segmentation_eval_arguments
-from utils.common_utils import device_setup, create_directories
-from utils.ddp_utils import is_master
-from cvnets import get_model
-from data import create_eval_loader
-from utils.color_map import Colormap
-from engine.utils import print_summary
 from common import SUPPORTED_IMAGE_EXTNS
+from cvnets import get_model
+from data import create_test_loader
+from engine.utils import autocast_fn
 from metrics.confusion_mat import ConfusionMatrix
-from utils.visualization_utils import convert_to_cityscape_format
+from options.opts import get_training_arguments
+from utils import logger, resources
+from utils.color_map import Colormap
+from utils.common_utils import create_directories, device_setup
+from utils.ddp_utils import is_master
 from utils.download_utils import get_local_path
-
-from .utils import autocast_fn
+from utils.tensor_utils import image_size_from_opts
+from utils.visualization_utils import convert_to_cityscape_format
 
 """
 Notes:
@@ -111,9 +109,8 @@ def predict_and_save(
 
     if target_mask is not None and conf_mat is not None:
         conf_mat.update(
-            ground_truth=target_mask.flatten(),
-            prediction=pred_mask.flatten(),
-            n_classes=num_classes,
+            target=target_mask,
+            prediction=pred,
         )
 
     save_dir = getattr(opts, "common.exp_loc", None)
@@ -225,7 +222,9 @@ def draw_colored_masks(
             os.makedirs(overlay_mask_dir, exist_ok=True)
         overlay_mask_f_name = "{}/{}".format(overlay_mask_dir, file_name)
         overlayed_img.save(overlay_mask_f_name)
-        logger.log("RGB image blended with mask is saved at: {}".format(overlay_mask_f_name))
+        logger.log(
+            "RGB image blended with mask is saved at: {}".format(overlay_mask_f_name)
+        )
 
         # save original image
         rgb_image_dir = "{}/rgb_images".format(results_location)
@@ -242,13 +241,13 @@ def predict_labeled_dataset(opts, **kwargs) -> None:
     dataset_name = getattr(opts, "dataset.name", "")
 
     # set-up data loaders
-    val_loader = create_eval_loader(opts)
+    test_loader = create_test_loader(opts)
 
     # set-up the model
     model = get_model(opts)
     model.eval()
+    model.info()
     model = model.to(device=device)
-    print_summary(opts=opts, model=model)
 
     if model.training:
         logger.log("Model is in training mode. Switching to evaluation mode")
@@ -258,17 +257,17 @@ def predict_labeled_dataset(opts, **kwargs) -> None:
     adjust_label = 0
     is_cityscape = False
     conf_mat = ConfusionMatrix()
-    if hasattr(val_loader.dataset, "color_palette"):
-        color_map = val_loader.dataset.color_palette()
+    if hasattr(test_loader.dataset, "color_palette"):
+        color_map = test_loader.dataset.color_palette()
 
-    if hasattr(val_loader.dataset, "adjust_mask_value"):
-        adjust_label = val_loader.dataset.adjust_mask_value()
+    if hasattr(test_loader.dataset, "adjust_mask_value"):
+        adjust_label = test_loader.dataset.adjust_mask_value()
 
     if dataset_name is not None and dataset_name.lower() == "cityscapes":
         is_cityscape = True
 
     with torch.no_grad():
-        for batch_id, batch in enumerate(val_loader):
+        for batch_id, batch in enumerate(test_loader):
             samples, targets = batch["samples"], batch["targets"]
             batch_size = samples.shape[0]
             assert (
@@ -291,20 +290,20 @@ def predict_labeled_dataset(opts, **kwargs) -> None:
                 is_cityscape=is_cityscape,
             )
 
-    acc_global, acc, iu = conf_mat.compute()
+    metrics = conf_mat.compute()
     logger.info("Quantitative results")
     print(
         "global correct: {:.2f}\naverage row correct: {}\nIoU: {}\nmean IoU: {:.2f}".format(
-            acc_global.item() * 100,
-            ["{:.2f}".format(i) for i in (acc * 100).tolist()],
-            ["{:.2f}".format(i) for i in (iu * 100).tolist()],
-            iu.mean().item() * 100,
+            metrics["accuracy_global"] * 100,
+            ["{:.2f}".format(i * 100) for i in metrics["class_accuracy"]],
+            ["{:.2f}".format(i * 100) for i in metrics["iou"]],
+            metrics["mean_iou"] * 100,
         )
     )
 
     is_city_dataset = getattr(opts, "dataset.name", "") == "cityscapes"
     if is_city_dataset:
-        from .segmentation_utils.cityscapes_iou import eval_cityscapes
+        from engine.segmentation_utils.cityscapes_iou import eval_cityscapes
 
         pred_dir = "{}/predictions_no_cmap/".format(
             getattr(opts, "common.exp_loc", None)
@@ -347,8 +346,8 @@ def predict_image(opts, image_fname: str, **kwargs) -> None:
     # set-up the model
     model = get_model(opts)
     model.eval()
+    model.info()
     model = model.to(device=device)
-    print_summary(opts=opts, model=model)
 
     if model.training:
         logger.log("Model is in training mode. Switching to evaluation mode")
@@ -404,8 +403,8 @@ def predict_images_in_folder(opts, **kwargs) -> None:
     # set-up the model
     model = get_model(opts)
     model.eval()
+    model.info()
     model = model.to(device=device)
-    print_summary(opts=opts, model=model)
 
     if model.training:
         logger.log("Model is in training mode. Switching to evaluation mode")
@@ -433,8 +432,8 @@ def predict_images_in_folder(opts, **kwargs) -> None:
             )
 
 
-def main_segmentation_evaluation(**kwargs) -> None:
-    opts = get_segmentation_eval_arguments()
+def main_segmentation_evaluation(args: Optional[List[str]] = None, **kwargs) -> None:
+    opts = get_training_arguments(args=args)
 
     # device set-up
     opts = device_setup(opts)
@@ -459,7 +458,7 @@ def main_segmentation_evaluation(**kwargs) -> None:
     setattr(opts, "ddp.use_distributed", False)
 
     # No of data workers = no of CPUs (if not specified or -1)
-    n_cpus = multiprocessing.cpu_count()
+    n_cpus = resources.cpu_count()
     dataset_workers = getattr(opts, "dataset.workers", -1)
 
     if dataset_workers == -1:

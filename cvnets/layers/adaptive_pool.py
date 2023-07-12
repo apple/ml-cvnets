@@ -1,10 +1,11 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn, Tensor
-from typing import Union, Tuple
+from typing import Tuple, Union
+
+from torch import Tensor, nn
 
 
 class AdaptiveAvgPool2d(nn.AdaptiveAvgPool2d):
@@ -25,7 +26,3 @@ class AdaptiveAvgPool2d(nn.AdaptiveAvgPool2d):
         self, output_size: Union[int, Tuple[int, int]] = 1, *args, **kwargs
     ) -> None:
         super().__init__(output_size=output_size)
-
-    def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:
-        input = self.forward(input)
-        return input, 0.0, 0.0

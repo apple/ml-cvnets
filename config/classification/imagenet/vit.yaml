@@ -57,7 +57,8 @@ loss:
   category: "classification"
   classification:
     name: "cross_entropy"
-    label_smoothing: 0.1
+    cross_entropy:
+      label_smoothing: 0.1
 optim:
   name: "adamw"
   weight_decay: 0.2
@@ -80,7 +81,6 @@ model:
     gradient_checkpointing: true
     vit:
       mode: "base"
-      learnable_pos_emb: true
       dropout: 0.2
     activation:
       name: "gelu"

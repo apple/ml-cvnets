@@ -1,23 +1,21 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
+import argparse
 import os
-from typing import Optional, List, Dict, Tuple
+from typing import List
+
 import numpy as np
 
-from utils import logger
-
-from .. import register_dataset
-from ..dataset_base import BaseImageDataset
-from ...transforms import image_pil as T
+from data.datasets import DATASET_REGISTRY
+from data.datasets.segmentation.base_segmentation import BaseImageSegmentationDataset
 
 
-@register_dataset(name="ade20k", task="segmentation")
-class ADE20KDataset(BaseImageDataset):
-    """
-    Dataset class for the ADE20K dataset
+@DATASET_REGISTRY.register(name="ade20k", type="segmentation")
+class ADE20KDataset(BaseImageSegmentationDataset):
+    """Dataset class for the ADE20K dataset
 
     The structure of the dataset should be something like this: ::
 
@@ -28,36 +26,18 @@ class ADE20KDataset(BaseImageDataset):
     ADEChallengeData2016/images/validation/*.jpg
 
     Args:
-        opts: command-line arguments
-        is_training (Optional[bool]): A flag used to indicate training or validation mode. Default: True
-        is_evaluation (Optional[bool]): A flag used to indicate evaluation (or inference) mode. Default: False
-
+        opts: Command-line arguments
     """
 
-    def __init__(
-        self,
-        opts,
-        is_training: Optional[bool] = True,
-        is_evaluation: Optional[bool] = False,
-        *args,
-        **kwargs
-    ) -> None:
-        """
-
-        :param opts: arguments
-        :param is_training: Training or validation mode
-        :param is_evaluation: Evaluation mode
-        """
-        super().__init__(
-            opts=opts, is_training=is_training, is_evaluation=is_evaluation
-        )
+    def __init__(self, opts: argparse.Namespace, *args, **kwargs) -> None:
+        super().__init__(opts=opts, *args, **kwargs)
         root = self.root
 
         image_dir = os.path.join(
-            root, "images", "training" if is_training else "validation"
+            root, "images", "training" if self.is_training else "validation"
         )
         annotation_dir = os.path.join(
-            root, "annotations", "training" if is_training else "validation"
+            root, "annotations", "training" if self.is_training else "validation"
         )
 
         images = []
@@ -76,116 +56,19 @@ class ADE20KDataset(BaseImageDataset):
         self.images = images
         self.masks = masks
         self.ignore_label = 255
-        self.bgrnd_idx = 0
-        setattr(
-            opts, "model.segmentation.n_classes", len(self.class_names()) - 1
-        )  # ignore background
-
-        # set the collate functions for the dataset
-        # For evaluation, we use PyTorch's default collate function. So, we set to collate_fn_name_eval to None
-        setattr(opts, "dataset.collate_fn_name_train", "default_collate_fn")
-        setattr(opts, "dataset.collate_fn_name_val", "default_collate_fn")
-        setattr(opts, "dataset.collate_fn_name_eval", None)
-
-    def _training_transforms(self, size: tuple):
-        first_aug = T.RandomShortSizeResize(opts=self.opts)
-        aug_list = [
-            T.RandomHorizontalFlip(opts=self.opts),
-            T.RandomCrop(opts=self.opts, size=size, ignore_idx=self.ignore_label),
-        ]
-
-        if getattr(self.opts, "image_augmentation.random_gaussian_noise.enable", False):
-            aug_list.append(T.RandomGaussianBlur(opts=self.opts))
-
-        if getattr(self.opts, "image_augmentation.photo_metric_distort.enable", False):
-            aug_list.append(T.PhotometricDistort(opts=self.opts))
-
-        if getattr(self.opts, "image_augmentation.random_rotate.enable", False):
-            aug_list.append(T.RandomRotate(opts=self.opts))
-
-        if getattr(self.opts, "image_augmentation.random_order.enable", False):
-            new_aug_list = [
-                first_aug,
-                T.RandomOrder(opts=self.opts, img_transforms=aug_list),
-                T.ToTensor(opts=self.opts),
-            ]
-            return T.Compose(opts=self.opts, img_transforms=new_aug_list)
-        else:
-            aug_list.insert(0, first_aug)
-            aug_list.append(T.ToTensor(opts=self.opts))
-            return T.Compose(opts=self.opts, img_transforms=aug_list)
-
-    def _validation_transforms(self, size: tuple, *args, **kwargs):
-        aug_list = [T.Resize(opts=self.opts), T.ToTensor(opts=self.opts)]
-        return T.Compose(opts=self.opts, img_transforms=aug_list)
-
-    def _evaluation_transforms(self, size: tuple, *args, **kwargs):
-        aug_list = []
-        if getattr(self.opts, "evaluation.segmentation.resize_input_images", False):
-            # we want to resize while maintaining aspect ratio. So, we pass img_size argument to resize function
-            aug_list.append(T.Resize(opts=self.opts, img_size=min(size)))
-
-        aug_list.append(T.ToTensor(opts=self.opts))
-        return T.Compose(opts=self.opts, img_transforms=aug_list)
-
-    def __getitem__(self, batch_indexes_tup: Tuple[int, int, int]) -> Dict:
-        crop_size_h, crop_size_w, img_index = batch_indexes_tup
-        crop_size = (crop_size_h, crop_size_w)
-
-        if self.is_training:
-            _transform = self._training_transforms(size=crop_size)
-        elif self.is_evaluation:
-            _transform = self._evaluation_transforms(size=crop_size)
-        else:
-            _transform = self._validation_transforms(size=crop_size)
-
-        mask = self.read_mask_pil(self.masks[img_index])
-        img = self.read_image_pil(self.images[img_index])
-
-        if (img.size[0] != mask.size[0]) or (img.size[1] != mask.size[1]):
-            logger.error(
-                "Input image and mask sizes are different. Input size: {} and Mask size: {}".format(
-                    img.size, mask.size
-                )
-            )
-
-        data = {"image": img}
-        if not self.is_evaluation:
-            data["mask"] = mask
-
-        data = _transform(data)
-
-        if self.is_evaluation:
-            # for evaluation purposes, resize only the input and not mask
-            data["mask"] = self.convert_mask_to_tensor(mask)
-
-        output_data = {
-            "samples": data["image"],
-            "targets": data["mask"] - 1,  # ignore background during training
-        }
-
-        if self.is_evaluation:
-            im_width, im_height = img.size
-            img_name = self.images[img_index].split(os.sep)[-1].replace("jpg", "png")
-            mask = output_data.pop("targets")
-            output_data["targets"] = {
-                "mask": mask,
-                "file_name": img_name,
-                "im_width": im_width,
-                "im_height": im_height,
-            }
-
-        return output_data
+        self.background_idx = 0
+        self.check_dataset()
 
     @staticmethod
-    def adjust_mask_value():
+    def adjust_mask_value() -> int:
+        """Adjust the mask value by this factor"""
+        # because we do not include background index for ADE20k, we shift mask labels by 1
         return 1
 
-    def __len__(self) -> int:
-        return len(self.images)
-
     @staticmethod
-    def color_palette() -> List:
+    def color_palette() -> List[int]:
+        """Class index to RGB color mapping. The list index corresponds to class id.
+        Note that the color list is flattened."""
         color_codes = [
             [0, 0, 0],  # background
             [120, 120, 120],
@@ -343,7 +226,8 @@ class ADE20KDataset(BaseImageDataset):
         return list(color_codes)
 
     @staticmethod
-    def class_names() -> List:
+    def class_names() -> List[str]:
+        """Class index (index of a list corresponds to class id) to class name"""
         return [
             "background",
             "wall",
@@ -497,25 +381,3 @@ class ADE20KDataset(BaseImageDataset):
             "clock",
             "flag",
         ]
-
-    def __repr__(self) -> str:
-        from utils.tensor_utils import image_size_from_opts
-
-        im_h, im_w = image_size_from_opts(opts=self.opts)
-
-        if self.is_training:
-            transforms_str = self._training_transforms(size=(im_h, im_w))
-        elif self.is_evaluation:
-            transforms_str = self._evaluation_transforms(size=(im_h, im_w))
-        else:
-            transforms_str = self._validation_transforms(size=(im_h, im_w))
-
-        return (
-            "{}(\n\troot={}\n\tis_training={}\n\tsamples={}\n\ttransforms={}\n)".format(
-                self.__class__.__name__,
-                self.root,
-                self.is_training,
-                len(self.images),
-                transforms_str,
-            )
-        )

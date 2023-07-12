@@ -1,15 +1,16 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import torch
-from torch import nn, Tensor
-from torch.nn import functional as F
-from typing import Optional
 import math
+from typing import Optional
 
-from . import BaseLayer
+import torch
+from torch import Tensor, nn
+from torch.nn import functional as F
+
+from cvnets.layers import BaseLayer
 
 
 class PositionalEmbedding(BaseLayer):
@@ -45,9 +46,6 @@ class PositionalEmbedding(BaseLayer):
     def forward(self, seq_len: int, *args, **kwargs) -> Tensor:
         return self.pos_embed(seq_len, *args, **kwargs)
 
-    def profile_module(self, input: Tensor, *args, **kwargs) -> (Tensor, float, float):
-        return input, 0.0, 0.0
-
     def __repr__(self):
         return self.pos_embed.__repr__()
 
@@ -81,9 +79,6 @@ class LearnablePositionalEmbedding(nn.Module):
         if self.padding_idx is not None:
             with torch.no_grad():
                 self.pos_embed[:, :, self.padding_idx, ...] = 0.0
-
-    def profile_module(self, input: Tensor, *args, **kwargs) -> (Tensor, float, float):
-        return input, 0.0, 0.0
 
     def forward(self, seq_len: int, *args, **kwargs) -> Tensor:
         # scale pos embedding
@@ -174,9 +169,6 @@ class SinusoidalPositionalEmbedding(nn.Module):
         else:
             # Input is of the form [Batch, Seq_len, Embedding_dim]
             return pos_embed.reshape(1, seq_len, self.embedding_dim)
-
-    def profile_module(self, input: Tensor, *args, **kwargs) -> (Tensor, float, float):
-        return input, 0.0, 0.0
 
     def __repr__(self):
         return "{}(num_embeddings={}, embedding_dim={}, padding_idx={}, sequence_first={})".format(

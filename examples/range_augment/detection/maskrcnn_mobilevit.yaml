@@ -38,19 +38,24 @@ sampler:
     min_crop_size_height: 512
     min_crop_size_width: 512
 loss:
-  category: "detection"
-  detection:
-    name: "mask_rcnn_loss_with_na"
-    mask_rcnn_loss:
-      classifier_weight: 1
-      box_reg_weight: 1
-      mask_weight: 1
-      objectness_weight: 1
-      rpn_box_reg: 1
-  neural_aug:
-    perceptual_metric: "psnr"
-    curriculum_method: "cosine"
-    target_value: [ 40, 10 ]
+  category: "composite_loss"
+  composite_loss:
+    - loss_category: "detection"
+      loss_weight: 1.0
+      detection:
+        name: "mask_rcnn_loss"
+        mask_rcnn_loss:
+          classifier_weight: 1
+          box_reg_weight: 1
+          mask_weight: 1
+          objectness_weight: 1
+          rpn_box_reg: 1
+    - loss_category: "neural_augmentation"
+      loss_weight: 1.0
+      neural_augmentation:
+        perceptual_metric: "psnr"
+        target_value: [ 40, 10 ]
+        curriculum_method: "cosine"
 optim:
   name: "sgd"
   weight_decay: 4.e-5
@@ -108,7 +113,7 @@ ema:
 stats:
   val: [ "loss", "coco_map"]
   train: ["loss"]
-  checkpoint_metric: "coco_map"
+  checkpoint_metric: "coco_map.bbox"
   checkpoint_metric_max: true
   coco_map:
     iou_types: [ "bbox", "segm" ]

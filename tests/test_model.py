@@ -1,22 +1,23 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
 import sys
 from pathlib import Path
+
 import pytest
 
 sys.path.append("..")
 
-import torch
-from torch import Tensor
 from typing import Dict
+
+from torch import Tensor
 
 from cvnets import get_model
 from loss_fn import build_loss_fn
-
 from tests.configs import get_config
+from tests.test_utils import unset_pretrained_models_from_opts
 
 
 # We use a batch size of 1 to catch error that may arise due to reshaping operations inside the model
@@ -24,6 +25,9 @@ from tests.configs import get_config
 def test_model(config_file: str, batch_size: int):
     opts = get_config(config_file=config_file)
     setattr(opts, "common.debug_mode", True)
+
+    # removing pretrained models (if any) for now to reduce test time as well as access issues
+    unset_pretrained_models_from_opts(opts)
 
     model = get_model(opts)
 
@@ -63,7 +67,8 @@ def test_model(config_file: str, batch_size: int):
             epoch=0,
             iterations=0,
         )
-        print(loss)
+
+        print(f"Loss: {loss}")
 
         if isinstance(loss, Tensor):
             loss.backward()
@@ -74,9 +79,12 @@ def test_model(config_file: str, batch_size: int):
 
         # If there are unused parameters in gradient computation, print them
         # This may be useful for debugging purposes
+        unused_params = []
         for name, param in model.named_parameters():
             if param.grad is None:
-                print(name)
+                unused_params.append(name)
+        if len(unused_params) > 0:
+            print("Unused parameters: {}".format(unused_params))
 
     except Exception as e:
         if (
@@ -93,12 +101,27 @@ def test_model(config_file: str, batch_size: int):
             raise e
 
 
+def exclude_yaml_from_test(yaml_file_path: str) -> bool:
+    """Check if a yaml file should be excluded from test based on first line marker.
+
+    Args:
+        yaml_file_path: path to the yaml file to check
+
+    Returns:
+        True if yaml should be excluded, and False otherwise.
+
+    """
+    with open(yaml_file_path, "r") as f:
+        first_line = f.readline().rstrip()
+        return (
+            first_line.startswith("#")
+            and first_line.lower().replace(" ", "") == "#pytest:disable"
+        )
+
+
 def pytest_generate_tests(metafunc):
     configs = [
-        str(x) for x in Path("config").rglob("**/*.yaml") if "tune" not in str(x)
+        str(x) for x in Path(".").rglob("**/*.yaml") if not exclude_yaml_from_test(x)
     ]
+
     metafunc.parametrize("config_file", configs)
-
-
-if __name__ == "__main__":
-    test_model()

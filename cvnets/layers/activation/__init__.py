@@ -1,11 +1,11 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import os
-import importlib
 import argparse
+import importlib
+import os
 from typing import Optional
 
 import torch.nn
@@ -56,18 +56,35 @@ def arguments_activation_fn(parser: argparse.ArgumentParser):
 
 
 def build_activation_layer(
-    act_type: Optional[str] = "relu",
-    num_parameters: Optional[int] = -1,
-    inplace: Optional[bool] = True,
-    negative_slope: Optional[float] = 0.1,
-    *args,
-    **kwargs
+    opts: argparse.Namespace,
+    act_type: Optional[str] = None,
+    inplace: Optional[bool] = None,
+    negative_slope: Optional[float] = None,
+    num_parameters: int = -1,
 ) -> torch.nn.Module:
     """
-    Helper function to build the activation function
+    Helper function to build the activation function. If any of the optional
+    arguments are not provided (i.e. None), the corresponding ``model.activation.*``
+    config entry will be used as default value.
+
+    Args:
+        act_type: Name of the activation layer.
+            Default: --model.activation.name config value.
+        inplace: If true, operation will be inplace.
+            Default: --model.activation.inplace config value.
+        negative_slope: Negative slope parameter for leaky_relu.
+            Default: --model.activation.neg_slop config value.
     """
+    assert isinstance(
+        opts, argparse.Namespace
+    ), f"Expected first argument to be an argparse.Namespace, but received a {type(opts)}."
     if act_type is None:
-        act_type = "none"
+        act_type = getattr(opts, "model.activation.name")
+    if inplace is None:
+        inplace = getattr(opts, "model.activation.inplace")
+    if negative_slope is None:
+        negative_slope = getattr(opts, "model.activation.neg_slope")
+
     act_type = act_type.lower()
     act_layer = None
     if act_type in ACT_FN_REGISTRY:
@@ -75,8 +92,6 @@ def build_activation_layer(
             num_parameters=num_parameters,
             inplace=inplace,
             negative_slope=negative_slope,
-            *args,
-            **kwargs
         )
     else:
         logger.error(

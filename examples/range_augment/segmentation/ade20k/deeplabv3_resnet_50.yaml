@@ -40,16 +40,21 @@ sampler:
     crop_size_width: 512
     crop_size_height: 512
 loss:
-  category: "segmentation"
-  ignore_idx: -1
-  segmentation:
-    name: "seg_cross_entropy_with_na"
-    cross_entropy:
-      aux_weight: 0.4
-  neural_aug:
-    perceptual_metric: "psnr"
-    target_value: [ 40, 20 ]
-    curriculum_method: "cosine"
+  category: "composite_loss"
+  composite_loss:
+    - loss_category: "segmentation"
+      loss_weight: 1.0
+      segmentation:
+        name: "cross_entropy"
+        cross_entropy:
+          ignore_index: -1
+          aux_weight: 0.4
+    - loss_category: "neural_augmentation"
+      loss_weight: 1.0
+      neural_augmentation:
+        perceptual_metric: "psnr"
+        target_value: [ 40, 20 ]
+        curriculum_method: "cosine"
 optim:
   name: "sgd"
   weight_decay: 1.e-4
@@ -66,6 +71,7 @@ scheduler:
 model:
   segmentation:
     name: "encoder_decoder"
+    n_classes: 150
     lr_multiplier: 1
     seg_head: "deeplabv3"
     output_stride: 8
@@ -79,6 +85,7 @@ model:
       aspp_rates: [ 12, 24, 36 ]
   classification:
     name: "resnet"
+    n_classes: 1000
     pretrained: "https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/examples/range_augment/classification/resnet_50.pt"
     activation:
       name: "relu"
@@ -107,3 +114,14 @@ stats:
   train: [ "loss" ]
   checkpoint_metric: "iou"
   checkpoint_metric_max: true
+
+# During evaluation (with cvnets-eval-seg), we follow following steps:
+#  1. Determine and store the size of input image as metadata
+#  2. Resize image while maintaining the aspect ratio
+#  3. Make a prediction
+#  4. Resize the predicted mask to the same size as original input image
+#  5. compute results
+evaluation:
+  segmentation:
+    resize_input_images: true
+    mode: "validation_set"

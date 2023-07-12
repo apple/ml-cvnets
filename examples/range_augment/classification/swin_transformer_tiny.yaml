@@ -49,14 +49,20 @@ sampler:
     crop_size_width: 224
     crop_size_height: 224
 loss:
-  category: "classification"
-  classification:
-    name: "cross_entropy_with_na"
-    label_smoothing: 0.1
-  neural_aug:
-    perceptual_metric: "psnr"
-    target_value: [ 40, 5 ]
-    curriculum_method: "cosine"
+  category: "composite_loss"
+  composite_loss:
+    - loss_category: "classification"
+      loss_weight: 1.0
+      classification:
+        name: "cross_entropy"
+        cross_entropy:
+          label_smoothing: 0.1
+    - loss_category: "neural_augmentation"
+      loss_weight: 1.0
+      neural_augmentation:
+        perceptual_metric: "psnr"
+        target_value: [ 40, 5 ]
+        curriculum_method: "cosine"
 optim:
   name: "adamw"
   weight_decay: 0.05

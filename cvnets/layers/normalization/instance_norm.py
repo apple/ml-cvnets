@@ -1,12 +1,13 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn, Tensor
-from typing import Optional, Tuple
+from typing import Optional
 
-from . import register_norm_fn
+from torch import Tensor, nn
+
+from cvnets.layers.normalization import register_norm_fn
 
 
 @register_norm_fn(name="instance_norm")
@@ -46,11 +47,6 @@ class InstanceNorm2d(nn.InstanceNorm2d):
             track_running_stats=track_running_stats,
         )
 
-    def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:
-        # Since normalization layers can be fused, we do not count their operations
-        params = sum([p.numel() for p in self.parameters()])
-        return input, params, 0.0
-
 
 @register_norm_fn(name="instance_norm_1d")
 class InstanceNorm1d(nn.InstanceNorm1d):
@@ -87,8 +83,3 @@ class InstanceNorm1d(nn.InstanceNorm1d):
             affine=affine,
             track_running_stats=track_running_stats,
         )
-
-    def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:
-        # Since normalization layers can be fused, we do not count their operations
-        params = sum([p.numel() for p in self.parameters()])
-        return input, params, 0.0

@@ -1,116 +1,72 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import os
-import importlib
-from typing import Optional
-from utils import logger
 import argparse
+from typing import Callable, Dict, Mapping, Optional, Union
 
-from utils.ddp_utils import is_master
+from torch.utils.data.sampler import Sampler
 
-from .base_sampler import BaseSamplerDDP, BaseSamplerDP
+from data.sampler.base_sampler import BaseSampler, BaseSamplerDDP
+from utils.registry import Registry
 
-SAMPLER_REGISTRY = {}
-
-
-def register_sampler(name):
-    def register_sampler_class(cls):
-        if name in SAMPLER_REGISTRY:
-            raise ValueError(
-                "Cannot register duplicate sampler class ({})".format(name)
-            )
-
-        if not (issubclass(cls, BaseSamplerDDP) or issubclass(cls, BaseSamplerDP)):
-            raise ValueError(
-                "Sampler ({}: {}) must extend BaseSamplerDDP or BaseSamplerDP".format(
-                    name, cls.__name__
-                )
-            )
-
-        SAMPLER_REGISTRY[name] = cls
-        return cls
-
-    return register_sampler_class
+SAMPLER_REGISTRY = Registry(
+    registry_name="data_samplers",
+    base_class=Sampler,
+    # lazily import the samplers
+    lazy_load_dirs=["data/sampler"],
+    internal_dirs=["internal", "internal/projects/*"],
+)
 
 
-def build_sampler(opts, n_data_samples: int, is_training: Optional[bool] = False):
-    sampler_name = getattr(opts, "sampler.name", "variable_batch_sampler")
-    is_distributed = getattr(opts, "ddp.use_distributed", False)
+def build_sampler(
+    opts: argparse.Namespace,
+    n_data_samples: Union[int, Mapping[str, int]],
+    is_training: bool = False,
+    get_item_metadata: Optional[Callable[[int], Dict]] = None,
+    *args,
+    **kwargs
+) -> Sampler:
+    """Helper function to build data sampler from command-line arguments
 
-    if is_distributed and sampler_name.split("_")[-1] != "ddp":
+    Args:
+        opts: Command-line arguments
+        n_data_samples: Number of data samples. It can be an integer specifying number of data samples for a given task
+            or a mapping of task name and data samples per task in case of a chain sampler.
+        get_item_metadata: A callable that provides sample metadata, given sample index.
+        is_training: Training mode or not. Defaults to False.
+
+    Returns:
+        Data sampler over which we can iterate.
+    """
+    sampler_name = getattr(opts, "sampler.name")
+    is_distributed = getattr(opts, "ddp.use_distributed")
+
+    if (
+        is_distributed
+        and sampler_name.split("_")[-1] != "ddp"
+        and sampler_name != "chain_sampler"
+    ):
+        # In case of a DDP environment, add `_ddp` to sampler name if not present
+        # with an exception to chain_sampler (which is nothing but a loop over existing samplers)
         sampler_name = sampler_name + "_ddp"
 
-    sampler = None
-    if sampler_name in SAMPLER_REGISTRY:
-        sampler = SAMPLER_REGISTRY[sampler_name](
-            opts, n_data_samples=n_data_samples, is_training=is_training
-        )
-    else:
-        supp_list = list(SAMPLER_REGISTRY.keys())
-        supp_str = (
-            "Sampler ({}) not yet supported. \n Supported optimizers are:".format(
-                sampler_name
-            )
-        )
-        for i, m_name in enumerate(supp_list):
-            supp_str += "\n\t {}: {}".format(i, logger.color_text(m_name))
-        logger.error(supp_str)
-
+    sampler = SAMPLER_REGISTRY[sampler_name](
+        opts,
+        n_data_samples=n_data_samples,
+        is_training=is_training,
+        get_item_metadata=get_item_metadata,
+    )
     return sampler
 
 
-def sampler_common_args(parser: argparse.ArgumentParser):
-    parser.add_argument(
-        "--sampler.name", type=str, default="batch_sampler", help="Name of the sampler"
-    )
-    parser.add_argument(
-        "--sampler.use-shards",
-        action="store_true",
-        help="Use data sharding. Only applicable to DDP",
-    )
-    parser.add_argument(
-        "--sampler.num-repeats",
-        type=int,
-        default=1,
-        help="Repeat samples, as in repeated augmentation",
-    )
-
-    parser.add_argument(
-        "--sampler.truncated-repeat-aug-sampler",
-        action="store_true",
-        help="Use truncated repeated augmentation sampler",
-    )
-
-    parser.add_argument(
-        "--sampler.disable-shuffle-sharding",
-        action="store_true",
-        help="Disable shuffling while sharding for extremely large datasets",
-    )
-
+def add_sampler_arguments(
+    parser: argparse.ArgumentParser,
+) -> argparse.ArgumentParser:
+    """Add sampler arguments to parser from SAMPLER_REGISTRY,
+    BaseSampler, and BaseSamplerDDP"""
+    parser = SAMPLER_REGISTRY.all_arguments(parser)
+    parser = BaseSampler.add_arguments(parser)
+    parser = BaseSamplerDDP.add_arguments(parser)
     return parser
-
-
-def arguments_sampler(parser: argparse.ArgumentParser):
-    parser = sampler_common_args(parser=parser)
-
-    # add classification specific arguments
-    for k, v in SAMPLER_REGISTRY.items():
-        parser = v.add_arguments(parser=parser)
-
-    return parser
-
-
-# automatically import the samplers
-sampler_dir = os.path.dirname(__file__)
-for file in os.listdir(sampler_dir):
-    path = os.path.join(sampler_dir, file)
-    if (
-        not file.startswith("_")
-        and not file.startswith(".")
-        and (file.endswith(".py") or os.path.isdir(path))
-    ):
-        sampler_name = file[: file.find(".py")] if file.endswith(".py") else file
-        module = importlib.import_module("data.sampler." + sampler_name)

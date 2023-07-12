@@ -90,5 +90,5 @@ ema:
 stats:
   val: [ "loss", "coco_map"]
   train: ["loss"]
-  checkpoint_metric: "coco_map"
+  checkpoint_metric: "coco_map.bbox"
   checkpoint_metric_max: true

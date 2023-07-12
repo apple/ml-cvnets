@@ -1,22 +1,23 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
+
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 from torch import Tensor
 from torch import distributed as dist
-from typing import Union, Optional, Tuple
 
-from utils.third_party.ddp_functional_utils import (
-    all_gather as all_gather_with_backward,
-)
 from common import (
+    DEFAULT_IMAGE_CHANNELS,
     DEFAULT_IMAGE_HEIGHT,
     DEFAULT_IMAGE_WIDTH,
-    DEFAULT_IMAGE_CHANNELS,
     DEFAULT_VIDEO_FRAMES,
+)
+from utils.third_party.ddp_functional_utils import (
+    all_gather as all_gather_with_backward,
 )
 
 
@@ -109,7 +110,7 @@ def reduce_tensor_sum(inp_tensor: torch.Tensor) -> torch.Tensor:
     return inp_tensor_clone
 
 
-def all_gather_list(data):
+def all_gather_list(data: Union[List, Tensor, Dict[str, Tensor]]):
     world_size = dist.get_world_size()
     data_list = [None] * world_size
     # dist_barrier()
@@ -127,10 +128,25 @@ def gather_all_features(features: Tensor, dim=0):
 
 
 def tensor_to_python_float(
-    inp_tensor: Union[int, float, torch.Tensor], is_distributed: bool
+    inp_tensor: Union[int, float, torch.Tensor],
+    is_distributed: bool,
+    reduce_op: str = "mean",
 ) -> Union[int, float, np.ndarray]:
+    """
+    Given a number or a Tensor (potentially in distributed setting) returns the float value.
+    If is_distributed is true, the Tensor must be aggregated first.
+
+    Args:
+        inp_tensor: the input tensor
+        is_distributed: indicates whether we are in distributed mode
+        reduce_op: reduce operation for aggregation
+            If equals to mean, will reduce using mean, otherwise sum operation
+    """
     if is_distributed and isinstance(inp_tensor, torch.Tensor):
-        inp_tensor = reduce_tensor(inp_tensor=inp_tensor)
+        if reduce_op == "mean":
+            inp_tensor = reduce_tensor(inp_tensor=inp_tensor)
+        else:
+            inp_tensor = reduce_tensor_sum(inp_tensor=inp_tensor)
 
     if isinstance(inp_tensor, torch.Tensor) and inp_tensor.numel() > 1:
         # For IOU, we get a C-dimensional tensor (C - number of classes)

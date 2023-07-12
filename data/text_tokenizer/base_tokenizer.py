@@ -1,11 +1,12 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn
-from typing import Any
 import argparse
+from typing import Any
+
+from torch import nn
 
 
 class BaseTokenizer(nn.Module):
@@ -15,9 +16,7 @@ class BaseTokenizer(nn.Module):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
 
         group.add_argument(
             "--text-tokenizer.name",

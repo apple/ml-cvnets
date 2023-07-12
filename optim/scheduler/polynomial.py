@@ -1,15 +1,15 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
 import argparse
 
-from . import register_scheduler
-from .base_scheduler import BaseLRScheduler
+from optim.scheduler import SCHEDULER_REGISTRY
+from optim.scheduler.base_scheduler import BaseLRScheduler
 
 
-@register_scheduler("polynomial")
+@SCHEDULER_REGISTRY.register("polynomial")
 class PolynomialScheduler(BaseLRScheduler):
     """
     Polynomial LR scheduler

@@ -1,18 +1,17 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
+from typing import Optional, Tuple
+
 import torch
-from torch import nn, Tensor
-from typing import Optional, Sequence, Tuple
 import torch.nn.functional as F
+from torch import Tensor, nn
 
+from cvnets.layers import AdaptiveAvgPool2d, ConvLayer2d, Dropout2d
+from cvnets.modules import BaseModule
 from utils import logger
-
-from ..layers import ConvLayer, AdaptiveAvgPool2d, Dropout2d
-from ..modules import BaseModule
-from ..misc.profiler import module_profile
 
 
 class PSP(BaseModule):
@@ -57,7 +56,7 @@ class PSP(BaseModule):
             ]
         )
         self.fusion = nn.Sequential(
-            ConvLayer(
+            ConvLayer2d(
                 opts=opts,
                 in_channels=channels_after_concat,
                 out_channels=out_channels,
@@ -81,7 +80,7 @@ class PSP(BaseModule):
     ) -> nn.Module:
         return nn.Sequential(
             AdaptiveAvgPool2d(output_size=(o_size, o_size)),
-            ConvLayer(
+            ConvLayer2d(
                 opts,
                 in_channels=in_channels,
                 out_channels=out_channels,
@@ -103,25 +102,6 @@ class PSP(BaseModule):
         out = torch.cat(out, dim=1)
         out = self.fusion(out)
         return out
-
-    def profile_module(
-        self, input: Tensor, *args, **kwargs
-    ) -> Tuple[Tensor, float, float]:
-        params, macs = 0.0, 0.0
-        res = [input]
-        input_size = input.size()
-        for psp_branch in self.psp_branches:
-            out, p, m = module_profile(module=psp_branch, x=input)
-            out = F.interpolate(
-                out, input_size[2:], mode="bilinear", align_corners=True
-            )
-            params += p
-            macs += m
-            res.append(out)
-        res = torch.cat(res, dim=1)
-
-        res, p, m = module_profile(module=self.fusion, x=res)
-        return res, params + p, macs + m
 
     def __repr__(self):
         return "{}(in_channels={}, out_channels={}, pool_sizes={}, inner_channels={}, dropout_2d={})".format(

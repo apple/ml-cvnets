@@ -1,20 +1,21 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
 import argparse
 import math
-from utils import logger
+
 import numpy as np
 
-from . import register_scheduler
-from .base_scheduler import BaseLRScheduler
+from optim.scheduler import SCHEDULER_REGISTRY
+from optim.scheduler.base_scheduler import BaseLRScheduler
+from utils import logger
 
 SUPPORTED_LAST_CYCLES = ["cosine", "linear"]
 
 
-@register_scheduler("cyclic")
+@SCHEDULER_REGISTRY.register("cyclic")
 class CyclicLRScheduler(BaseLRScheduler):
     """
     Cyclic LR: https://arxiv.org/abs/1811.11431
@@ -75,7 +76,7 @@ class CyclicLRScheduler(BaseLRScheduler):
 
     def _lr_per_cycle(self) -> None:
         lrs = list(
-            np.linspace(self.max_lr, self.min_lr, self.cycle_length, dtype=np.float)
+            np.linspace(self.max_lr, self.min_lr, self.cycle_length, dtype=np.float32)
         )
         lrs = [lrs[-1]] + lrs[:-1]
         self.cycle_lrs = lrs

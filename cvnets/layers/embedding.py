@@ -1,22 +1,20 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
+from typing import Optional
+
 import torch
-from torch import nn, Tensor
-from typing import Optional, Union, Tuple
-import argparse
+from torch import Tensor, nn
 
+from cvnets.layers.base_layer import BaseLayer
+from cvnets.layers.normalization_layers import get_normalization_layer
 from utils import logger
-
-from .base_layer import BaseLayer
-from .normalization_layers import get_normalization_layer
-from .non_linear_layers import get_activation_fn
 
 
 class Embedding(nn.Embedding):
-    """A lookup table that stores embeddings of a fixed dictionary and size.
+    r"""A lookup table that stores embeddings of a fixed dictionary and size.
 
     Args:
         num_embeddings (int): size of the dictionary of embeddings
@@ -51,6 +49,3 @@ class Embedding(nn.Embedding):
         nn.init.normal_(self.weight, mean=0, std=self.embedding_dim**-0.5)
         if self.padding_idx is not None:
             nn.init.constant_(self.weight[self.padding_idx], 0)
-
-    def profile_module(self, input: Tensor, *args, **kwargs) -> (Tensor, float, float):
-        return input, 0.0, 0.0

@@ -1,43 +1,73 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import os
-import torch
-from typing import Optional, Union, Dict
-import math
+import argparse
 import glob
+import math
+import os
+from typing import Dict, List, Optional, Tuple, Union
+
+import torch
 
 from cvnets import EMA
 from optim import BaseOptim
 from utils import logger
+from utils.common_utils import unwrap_model_fn
 from utils.ddp_utils import is_master
 from utils.download_utils import get_local_path
 
 CHECKPOINT_EXTN = "pt"
 
 
-def get_model_state_dict(model):
+def get_model_state_dict(model: torch.nn.Module) -> Dict:
+    """Returns `state_dict` of a given model.
+
+    Args:
+        model: A torch model (it can be also a wrapped model, e.g., with DDP).
+
+    Returns:
+        `state_dict` of the model. If model is an EMA instance, the `state_dict` corresponding to EMA parameters is
+            returned.
+    """
     if isinstance(model, EMA):
         return get_model_state_dict(model.ema_model)
     else:
-        return (
-            model.module.state_dict()
-            if hasattr(model, "module")
-            else model.state_dict()
-        )
+        unwrapped_model = unwrap_model_fn(model)
+        return unwrapped_model.state_dict()
 
 
-def load_state_dict(model, state_dict):
+def load_state_dict(
+    model: torch.nn.Module, state_dict: Dict, strict: bool = True
+) -> torch.nn.Module:
+    """Load the given `state_dict` into the model.
+
+    Args:
+        model: A torch model (it can be also a wrapped model, e.g., with DDP).
+        state_dict: A state dict dictionary to load model parameters from.
+        strict: whether to strictly enforce that the keys in `state_dict` match the keys returned by this module's
+            `state_dict` function. Default: ``True``.
+
+    Returns:
+        model loaded with parameters from the given state_dict
+    """
     if hasattr(model, "module"):
-        model.module.load_state_dict(state_dict)
+        model.module.load_state_dict(state_dict, strict=strict)
     else:
-        model.load_state_dict(state_dict)
+        model.load_state_dict(state_dict, strict=strict)
     return model
 
 
-def average_ckpts(ckpt_loc_list: list):
+def average_ckpts(ckpt_loc_list: List[str]) -> Dict:
+    """Compute averaged parameters from a list of checkpoints.
+
+    Args:
+        ckpt_loc_list: List of paths to model checkpoints to be averaged.
+
+    Returns:
+        `state_dict` corresponding to the averaged parameters.
+    """
     avg_state_dict = dict()
     key_count = dict()
     key_dtype = dict()
@@ -51,19 +81,35 @@ def average_ckpts(ckpt_loc_list: list):
             if k not in avg_state_dict:
                 key_dtype[k] = v.dtype
                 avg_state_dict[k] = v.clone().to(dtype=torch.float64)
-                key_count[k] = 1
+                key_count[k] = 1.0
             else:
                 avg_state_dict[k] += v.to(dtype=torch.float64)
-                key_count[k] += 1
+                key_count[k] += 1.0
 
     for k, v in avg_state_dict.items():
         avg_state_dict[k] = v.div(key_count[k]).to(dtype=key_dtype[k])
     return avg_state_dict
 
 
-def avg_n_save_k_checkpoints(
-    model_state, best_metric, k_best_checkpoints, max_ckpt_metric, ckpt_str
-):
+def avg_and_save_k_checkpoints(
+    model_state: Dict,
+    best_metric: float,
+    k_best_checkpoints: int,
+    max_ckpt_metric: bool,
+    ckpt_str: str,
+) -> None:
+    """Save top-k checkpoints and their average.
+
+    Args:
+        model_state: `state_dict` containing model parameters.
+        best_metric: Best observed value of the tracking validation metric. For example, best top-1 validation accuracy
+            that is observed until the current iteration.
+        k_best_checkpoints: An integer k determining number of top (based on validation metric) checkpoints to keep.
+            If `k_best_checkpoints` is smaller than 1, only best checkpoint is stored.
+        max_ckpt_metric: A boolean demonstrating whether the tracking validation metric is higher the better, or lower
+            the better.
+        ckpt_str: String determining path prefix for checkpoints to be saved.
+    """
     try:
         ckpt_fname = "{}_score_{:.4f}.{}".format(ckpt_str, best_metric, CHECKPOINT_EXTN)
         torch.save(model_state, ckpt_fname)
@@ -115,25 +161,70 @@ def save_interval_checkpoint(
     optimizer: Union[BaseOptim, torch.optim.Optimizer],
     best_metric: float,
     save_dir: str,
-    gradient_scalar: torch.cuda.amp.GradScaler,
-    not_intermediate_checkpoint: Optional[bool] = False,
+    gradient_scaler: torch.cuda.amp.GradScaler,
+    model_ema: Optional[torch.nn.Module] = None,
     *args,
     **kwargs
+) -> None:
+    """Save current iteration training checkpoint.
+
+    Args:
+        iterations: An integer denoting training iteration number. Each iteration corresponds to forward-backward passes
+        on a batch with all GPUs.
+        epoch: An integer denoting epoch number.
+        model: The model being trained.
+        optimizer: Optimizer object, which possibly store training optimization state variables.
+        best_metric: Best observed value of the tracking validation metric. For example, best top-1 validation accuracy
+            that is observed until the current iteration.
+        save_dir: Path to a directory to save checkpoints.
+        gradient_scaler: `GradScaler` object storing required automatic mixed precision state.
+        model_ema: EMA model to be stored in the checkpoint.
+    """
+    checkpoint = get_training_state(
+        iterations, epoch, model, optimizer, best_metric, gradient_scaler, model_ema
+    )
+    ckpt_str = "{}/training_checkpoint".format(save_dir)
+    ckpt_fname = "{}_{}_{}.{}".format(ckpt_str, epoch, iterations, CHECKPOINT_EXTN)
+    torch.save(checkpoint, ckpt_fname)
+
+
+def get_training_state(
+    iterations: int,
+    epoch: int,
+    model: torch.nn.Module,
+    optimizer: Union[BaseOptim, torch.optim.Optimizer],
+    best_metric: float,
+    gradient_scaler: torch.cuda.amp.GradScaler,
+    model_ema: Optional[torch.nn.Module] = None,
 ) -> Dict:
+    """Create a checkpoint dictionary that includes all required states to resume the training from its current state.
+
+    Args:
+        iterations: An integer denoting training iteration number. Each iteration corresponds to forward-backward passes
+            on a batch with all GPUs.
+        epoch: An integer denoting epoch number.
+        model: The model being trained.
+        optimizer: Optimizer object, which possibly store training optimization state variables.
+        best_metric: Best observed value of the tracking validation metric. For example, best top-1 validation accuracy
+            that is observed until the current iteration.
+        gradient_scaler: `GradScaler` object storing required automatic mixed precision state.
+        model_ema: EMA model to be stored in the checkpoint.
+
+    Returns:
+        A dictionary that includes all required states to resume the training from its current state.
+    """
     model_state = get_model_state_dict(model)
-    checkpoint = {
+    training_state = {
         "iterations": iterations,
         "epoch": epoch,
         "model_state_dict": model_state,
         "optim_state_dict": optimizer.state_dict(),
         "best_metric": best_metric,
-        "gradient_scalar_state_dict": gradient_scalar.state_dict(),
+        "gradient_scaler_state_dict": gradient_scaler.state_dict(),
     }
-    if not not_intermediate_checkpoint:
-        ckpt_str = "{}/checkpoint".format(save_dir)
-        ckpt_fname = "{}_{}_{}.{}".format(ckpt_str, epoch, iterations, CHECKPOINT_EXTN)
-        torch.save(checkpoint, ckpt_fname)
-    return checkpoint
+    if model_ema is not None:
+        training_state["ema_state_dict"] = get_model_state_dict(model_ema)
+    return training_state
 
 
 def save_checkpoint(
@@ -144,28 +235,44 @@ def save_checkpoint(
     best_metric: float,
     is_best: bool,
     save_dir: str,
-    gradient_scalar: torch.cuda.amp.GradScaler,
+    gradient_scaler: torch.cuda.amp.GradScaler,
     model_ema: Optional[torch.nn.Module] = None,
-    is_ema_best: Optional[bool] = False,
+    is_ema_best: bool = False,
     ema_best_metric: Optional[float] = None,
-    max_ckpt_metric: Optional[bool] = False,
-    k_best_checkpoints: Optional[int] = -1,
-    save_all_checkpoints: Optional[bool] = False,
+    max_ckpt_metric: bool = False,
+    k_best_checkpoints: int = -1,
+    save_all_checkpoints: bool = False,
     *args,
     **kwargs
 ) -> None:
-    model_state = get_model_state_dict(model)
+    """Save checkpoints corresponding to the current state of the training.
 
-    checkpoint = save_interval_checkpoint(
-        iterations=iterations,
-        epoch=epoch,
-        model=model,
-        optimizer=optimizer,
-        best_metric=best_metric,
-        save_dir=save_dir,
-        gradient_scalar=gradient_scalar,
-        not_intermediate_checkpoint=True,
+    Args:
+        iterations: An integer denoting training iteration number. Each iteration corresponds to forward-backward passes
+            on a batch with all GPUs.
+        epoch: An integer denoting epoch number.
+        model: The model being trained.
+        optimizer: Optimizer object, which possibly store training optimization state variables.
+        best_metric: Best observed value of the tracking validation metric. For example, best top-1 validation accuracy
+            that is observed until the current iteration.
+        is_best: A boolean demonstrating whether the current model obtains the best validation metric compared
+            to the previously saved checkpoints.
+        save_dir: Path to a directory to save checkpoints.
+        gradient_scaler: `GradScaler` object storing required automatic mixed precision state.
+        model_ema: EMA model to be stored in the checkpoint.
+        is_ema_best: A boolean demonstrating whether the current EMA model obtains the best validation metric compared
+            to the previously saved checkpoints.
+        ema_best_metric: Best observed value of the tracking validation metric by the EMA model.
+        max_ckpt_metric: A boolean demonstrating whether the tracking validation metric is higher the better, or lower
+            the better.
+        k_best_checkpoints: An integer k determining number of top (based on validation metric) checkpoints to keep.
+            If `k_best_checkpoints` is smaller than 1, only best checkpoint is stored.
+        save_all_checkpoints: If True, will save model_state checkpoints (main model and its EMA) for all epochs.
+    """
+    checkpoint = get_training_state(
+        iterations, epoch, model, optimizer, best_metric, gradient_scaler, model_ema
     )
+    model_state = checkpoint.get("model_state_dict")
     ckpt_str = "{}/checkpoint".format(save_dir)
 
     if is_best:
@@ -180,13 +287,12 @@ def save_checkpoint(
         )
 
         if k_best_checkpoints > 1:
-            avg_n_save_k_checkpoints(
+            avg_and_save_k_checkpoints(
                 model_state, best_metric, k_best_checkpoints, max_ckpt_metric, ckpt_str
             )
 
     if model_ema is not None:
-        checkpoint["ema_state_dict"] = get_model_state_dict(model_ema)
-        ema_fname = "{}_ema.{}".format(ckpt_str, CHECKPOINT_EXTN)
+        ema_fname = "{}_ema_last.{}".format(ckpt_str, CHECKPOINT_EXTN)
         torch.save(checkpoint["ema_state_dict"], ema_fname)
         if save_all_checkpoints:
             ema_fname = "{}_ema_epoch{}.{}".format(ckpt_str, epoch, CHECKPOINT_EXTN)
@@ -204,7 +310,7 @@ def save_checkpoint(
             )
 
             if k_best_checkpoints > 1 and ema_best_metric is not None:
-                avg_n_save_k_checkpoints(
+                avg_and_save_k_checkpoints(
                     model_state=checkpoint["ema_state_dict"],
                     best_metric=ema_best_metric,
                     k_best_checkpoints=k_best_checkpoints,
@@ -212,7 +318,7 @@ def save_checkpoint(
                     ckpt_str="{}_ema".format(ckpt_str),
                 )
 
-    ckpt_fname = "{}.{}".format(ckpt_str, CHECKPOINT_EXTN)
+    ckpt_fname = "{}/training_checkpoint_last.{}".format(save_dir, CHECKPOINT_EXTN)
     torch.save(checkpoint, ckpt_fname)
 
     ckpt_fname = "{}_last.{}".format(ckpt_str, CHECKPOINT_EXTN)
@@ -224,12 +330,33 @@ def save_checkpoint(
 
 
 def load_checkpoint(
-    opts,
+    opts: argparse.Namespace,
     model: torch.nn.Module,
     optimizer: Union[BaseOptim, torch.optim.Optimizer],
-    gradient_scalar: torch.cuda.amp.GradScaler,
+    gradient_scaler: torch.cuda.amp.GradScaler,
     model_ema: Optional[torch.nn.Module] = None,
-):
+) -> Tuple[
+    torch.nn.Module,
+    Union[BaseOptim, torch.optim.Optimizer],
+    torch.cuda.amp.GradScaler,
+    int,
+    int,
+    float,
+    Optional[torch.nn.Module],
+]:
+    """Load a training checkpoint to resume training.
+
+    Args:
+        opts: Input arguments.
+        model: The model to be loaded with `model_state_dict` from the checkpoint.
+        optimizer: Optimizer object to be loaded with `optim_state_dict` from the checkpoint.
+        gradient_scaler: A `GradScaler` object to be loaded with `gradient_scaler_state_dict`  from the checkpoint.
+        model_ema: (Optional) EMA model to be loaded with `ema_state_dict` from the checkpoint.
+
+    Returns:
+        Tuple of loaded objects and value:
+        (model, optimizer, gradient_scaler, start_epoch, start_iteration, best_metric, model_ema)
+    """
     resume_loc = getattr(opts, "common.resume", None)
     dev_id = getattr(opts, "dev.device_id", None)
     device = getattr(opts, "dev.device", torch.device("cpu"))
@@ -241,7 +368,7 @@ def load_checkpoint(
     exp_dir = getattr(opts, "common.exp_loc", None)
     is_master_node = is_master(opts)
     if resume_loc is None and auto_resume and exp_dir is not None:
-        resume_loc = "{}/checkpoint.{}".format(exp_dir, CHECKPOINT_EXTN)
+        resume_loc = "{}/training_checkpoint_last.{}".format(exp_dir, CHECKPOINT_EXTN)
 
     resume_loc = get_local_path(opts, path=resume_loc)
     if resume_loc is not None and os.path.isfile(resume_loc):
@@ -256,7 +383,7 @@ def load_checkpoint(
 
         model = load_state_dict(model, checkpoint["model_state_dict"])
         optimizer.load_state_dict(checkpoint["optim_state_dict"])
-        gradient_scalar.load_state_dict(checkpoint["gradient_scalar_state_dict"])
+        gradient_scaler.load_state_dict(checkpoint["gradient_scaler_state_dict"])
 
         if model_ema is not None and "ema_state_dict" in checkpoint:
             model_ema.ema_model = load_state_dict(
@@ -272,7 +399,7 @@ def load_checkpoint(
     return (
         model,
         optimizer,
-        gradient_scalar,
+        gradient_scaler,
         start_epoch,
         start_iteration,
         best_metric,
@@ -280,10 +407,24 @@ def load_checkpoint(
     )
 
 
-def load_model_state(opts, model, model_ema=None):
+def load_model_state(
+    opts: argparse.Namespace,
+    model: torch.nn.Module,
+    model_ema: Optional[torch.nn.Module] = None,
+) -> Tuple[torch.nn.Module, Optional[torch.nn.Module]]:
+    """Load the model (and optionally the EMA model) for finetuning.
+
+    Args:
+        opts: Input arguments.
+        model: The model to be loaded with checkpoint at `common.finetune`.
+        model_ema: The EMA model to be loaded with checkpoint at `common.finetune_ema`.
+
+    Returns:
+        Tuple of loaded model and EMA model. The second returned value is None when model_ema is not passed.
+    """
     dev_id = getattr(opts, "dev.device_id", None)
     device = getattr(opts, "dev.device", torch.device("cpu"))
-    finetune_loc = getattr(opts, "common.finetune_imagenet1k", None)
+    finetune_loc = getattr(opts, "common.finetune", None)
     finetune_ema_loc = getattr(opts, "common.finetune_ema", None)
 
     def load_state(path):
@@ -308,6 +449,15 @@ def load_model_state(opts, model, model_ema=None):
 def copy_weights(
     model_src: torch.nn.Module, model_tgt: torch.nn.Module
 ) -> torch.nn.Module:
+    """Copy `state_dict` from source model to target model.
+
+    Args:
+        model_src: The source model.
+        model_tgt: The target model.
+
+    Returns:
+        Target model with `state_dict` loaded from model_src.
+    """
     with torch.no_grad():
         model_state = get_model_state_dict(model=model_src)
         return load_state_dict(model=model_tgt, state_dict=model_state)

@@ -1,15 +1,16 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from . import register_scheduler
-from .base_scheduler import BaseLRScheduler
 import argparse
 import math
 
+from optim.scheduler import SCHEDULER_REGISTRY
+from optim.scheduler.base_scheduler import BaseLRScheduler
 
-@register_scheduler("cosine")
+
+@SCHEDULER_REGISTRY.register("cosine")
 class CosineScheduler(BaseLRScheduler):
     """
     Cosine learning rate scheduler: https://arxiv.org/abs/1608.03983

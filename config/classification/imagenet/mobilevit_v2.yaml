@@ -52,7 +52,8 @@ loss:
   category: "classification"
   classification:
     name: "cross_entropy"
-    label_smoothing: 0.1
+    cross_entropy:
+      label_smoothing: 0.1
 optim:
   name: "adamw"
   weight_decay: 0.05

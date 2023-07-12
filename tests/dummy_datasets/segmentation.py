@@ -1,9 +1,10 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from typing import Tuple, Dict
+from typing import Dict, Tuple
+
 import torch
 import torch.utils.data as data
 
@@ -24,7 +25,7 @@ class DummySegmentationDataset(data.Dataset):
         setattr(opts, "model.segmentation.n_classes", self.n_classes)
         setattr(opts, "dataset.collate_fn_name_train", "default_collate_fn")
         setattr(opts, "dataset.collate_fn_name_val", "default_collate_fn")
-        setattr(opts, "dataset.collate_fn_name_eval", None)
+        setattr(opts, "dataset.collate_fn_name_test", None)
 
     def __getitem__(self, batch_indexes_tup: Tuple) -> Dict:
         """

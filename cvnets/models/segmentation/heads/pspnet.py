@@ -1,22 +1,21 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import torch
-from torch import nn, Tensor
 import argparse
-from typing import Optional, Dict, Tuple
+from typing import Dict, Optional
 
-from .base_seg_head import BaseSegHead
-from . import register_segmentation_head
-from ....layers import ConvLayer
-from ....modules import PSP
-from ....misc.profiler import module_profile
-from ....misc.init_utils import initialize_weights
+from torch import Tensor
+
+from cvnets.layers import ConvLayer2d
+from cvnets.misc.init_utils import initialize_weights
+from cvnets.models import MODEL_REGISTRY
+from cvnets.models.segmentation.heads.base_seg_head import BaseSegHead
+from cvnets.modules import PSP
 
 
-@register_segmentation_head(name="pspnet")
+@MODEL_REGISTRY.register(name="pspnet", type="segmentation_head")
 class PSPNet(BaseSegHead):
     """
     This class defines the segmentation head in `PSPNet architecture <https://arxiv.org/abs/1612.01105>`_
@@ -49,7 +48,7 @@ class PSPNet(BaseSegHead):
             pool_sizes=psp_pool_sizes,
             dropout=psp_dropout,
         )
-        self.classifier = ConvLayer(
+        self.classifier = ConvLayer2d(
             opts=opts,
             in_channels=psp_out_channels,
             out_channels=self.n_seg_classes,
@@ -66,7 +65,7 @@ class PSPNet(BaseSegHead):
         This function updates the classification layer in a model. Useful for finetuning purposes.
         """
         in_channels = self.classifier.in_channels
-        conv_layer = ConvLayer(
+        conv_layer = ConvLayer2d(
             opts=opts,
             in_channels=in_channels,
             out_channels=n_classes,
@@ -82,9 +81,7 @@ class PSPNet(BaseSegHead):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--model.segmentation.pspnet.psp-pool-sizes",
             type=int,
@@ -116,31 +113,3 @@ class PSPNet(BaseSegHead):
         out = self.classifier(x)
 
         return out
-
-    def profile_module(self, enc_out: Dict) -> Tuple[Tensor, float, float]:
-        # Note: Model profiling is for reference only and may contain errors.
-        # It relies heavily on the user to implement the underlying functions accurately.
-
-        params, macs = 0.0, 0.0
-
-        if self.use_l5_exp:
-            x, p, m = module_profile(module=self.psp_layer, x=enc_out["out_l5_exp"])
-        else:
-            x, p, m = module_profile(module=self.psp_layer, x=enc_out["out_l5"])
-        params += p
-        macs += m
-
-        out, p, m = module_profile(module=self.classifier, x=x)
-        params += p
-        macs += m
-
-        print(
-            "{:<15} \t {:<5}: {:>8.3f} M \t {:<5}: {:>8.3f} M".format(
-                self.__class__.__name__,
-                "Params",
-                round(params / 1e6, 3),
-                "MACs",
-                round(macs / 1e6, 3),
-            )
-        )
-        return out, params, macs

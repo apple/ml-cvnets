@@ -1,41 +1,36 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import sys
-import traceback
-import torch
-from torch import Tensor
 import copy
 import gc
-import time
 import shutil
-from typing import Dict
-from torch.nn import functional as F
-import random
-from typing import Union, List, Optional
-import numpy as np
+import time
+import traceback
 from itertools import product
+from typing import Dict, Union
 
-from data.transforms.image_torch import RandomMixup, RandomCutmix
-from engine.utils import print_summary, get_log_writers
-from metrics import Statistics, metric_monitor
-from common import DEFAULT_ITERATIONS, DEFAULT_EPOCHS, DEFAULT_LOG_FREQ
+import numpy as np
+import torch
+from torch import Tensor
+from torch.nn import functional as F
+
+from common import DEFAULT_EPOCHS, DEFAULT_ITERATIONS, DEFAULT_LOG_FREQ, if_test_env
+from data.transforms.image_torch import apply_mixing_transforms
+from engine.utils import autocast_fn, get_batch_size, get_log_writers, log_metrics
+from loss_landscape import landscape_utils as ll_utils
+from metrics.stats import Statistics
 from options.parse_args import parse_validation_metric_names
 from utils import logger
-from utils.common_utils import create_directories, move_to_device
-from utils.ddp_utils import is_master, dist_barrier
-from utils.tensor_utils import reduce_tensor_sum, tensor_to_python_float
 from utils.checkpoint_utils import (
     copy_weights,
     save_checkpoint,
     save_interval_checkpoint,
 )
-from loss_landscape import landscape_utils as ll_utils
-
-
-from .utils import get_batch_size, autocast_fn, log_metrics
+from utils.common_utils import move_to_device, unwrap_model_fn
+from utils.ddp_utils import dist_barrier, is_master
+from utils.tensor_utils import reduce_tensor_sum
 
 
 class Trainer(object):
@@ -52,13 +47,13 @@ class Trainer(object):
         criterion,
         optimizer,
         scheduler,
-        gradient_scalar,
+        gradient_scaler,
         start_epoch: int = 0,
         start_iteration: int = 0,
         best_metric: float = 0.0,
         model_ema=None,
         *args,
-        **kwargs
+        **kwargs,
     ) -> None:
         super(Trainer, self).__init__()
 
@@ -69,7 +64,7 @@ class Trainer(object):
         self.criteria = criterion
         self.optimizer = optimizer
         self.scheduler = scheduler
-        self.gradient_scalar = gradient_scalar
+        self.gradient_scaler = gradient_scaler
 
         self.val_loader = validation_loader
         self.train_loader = training_loader
@@ -121,14 +116,6 @@ class Trainer(object):
         self.save_location = getattr(opts, "common.exp_loc", "results/run_1")
 
         self.log_writers = get_log_writers(self.opts, save_location=self.save_location)
-        if self.is_master_node:
-            print_summary(
-                opts=self.opts,
-                model=self.model,
-                criteria=self.criteria,
-                optimizer=self.optimizer,
-                scheduler=self.scheduler,
-            )
 
         self.adjust_norm_mom = None
         if getattr(opts, "model.normalization.adjust_bn_momentum.enable", False):
@@ -185,7 +172,7 @@ class Trainer(object):
 
         norm_type = 2.0  # L2 norm
 
-        inv_scale = 1.0 / self.gradient_scalar.get_scale()
+        inv_scale = 1.0 / self.gradient_scaler.get_scale()
         total_norm = torch.norm(
             torch.stack(
                 [
@@ -199,27 +186,6 @@ class Trainer(object):
             return None
         return total_norm
 
-    def apply_mixup_transforms(self, data):
-        # Apply mixup transforms on classification tasks
-        opts = self.opts
-        mixup_transforms = []
-        if getattr(opts, "image_augmentation.mixup.enable", False):
-            n_classes = getattr(opts, "model.classification.n_classes", None)
-            if n_classes is None:
-                logger.error("Please specify number of classes. Got None.")
-            mixup_transforms.append(RandomMixup(opts=opts, num_classes=n_classes))
-
-        if getattr(opts, "image_augmentation.cutmix.enable", False):
-            n_classes = getattr(opts, "model.classification.n_classes", None)
-            if n_classes is None:
-                logger.error("Please specify number of classes. Got None.")
-            mixup_transforms.append(RandomCutmix(opts=opts, num_classes=n_classes))
-
-        if len(mixup_transforms) > 0:
-            _mixup_transform = random.choice(mixup_transforms)
-            data = _mixup_transform(data)
-        return data
-
     def _zero_grad(self):
         if self.set_grad_to_none:
             self.optimizer.zero_grad(set_to_none=True)
@@ -227,7 +193,9 @@ class Trainer(object):
             self.optimizer.zero_grad()
 
     def train_epoch(self, epoch):
-        time.sleep(2)  # To prevent possible deadlock during epoch transition
+        time.sleep(
+            if_test_env(0.5, otherwise=2)
+        )  # To prevent possible deadlock during epoch transition
 
         if self.is_master_node:
             logger.double_dash_line()
@@ -238,10 +206,18 @@ class Trainer(object):
             )
 
         train_stats = Statistics(
-            metric_names=self.train_metric_names, is_master_node=self.is_master_node
+            opts=self.opts,
+            metric_names=self.train_metric_names,
+            is_master_node=self.is_master_node,
+            is_distributed=self.use_distributed,
+            log_writers=self.log_writers,
         )
 
         self.model.train()
+        # criteria is also a nn.Module and we may need access to training property in some
+        # loss functions. So, to enable, that, we set criteria to train/eval mode
+        self.criteria.train()
+
         accum_freq = self.accum_freq if epoch >= self.accum_after_epoch else 1
         max_norm = getattr(self.opts, "common.grad_clip", None)
 
@@ -259,7 +235,7 @@ class Trainer(object):
             # move to device
             batch = move_to_device(opts=self.opts, x=batch, device=self.device)
             # apply mix-up transforms if any
-            batch = self.apply_mixup_transforms(data=batch)
+            batch = apply_mixing_transforms(opts=self.opts, data=batch)
 
             batch_load_toc = time.time() - batch_load_start
 
@@ -308,12 +284,12 @@ class Trainer(object):
                     logger.error("Nan encountered in the loss.")
 
             # perform the backward pass with gradient accumulation [Optional]
-            self.gradient_scalar.scale(loss).backward()
+            self.gradient_scaler.scale(loss).backward()
 
             if (batch_id + 1) % accum_freq == 0:
                 if max_norm is not None:
                     # For gradient clipping, unscale the gradients and then clip them
-                    self.gradient_scalar.unscale_(self.optimizer)
+                    self.gradient_scaler.unscale_(self.optimizer)
                     torch.nn.utils.clip_grad_norm_(
                         self.model.parameters(), max_norm=max_norm
                     )
@@ -324,9 +300,9 @@ class Trainer(object):
                     grad_norm = self.compute_grad_norm()
 
                 # optimizer step
-                self.gradient_scalar.step(optimizer=self.optimizer)
+                self.gradient_scaler.step(optimizer=self.optimizer)
                 # update the scale for next batch
-                self.gradient_scalar.update()
+                self.gradient_scaler.update()
                 # set the gradient to zero or None
                 self._zero_grad()
 
@@ -335,18 +311,12 @@ class Trainer(object):
                 if self.model_ema is not None:
                     self.model_ema.update_parameters(self.model)
 
-            metrics = metric_monitor(
-                self.opts,
+            train_stats.update(
                 pred_label=pred_label,
                 target_label=targets,
-                loss=loss_dict_or_tensor,
-                grad_norm=grad_norm,
-                use_distributed=self.use_distributed,
-                metric_names=self.train_metric_names,
-            )
-
-            train_stats.update(
-                metric_vals=metrics, batch_time=batch_load_toc, n=batch_size
+                extras={"loss": loss_dict_or_tensor, "grad_norm": grad_norm},
+                batch_time=batch_load_toc,
+                batch_size=batch_size,
             )
 
             # save the checkpoint every N updates
@@ -354,6 +324,7 @@ class Trainer(object):
                 self.save_interval
                 and (self.train_iterations % self.save_interval_freq) == 0
             ):
+
                 save_interval_checkpoint(
                     iterations=self.train_iterations,
                     epoch=epoch,
@@ -361,8 +332,8 @@ class Trainer(object):
                     optimizer=self.optimizer,
                     best_metric=loss.item(),
                     save_dir=self.save_location,
-                    gradient_scalar=self.gradient_scalar,
-                    not_intermediate_checkpoint=False,
+                    gradient_scaler=self.gradient_scaler,
+                    model_ema=self.model_ema,
                 )
                 logger.info(
                     "Checkpoints saved after {} updates at: {}".format(
@@ -399,24 +370,31 @@ class Trainer(object):
         if self.val_loader is None:
             return 0.0, 0.0
 
-        time.sleep(2)  # To prevent possible deadlock during epoch transition
+        time.sleep(
+            if_test_env(0.5, otherwise=2)
+        )  # To prevent possible deadlock during epoch transition
         validation_stats = Statistics(
-            metric_names=self.val_metric_names, is_master_node=self.is_master_node
+            opts=self.opts,
+            metric_names=self.val_metric_names,
+            is_master_node=self.is_master_node,
+            is_distributed=self.use_distributed,
+            log_writers=self.log_writers,
         )
 
-        if "coco_map" in self.val_metric_names:
-            from metrics.coco_map import COCOEvaluator
-
-            coco_evaluator = COCOEvaluator(
-                opts=self.opts, use_distributed=self.use_distributed
-            )
-        else:
-            coco_evaluator = None
-
         model.eval()
-        if model.training and self.is_master_node:
-            logger.warning("Model is in training mode. Switching to evaluation mode")
+        # criteria is also a nn.Module and we may need access to training property in some
+        # loss functions. So, to enable, that, we set criteria to train/eval mode
+        self.criteria.eval()
+
+        if model.training:
+            if self.is_master_node:
+                logger.warning(
+                    "Model is in training mode. Switching to evaluation mode"
+                )
             model.eval()
+
+        if self.criteria.training:
+            self.criteria.eval()
 
         with torch.no_grad():
             epoch_start_time = time.time()
@@ -445,24 +423,13 @@ class Trainer(object):
 
                 processed_samples += batch_size
 
-                metrics = metric_monitor(
-                    self.opts,
+                validation_stats.update(
                     pred_label=pred_label,
                     target_label=targets,
-                    loss=loss_dict_or_tensor,
-                    use_distributed=self.use_distributed,
-                    metric_names=self.val_metric_names,
-                    is_evaluation=True,
+                    extras={"loss": loss_dict_or_tensor},
+                    batch_time=0.0,
+                    batch_size=batch_size,
                 )
-
-                validation_stats.update(
-                    metric_vals=metrics, batch_time=0.0, n=batch_size
-                )
-
-                if coco_evaluator is not None:
-                    coco_evaluator.prepare_predictions(
-                        predictions=pred_label, targets=targets
-                    )
 
                 if batch_id % self.log_freq == 0 and self.is_master_node:
                     validation_stats.iter_summary(
@@ -481,14 +448,6 @@ class Trainer(object):
             metric_name=self.ckpt_metric, sub_metric_name=self.ckpt_submetric
         )
 
-        if coco_evaluator is not None:
-            # synchronize across different processes and aggregate the results
-            coco_evaluator.gather_coco_results()
-            coco_map = coco_evaluator.summarize_coco_results()
-
-            if self.ckpt_metric == "coco_map" and "bbox" in coco_map:
-                avg_ckpt_metric = round(coco_map["bbox"], 5)
-
         if avg_ckpt_metric is None:
             avg_ckpt_metric = avg_loss
 
@@ -505,7 +464,9 @@ class Trainer(object):
             this will be combined with main training loop to reduce overhead.
         """
 
-        time.sleep(2)  # To prevent possible deadlock during epoch transition
+        time.sleep(
+            if_test_env(0.5, otherwise=2)
+        )  # To prevent possible deadlock during epoch transition
 
         model.eval()
         if model.training and self.is_master_node:
@@ -706,7 +667,7 @@ class Trainer(object):
                         model_ema=self.model_ema,
                         is_ema_best=is_ema_best,
                         ema_best_metric=ema_best_metric,
-                        gradient_scalar=self.gradient_scalar,
+                        gradient_scaler=self.gradient_scaler,
                         max_ckpt_metric=max_checkpoint_metric,
                         k_best_checkpoints=keep_k_best_ckpts,
                         save_all_checkpoints=self.save_all_checkpoints,
@@ -755,15 +716,11 @@ class Trainer(object):
                     )
                     logger.log("Memory summary for device id: {}".format(dev_id))
                     print(mem_summary)
-            else:
-                logger.log(
-                    "Exception occurred that interrupted the training. {}".format(
-                        str(e)
-                    )
-                )
-                print(e)
-                traceback.print_exc()
-                raise e
+
+            logger.log(
+                f"Exception occurred that interrupted the training:\n{traceback.format_exc()}"
+            )
+            raise e
         finally:
             use_distributed = getattr(self.opts, "ddp.use_distributed", False)
             if use_distributed:
@@ -802,22 +759,19 @@ class Trainer(object):
 
             ll_metrics = ["loss"]
             ll_stats = Statistics(
-                metric_names=ll_metrics, is_master_node=self.is_master_node
+                opts=self.opts,
+                metric_names=ll_metrics,
+                is_master_node=self.is_master_node,
+                is_distributed=self.use_distributed,
+                log_writers=self.log_writers,
             )
             has_module = hasattr(self.model, "module")
-            model_name = (
-                self.model.module.__class__.__name__
-                if has_module
-                else self.model.__class__.__name__
-            )
+            unwrapped_model = unwrap_model_fn(self.model)
+            model_name = unwrapped_model.__class__.__name__
 
             # copy the model and create bases
             model = copy.deepcopy(self.model)
-            weight_state_0 = (
-                copy.deepcopy(model.module.state_dict())
-                if has_module
-                else copy.deepcopy(model.state_dict())
-            )
+            weight_state_0 = unwrapped_model.state_dict()
             bases = ll_utils.create_bases(
                 model=model, device=self.device, has_module=has_module
             )
@@ -841,9 +795,7 @@ class Trainer(object):
                 }
 
                 # load the weights
-                model.module.load_state_dict(
-                    gs
-                ) if has_module else model.load_state_dict(gs)
+                unwrapped_model.load_state_dict(gs)
 
                 model = model.to(device=self.device)
                 model.eval()
@@ -885,18 +837,12 @@ class Trainer(object):
                         if isinstance(loss, torch.Tensor) and torch.isnan(loss):
                             logger.error("Nan encountered in the loss.")
 
-                        metrics = metric_monitor(
-                            self.opts,
+                        ll_stats.update(
                             pred_label=pred_label,
                             target_label=targets,
-                            loss=loss_dict_or_tensor,
-                            use_distributed=self.use_distributed,
-                            metric_names=ll_metrics,
-                            is_evaluation=True,
-                        )
-
-                        ll_stats.update(
-                            metric_vals=metrics, batch_time=0.0, n=batch_size
+                            extras={"loss": loss_dict_or_tensor},
+                            batch_time=0.0,
+                            batch_size=batch_size,
                         )
 
                         if batch_id % self.log_freq == 0 and self.is_master_node:
@@ -939,7 +885,7 @@ class Trainer(object):
 
                     gc.collect()
                     # take a small nap
-                    time.sleep(1)
+                    time.sleep(if_test_env(0, otherwise=1))
 
             if self.is_master_node:
                 ll_utils.plot_save_graphs(

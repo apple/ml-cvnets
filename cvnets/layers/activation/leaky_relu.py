@@ -1,12 +1,13 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn, Tensor
-from typing import Tuple, Optional
+from typing import Optional
 
-from . import register_act_fn
+from torch import Tensor, nn
+
+from cvnets.layers.activation import register_act_fn
 
 
 @register_act_fn(name="leaky_relu")
@@ -24,8 +25,3 @@ class LeakyReLU(nn.LeakyReLU):
         **kwargs
     ) -> None:
         super().__init__(negative_slope=negative_slope, inplace=inplace)
-
-    def profile_module(
-        self, input: Tensor, *args, **kwargs
-    ) -> Tuple[Tensor, float, float]:
-        return input, 0.0, 0.0

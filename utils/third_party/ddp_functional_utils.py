@@ -1,6 +1,6 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
 import torch
@@ -13,7 +13,7 @@ from torch.autograd import Function
 # USE_DISTRIBUTED compile flag. Make sure they raise import error
 # if we're trying to use them.
 try:
-    from torch.distributed import group, ReduceOp
+    from torch.distributed import ReduceOp, group
 except ModuleNotFoundError as mnfe:
     raise ModuleNotFoundError(
         "group and ReduceOp are not found. Make sure that you are using PyTorch>=1.12"

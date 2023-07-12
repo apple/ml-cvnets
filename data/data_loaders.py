@@ -1,29 +1,35 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import torch
+import argparse
 from functools import partial
+from typing import Mapping, Optional, Tuple, Union
 
+from torch.utils.data.sampler import Sampler
+
+from data.collate_fns import build_collate_fn, build_test_collate_fn
+from data.datasets import BaseDataset, get_test_dataset, get_train_val_datasets
+from data.loader.dataloader import CVNetsDataLoader
+from data.sampler import build_sampler
 from utils import logger
 from utils.ddp_utils import is_master
 from utils.tensor_utils import image_size_from_opts
 
-from .datasets import train_val_datasets, evaluation_datasets
-from .sampler import build_sampler
-from .collate_fns import build_collate_fn, build_eval_collate_fn
-from .loader.dataloader import CVNetsDataLoader
 
+def create_test_loader(opts: argparse.Namespace) -> CVNetsDataLoader:
+    """Helper function to create and return a dataset loader for test dataset from command-line arguments"""
+    test_dataset = get_test_dataset(opts)
 
-def create_eval_loader(opts):
-    eval_dataset = evaluation_datasets(opts)
-    n_eval_samples = len(eval_dataset)
+    n_test_samples = get_num_data_samples_as_int_or_mapping(test_dataset)
     is_master_node = is_master(opts)
 
     # overwrite the validation argument
     setattr(
-        opts, "dataset.val_batch_size0", getattr(opts, "dataset.eval_batch_size0", 1)
+        opts,
+        "dataset.val_batch_size0",
+        getattr(opts, "dataset.eval_batch_size0"),
     )
 
     # we don't need variable batch sampler for evaluation
@@ -42,48 +48,68 @@ def create_eval_loader(opts):
         setattr(opts, "sampler.bs.crop_size_width", crop_size_w)
         setattr(opts, "sampler.bs.crop_size_height", crop_size_h)
 
-    eval_sampler = build_sampler(
-        opts=opts, n_data_samples=n_eval_samples, is_training=False
+    test_sampler = build_sampler(
+        opts=opts,
+        n_data_samples=n_test_samples,
+        is_training=False,
+        get_item_metadata=test_dataset.get_item_metadata,
     )
 
-    collate_fn_eval = build_eval_collate_fn(opts=opts)
+    collate_fn_test = build_test_collate_fn(opts=opts)
 
     data_workers = getattr(opts, "dataset.workers", 1)
     persistent_workers = False
     pin_memory = False
 
-    eval_loader = CVNetsDataLoader(
-        dataset=eval_dataset,
+    test_loader = CVNetsDataLoader(
+        dataset=test_dataset,
         batch_size=1,
-        batch_sampler=eval_sampler,
+        batch_sampler=test_sampler,
         num_workers=data_workers,
         pin_memory=pin_memory,
         persistent_workers=persistent_workers,
-        collate_fn=partial(collate_fn_eval, opts=opts)
-        if collate_fn_eval is not None
+        collate_fn=partial(collate_fn_test, opts=opts)
+        if collate_fn_test is not None
         else None,
     )
 
     if is_master_node:
         logger.log("Evaluation sampler details: ")
-        print("{}".format(eval_sampler))
+        print("{}".format(test_sampler))
 
-    return eval_loader
+    return test_loader
 
 
-def create_train_val_loader(opts):
-    train_dataset, valid_dataset = train_val_datasets(opts)
+def create_train_val_loader(
+    opts: argparse.Namespace,
+) -> Tuple[CVNetsDataLoader, Optional[CVNetsDataLoader], Sampler]:
+    """Helper function to create training and validation data loaders.
 
-    n_train_samples = len(train_dataset)
+    Args:
+        opts: Command-line arguments
+
+    Returns:
+        A tuple containing training data loader, (optional) validation data loader, and training data sampler.
+    """
+    train_dataset, valid_dataset = get_train_val_datasets(opts)
+
+    n_train_samples = get_num_data_samples_as_int_or_mapping(train_dataset)
+
     is_master_node = is_master(opts)
 
     train_sampler = build_sampler(
-        opts=opts, n_data_samples=n_train_samples, is_training=True
+        opts=opts,
+        n_data_samples=n_train_samples,
+        is_training=True,
+        get_item_metadata=train_dataset.get_item_metadata,
     )
     if valid_dataset is not None:
-        n_valid_samples = len(valid_dataset)
+        n_valid_samples = get_num_data_samples_as_int_or_mapping(valid_dataset)
         valid_sampler = build_sampler(
-            opts=opts, n_data_samples=n_valid_samples, is_training=False
+            opts=opts,
+            n_data_samples=n_valid_samples,
+            is_training=False,
+            get_item_metadata=valid_dataset.get_item_metadata,
         )
     else:
         valid_sampler = None
@@ -135,3 +161,25 @@ def create_train_val_loader(opts):
             logger.log("Number of data workers: {}".format(data_workers))
 
     return train_loader, val_loader, train_sampler
+
+
+def get_num_data_samples_as_int_or_mapping(
+    dataset: BaseDataset,
+) -> Union[int, Mapping[str, int]]:
+    """Return the number of samples in the dataset.
+
+    The dataset can be a single or composition of multiple datasets (as in multi-task learning). For a single
+    dataset, the number of samples is integer while for multiple datasets, a dictionary is returned with task name and
+    number of samples per task.
+
+    Args:
+        dataset: An instance of `data.datasets.BaseDataset` class
+
+    Returns:
+        An integer for single dataset and mapping for composite datasets.
+
+    """
+    if hasattr(dataset, "get_dataset_length_as_mapping"):
+        return dataset.get_dataset_length_as_mapping()
+    else:
+        return len(dataset)

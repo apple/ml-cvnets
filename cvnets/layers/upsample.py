@@ -1,11 +1,12 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import torch
-from torch import nn, Tensor
 from typing import Optional, Tuple, Union
+
+import torch
+from torch import Tensor, nn
 
 
 class UpSample(nn.Upsample):
@@ -37,7 +38,3 @@ class UpSample(nn.Upsample):
         super().__init__(
             size=size, scale_factor=scale_factor, mode=mode, align_corners=align_corners
         )
-
-    def profile_module(self, input: Tensor) -> Tuple[Tensor, float, float]:
-        input = self.forward(input)
-        return input, 0.0, 0.0

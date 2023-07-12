@@ -1,15 +1,20 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import torch
+import argparse
 import os
 import re
-from typing import Any, Dict, List, Optional, Union
+from types import MethodType
+from typing import Dict, List, Optional, Tuple, Union
+
+import torch
+from torch import Tensor
 
 from utils import logger
-from utils.ddp_utils import is_start_rank_node
+from utils.common_utils import unwrap_model_fn
+from utils.ddp_utils import is_master, is_start_rank_node
 
 
 def clean_strip(
@@ -28,10 +33,16 @@ def clean_strip(
 
 
 def load_pretrained_model(
-    model: torch.nn.Module, wt_loc: str, opts: Dict[str, Any], *args, **kwargs
+    model: torch.nn.Module, wt_loc: str, opts: argparse.Namespace, *args, **kwargs
 ) -> torch.nn.Module:
-    """
-    Helper function to load pre-trained weights
+    """Helper function to load pre-trained weights.
+    Args:
+        model: Model whose weights will be loaded.
+        wt_loc: Path to file to load state_dict from.
+        opts: Input arguments.
+    Returns:
+        The model loaded with the given weights.
+
     """
     if not os.path.isfile(wt_loc):
         logger.error("Pretrained file is not found here: {}".format(wt_loc))
@@ -72,7 +83,7 @@ def load_pretrained_model(
     strict = not bool(missing_scopes)
 
     try:
-        module = model.module if hasattr(model, "module") else model
+        module = unwrap_model_fn(model)
         missing_keys, unexpected_keys = module.load_state_dict(wts, strict=strict)
 
         if unexpected_keys:
@@ -113,8 +124,8 @@ def parameter_list(
     weight_decay: Optional[float] = 0.0,
     no_decay_bn_filter_bias: Optional[bool] = False,
     *args,
-    **kwargs
-):
+    **kwargs,
+) -> List[Dict]:
     module_name = kwargs.get("module_name", "")
     with_decay = []
     without_decay = []
@@ -163,3 +174,119 @@ def parameter_list(
             }
         )
     return param_list
+
+
+def freeze_module(module: torch.nn.Module, force_eval: bool = True) -> torch.nn.Module:
+    """
+    Sets requires_grad = False on all the given module parameters, and put the module in eval mode.
+    By default, it also overrides the module's `train` method to make sure that it always stays in eval mode
+    (ie calling ``module.train(mode=True)`` executes ``module.train(mode=False)``)
+
+    >>> module = nn.Linear(10, 20).train()
+    >>> module.training
+    True
+    >>> module.weight.requires_grad
+    True
+    >>> freeze_module(module).train().training
+    False
+    >>> module.weight.requires_grad
+    False
+    """
+
+    module.eval()
+    for parameter in module.parameters():
+        parameter.requires_grad = False
+
+    if force_eval:
+
+        def _force_train_in_eval(
+            self: torch.nn.Module, mode: bool = True
+        ) -> torch.nn.Module:
+            # ignore train/eval calls: perpetually stays in eval
+            return self
+
+        module.train = MethodType(_force_train_in_eval, module)
+
+    return module
+
+
+def freeze_modules_based_on_opts(
+    opts: argparse.Namespace, model: torch.nn.Module, verbose: bool = True
+) -> torch.nn.Module:
+    """
+    Allows for freezing immediate modules and parameters of the model using --model.freeze-modules.
+
+    --model.freeze-modules should be a list of strings or a comma-separated list of regex expressions.
+
+    Examples of --model.freeze-modules:
+        "conv.*"  # see example below: can freeze all (top-level) conv layers
+        "^((?!classifier).)*$"   # freezes everything except for "classifier": useful for linear probing
+        "conv1,layer1,layer2,layer3"  # freeze all layers up to layer3
+
+    >>> model = nn.Sequential(OrderedDict([
+          ('conv1', nn.Conv2d(1, 20, 5)),
+          ('relu1', nn.ReLU()),
+          ('conv2', nn.Conv2d(20, 64, 5)),
+          ('relu2', nn.ReLU())
+        ]))
+    >>> opts = argparse.Namespace(**{"model.freeze_modules": "conv1"})
+    >>> _ = freeze_modules_based_on_opts(opts, model)
+    INFO    - Freezing module: conv1
+    >>> model.train()
+    >>> model.conv1.training
+    False
+    >>> model.conv2.training
+    True
+    """
+    freeze_patterns = getattr(opts, "model.freeze_modules", "")
+    freeze_patterns = clean_strip(freeze_patterns)
+
+    verbose = verbose and is_master(opts)
+
+    if freeze_patterns:
+        # TODO: allow applying on all modules, not just immediate chidren? How?
+        for name, module in model.named_children():
+            if any([re.match(p, name) for p in freeze_patterns]):
+                freeze_module(module)
+                if verbose:
+                    logger.info("Freezing module: {}".format(name))
+
+        for name, param in model.named_parameters(recurse=False):
+            if any([re.match(p, name) for p in freeze_patterns]):
+                param.requires_grad = False
+                if verbose:
+                    logger.info("Freezing parameter: {}".format(name))
+
+    if verbose and hasattr(model, "get_trainable_parameters"):
+        param_list, _ = model.get_trainable_parameters()
+        for params in param_list:
+            if (
+                not isinstance(params["param_names"], List)
+                or not isinstance(params["params"], List)
+                or not isinstance(params["weight_decay"], (float, int))
+            ):
+                param_types = {k: type(v) for k, v in params.items()}
+                logger.error(
+                    "Expected parameter format: {{ params: List, weight_decay: float, param_names: List }}. "
+                    "Got: {}".format(param_types)
+                )
+        # Flatten all parameter names
+        trainable_param_names = [p for x in param_list for p in x["param_names"]]
+        logger.info("Trainable parameters: {}".format(trainable_param_names))
+
+    return model
+
+
+def get_tensor_sizes(data: Union[Dict, Tensor]) -> Union[List[str], List[Tuple[int]]]:
+    """Utility function for extracting tensor shapes (for printing purposes only)."""
+    if isinstance(data, Dict):
+        tensor_sizes = []
+        for k, v in data.items():
+            size_ = get_tensor_sizes(v)
+            if size_:
+                tensor_sizes.append(f"{k}: {size_}")
+        return tensor_sizes
+    elif isinstance(data, Tensor):
+        return [*data.shape]
+    else:
+        return []

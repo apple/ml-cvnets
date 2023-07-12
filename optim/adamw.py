@@ -1,26 +1,39 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
 import argparse
+from typing import Dict, Iterable, Union
+
+from torch import Tensor
 from torch.optim import AdamW
 
-from . import register_optimizer
-from .base_optim import BaseOptim
+from optim import OPTIM_REGISTRY
+from optim.base_optim import BaseOptim
 
 
-@register_optimizer("adamw")
+@OPTIM_REGISTRY.register(name="adamw")
 class AdamWOptimizer(BaseOptim, AdamW):
     """
     `AdamW <https://arxiv.org/abs/1711.05101>`_ optimizer
+
+    Args:
+        opts: Command-line arguments
+        model_params: Model parameters
     """
 
-    def __init__(self, opts, model_params) -> None:
+    def __init__(
+        self,
+        opts: argparse.Namespace,
+        model_params: Iterable[Union[Tensor, Dict]],
+        *args,
+        **kwargs
+    ) -> None:
         BaseOptim.__init__(self, opts=opts)
-        beta1 = getattr(opts, "optim.adamw.beta1", 0.9)
-        beta2 = getattr(opts, "optim.adamw.beta2", 0.98)
-        ams_grad = getattr(opts, "optim.adamw.amsgrad", False)
+        beta1 = getattr(opts, "optim.adamw.beta1")
+        beta2 = getattr(opts, "optim.adamw.beta2")
+        ams_grad = getattr(opts, "optim.adamw.amsgrad")
         eps = getattr(opts, "optim.adamw.eps", None)
         AdamW.__init__(
             self,
@@ -34,35 +47,34 @@ class AdamWOptimizer(BaseOptim, AdamW):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group("AdamW arguments", "AdamW arguments")
+        """Add arguments for AdamW optimizer"""
+        if cls != AdamWOptimizer:
+            # Don't re-register arguments in subclasses that don't override `add_arguments()`.
+            return parser
+        group = parser.add_argument_group(cls.__name__)
         group.add_argument(
-            "--optim.adamw.beta1", type=float, default=0.9, help="Adam Beta1"
+            "--optim.adamw.beta1",
+            type=float,
+            default=0.9,
+            help="Value of Beta1 in AdamW optimizer. Defaults to 0.9.",
         )
         group.add_argument(
-            "--optim.adamw.beta2", type=float, default=0.98, help="Adam Beta2"
+            "--optim.adamw.beta2",
+            type=float,
+            default=0.98,
+            help="Value of Beta2 in AdamW optimizer. Defaults to 0.98.",
         )
         group.add_argument(
-            "--optim.adamw.amsgrad", action="store_true", help="Use AMSGrad in ADAM"
+            "--optim.adamw.amsgrad",
+            action="store_true",
+            default=False,
+            help="Use AMSGrad in AdamW. Defaults to False.",
         )
         group.add_argument(
-            "--optim.adamw.eps", type=float, default=None, help="Epsilon in Adam"
+            "--optim.adamw.eps",
+            type=float,
+            default=None,
+            help="Value of epsilon in AdamW optimizer. Defaults to None."
+            "When this value is None, the default value in base optimizer is used.",
         )
         return parser
-
-    def __repr__(self) -> str:
-        group_dict = dict()
-        for i, group in enumerate(self.param_groups):
-            for key in sorted(group.keys()):
-                if key == "params":
-                    continue
-                if key not in group_dict:
-                    group_dict[key] = [group[key]]
-                else:
-                    group_dict[key].append(group[key])
-
-        format_string = self.__class__.__name__ + " ("
-        format_string += "\n"
-        for k, v in group_dict.items():
-            format_string += "\t {0}: {1}\n".format(k, v)
-        format_string += ")"
-        return format_string

@@ -1,16 +1,17 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import os
-import numpy as np
-from pycocotools.cocoeval import COCOeval
-from pycocotools.coco import COCO
-from pycocotools import mask as maskUtils
-from typing import Optional, List
-from contextlib import redirect_stdout
 import io
+import os
+from contextlib import redirect_stdout
+from typing import List, Optional
+
+import numpy as np
+from pycocotools import mask as maskUtils
+from pycocotools.coco import COCO
+from pycocotools.cocoeval import COCOeval
 
 from utils import logger
 

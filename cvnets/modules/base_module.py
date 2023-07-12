@@ -1,11 +1,12 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
+from typing import Any
+
 import torch
-from torch import nn, Tensor
-from typing import Tuple, Union, Any
+from torch import Tensor, nn
 
 
 class BaseModule(nn.Module):
@@ -15,9 +16,6 @@ class BaseModule(nn.Module):
         super(BaseModule, self).__init__()
 
     def forward(self, x: Any, *args, **kwargs) -> Any:
-        raise NotImplementedError
-
-    def profile_module(self, input: Any, *args, **kwargs) -> Tuple[Any, float, float]:
         raise NotImplementedError
 
     def __repr__(self):

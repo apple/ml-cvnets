@@ -1,15 +1,22 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
+
+import argparse
 
 import pytest
 import torch
+
 from data.transforms import image_pil
 
 
 def test_to_tensor() -> None:
-    to_tensor = image_pil.ToTensor([])
+    parser = argparse.ArgumentParser()
+    parser = image_pil.ToTensor.add_arguments(parser)
+    opts = parser.parse_args([])
+
+    to_tensor = image_pil.ToTensor(opts=opts)
 
     H, W, C = 2, 2, 3
     num_masks = 2
@@ -25,7 +32,11 @@ def test_to_tensor() -> None:
 
 
 def test_to_tensor_bad_mask() -> None:
-    to_tensor = image_pil.ToTensor([])
+    parser = argparse.ArgumentParser()
+    parser = image_pil.ToTensor.add_arguments(parser)
+    opts = parser.parse_args([])
+
+    to_tensor = image_pil.ToTensor(opts=opts)
 
     H, W, C = 2, 2, 3
     num_categories = 2

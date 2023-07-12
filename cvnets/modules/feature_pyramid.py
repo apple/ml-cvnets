@@ -1,19 +1,18 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import torch
-from torch import nn, Tensor
 from typing import Dict, List
+
+import torch
 import torch.nn.functional as F
+from torch import Tensor, nn
 
+from cvnets.layers import ConvLayer2d, norm_layers_tuple
+from cvnets.misc.init_utils import initialize_conv_layer, initialize_norm_layers
+from cvnets.modules import BaseModule
 from utils import logger
-
-from ..layers import ConvLayer, norm_layers_tuple
-from ..modules import BaseModule
-from ..misc.profiler import module_profile
-from ..misc.init_utils import initialize_conv_layer, initialize_norm_layers
 
 
 class FeaturePyramidNetwork(BaseModule):
@@ -57,7 +56,7 @@ class FeaturePyramidNetwork(BaseModule):
         self.nxn_convs = nn.ModuleDict()
 
         for os, in_channel in zip(output_strides, in_channels):
-            proj_layer = ConvLayer(
+            proj_layer = ConvLayer2d(
                 opts=opts,
                 in_channels=in_channel,
                 out_channels=out_channels,
@@ -66,7 +65,7 @@ class FeaturePyramidNetwork(BaseModule):
                 use_norm=True,
                 use_act=False,
             )
-            nxn_conv = ConvLayer(
+            nxn_conv = ConvLayer2d(
                 opts=opts,
                 in_channels=out_channels,
                 out_channels=out_channels,
@@ -121,49 +120,6 @@ class FeaturePyramidNetwork(BaseModule):
             fpn_out_dict[os_key] = prev_x
 
         return fpn_out_dict
-
-    def profile_module(
-        self, input: Dict[str, Tensor], *args, **kwargs
-    ) -> (Dict[str, Tensor], float, float):
-        params, macs = 0.0, 0.0
-
-        # dictionary to store results for fpn
-        fpn_out_dict = {"os_{}".format(os): None for os in self.output_strides}
-
-        # process the last output stride
-        os_key = "os_{}".format(self.output_strides[-1])
-        prev_x, p, m = module_profile(module=self.proj_layers[os_key], x=input[os_key])
-        params += p
-        macs += m
-
-        prev_x, p, m = module_profile(module=self.nxn_convs[os_key], x=prev_x)
-        params += p
-        macs += m
-
-        fpn_out_dict[os_key] = prev_x
-
-        remaining_output_strides = self.output_strides[:-1]
-
-        for os in remaining_output_strides[::-1]:
-            # 1x1 conv
-            os_key = "os_{}".format(os)
-            curr_x, p, m = module_profile(
-                module=self.proj_layers[os_key], x=input[os_key]
-            )
-            params += p
-            macs += m
-
-            # upsample
-            prev_x = F.interpolate(prev_x, size=curr_x.shape[-2:], mode="nearest")
-            # add
-            prev_x = curr_x + prev_x
-            prev_x, p, m = module_profile(module=self.nxn_convs[os_key], x=prev_x)
-            params += p
-            macs += m
-
-            fpn_out_dict[os_key] = prev_x
-
-        return fpn_out_dict, params, macs
 
     def __repr__(self):
         return "{}(in_channels={}, output_strides={} out_channels={})".format(

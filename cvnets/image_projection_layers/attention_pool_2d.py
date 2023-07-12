@@ -1,21 +1,23 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import torch
-from torch import nn, Tensor
-from torch.nn import functional as F
 import argparse
-from typing import Optional
 
-from cvnets.layers import PositionalEmbedding, MultiHeadAttention
+import torch
+from torch import Tensor, nn
+from torch.nn import functional as F
+
+from cvnets.image_projection_layers import (
+    IMAGE_PROJECTION_HEAD_REGISTRY,
+    BaseImageProjectionHead,
+)
+from cvnets.layers import MultiHeadAttention, PositionalEmbedding
 from utils import logger
 
-from . import BaseImageProjectionHead, register_image_projection_head
 
-
-@register_image_projection_head(name="attention_pool_nchw2nc")
+@IMAGE_PROJECTION_HEAD_REGISTRY.register(name="attention_pool_nchw2nc")
 class AttentionPool2dHead(BaseImageProjectionHead):
     """This class implements attention pooling layer, as
     described in `Clip <https://arxiv.org/pdf/2103.00020.pdf>`_, and should be
@@ -76,9 +78,7 @@ class AttentionPool2dHead(BaseImageProjectionHead):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser):
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--model.image-projection-head.attention-pool-nchw2nc.num-pos-embeddings",
             type=int,

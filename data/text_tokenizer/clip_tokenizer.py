@@ -1,21 +1,20 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
 import argparse
+
 import torch
 from torch import Tensor
-from typing import List
 from torchtext.transforms import CLIPTokenizer
 
+from data.text_tokenizer import TOKENIZER_REGISTRY, BaseTokenizer
 from utils import logger
 from utils.download_utils import get_local_path
 
-from . import BaseTokenizer, register_tokenizer
 
-
-@register_tokenizer(name="clip")
+@TOKENIZER_REGISTRY.register(name="clip")
 class ClipTokenizer(BaseTokenizer):
     def __init__(self, opts, *args, **kwargs):
         merges_path = getattr(opts, "text_tokenizer.clip.merges_path", None)
@@ -44,9 +43,7 @@ class ClipTokenizer(BaseTokenizer):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
 
         group.add_argument(
             "--text-tokenizer.clip.merges-path",

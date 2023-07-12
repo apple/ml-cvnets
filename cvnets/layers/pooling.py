@@ -1,10 +1,11 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-from torch import nn, Tensor
 from typing import Optional
+
+from torch import Tensor, nn
 
 
 class MaxPool2d(nn.MaxPool2d):
@@ -32,10 +33,6 @@ class MaxPool2d(nn.MaxPool2d):
         **kwargs
     ) -> None:
         super().__init__(kernel_size=kernel_size, stride=stride, padding=padding)
-
-    def profile_module(self, input: Tensor) -> (Tensor, float, float):
-        input = self.forward(input)
-        return input, 0.0, 0.0
 
     def __repr__(self):
         return "{}(kernel_size={}, stride={})".format(
@@ -79,10 +76,6 @@ class AvgPool2d(nn.AvgPool2d):
             count_include_pad=count_include_pad,
             divisor_override=divisor_override,
         )
-
-    def profile_module(self, input: Tensor) -> (Tensor, float, float):
-        input = self.forward(input)
-        return input, 0.0, 0.0
 
     def __repr__(self):
         return "{}(upscale_factor={})".format(

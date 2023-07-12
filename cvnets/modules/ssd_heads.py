@@ -1,17 +1,17 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import torch
-from torch import nn, Tensor
 from typing import Optional, Tuple
+
+import torch
+from torch import Tensor, nn
 from torchvision.ops.roi_align import RoIAlign
 
-from ..layers import ConvLayer, SeparableConv, TransposeConvLayer
-from ..modules import BaseModule
-from ..misc.profiler import module_profile
-from ..misc.init_utils import initialize_conv_layer
+from cvnets.layers import ConvLayer2d, SeparableConv2d, TransposeConvLayer2d
+from cvnets.misc.init_utils import initialize_conv_layer
+from cvnets.modules import BaseModule
 
 
 class SSDHead(BaseModule):
@@ -48,7 +48,7 @@ class SSDHead(BaseModule):
         proj_layer = None
         self.proj_channels = None
         if proj_channels != -1 and proj_channels != in_channels and kernel_size > 1:
-            proj_layer = ConvLayer(
+            proj_layer = ConvLayer2d(
                 opts=opts,
                 in_channels=in_channels,
                 out_channels=proj_channels,
@@ -64,7 +64,7 @@ class SSDHead(BaseModule):
 
         self.proj_layer = proj_layer
 
-        conv_fn = ConvLayer if kernel_size == 1 else SeparableConv
+        conv_fn = ConvLayer2d if kernel_size == 1 else SeparableConv2d
         if kernel_size > 1 and stride > 1:
             kernel_size = max(kernel_size, stride if stride % 2 != 0 else stride + 1)
         self.loc_cls_layer = conv_fn(
@@ -155,22 +155,6 @@ class SSDHead(BaseModule):
         )
         return box_locations, box_classes
 
-    def profile_module(
-        self, input: Tensor, *args, **kwargs
-    ) -> Tuple[Tensor, float, float]:
-        params = macs = 0.0
-
-        if self.proj_layer is not None:
-            input, p, m = module_profile(module=self.proj_layer, x=input)
-            params += p
-            macs += m
-
-        x, p, m = module_profile(module=self.loc_cls_layer, x=input)
-        params += p
-        macs += m
-
-        return input, params, macs
-
 
 class SSDInstanceHead(BaseModule):
     """
@@ -208,7 +192,7 @@ class SSDInstanceHead(BaseModule):
         )
 
         self.seg_head = nn.Sequential(
-            TransposeConvLayer(
+            TransposeConvLayer2d(
                 opts=opts,
                 in_channels=in_channels,
                 out_channels=inner_dim,
@@ -221,7 +205,7 @@ class SSDInstanceHead(BaseModule):
                 padding=0,
                 output_padding=0,
             ),
-            ConvLayer(
+            ConvLayer2d(
                 opts=opts,
                 in_channels=inner_dim,
                 out_channels=n_classes,
@@ -254,9 +238,3 @@ class SSDInstanceHead(BaseModule):
         rois = self.roi_align(x, boxes)
         rois = self.seg_head(rois)
         return rois
-
-    def profile_module(
-        self, input: Tensor, *args, **kwargs
-    ) -> Tuple[Tensor, float, float]:
-        input, params, macs = module_profile(module=self.seg_head, x=input)
-        return input, params, macs

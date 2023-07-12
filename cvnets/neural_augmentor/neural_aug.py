@@ -1,26 +1,25 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import random
-import torch
-from torch import nn, Tensor
-from typing import Optional, List
 import argparse
+import random
+from typing import List, Optional
 
-from utils import logger
+import torch
+from torch import Tensor, nn
 
+from cvnets.misc.common import parameter_list
 from cvnets.neural_augmentor.utils.neural_aug_utils import (
-    UniformSampler,
-    random_noise,
-    random_contrast,
-    random_brightness,
     Clip,
     FixedSampler,
+    UniformSampler,
+    random_brightness,
+    random_contrast,
+    random_noise,
 )
-from cvnets import parameter_list
-
+from utils import logger
 
 _distribution_tuple = (UniformSampler,)
 
@@ -101,9 +100,7 @@ class BaseNeuralAugmentor(nn.Module):
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser):
         """Add model-specific arguments"""
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
 
         group.add_argument(
             "--model.learn-augmentation.mode",

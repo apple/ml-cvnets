@@ -20,7 +20,7 @@ dataset:
   persistent_workers: false
   pin_memory: true
   workers: 16
-  category: "multi_modal_img_text"
+  category: "multi_modal_image_text"
   multi_modal_img_text:
     context_length: 77
     img_text_tar:
@@ -30,7 +30,7 @@ dataset:
     zero_shot_eval: true
     zero_shot:
       name: "imagenet"
-      root: "/mnt/imagenet/validation"
+      root_val: "/mnt/imagenet/validation"
 text_tokenizer:
   name: "clip"
   clip:
@@ -61,13 +61,18 @@ sampler:
     max_crop_size_height: 320
     check_scale: 32
 loss:
-  category: "multi_modal_image_text"
-  multi_modal_image_text:
-    name: "contrastive_loss_clip_with_na"
-  neural_aug:
-    perceptual_metric: "psnr"
-    target_value: [ 40, 20 ]
-    curriculum_method: "cosine"
+  category: "composite_loss"
+  composite_loss:
+    - loss_category: "multi_modal_image_text"
+      loss_weight: 1.0
+      multi_modal_image_text:
+        name: "contrastive_loss_clip"
+    - loss_category: "neural_augmentation"
+      loss_weight: 1.0
+      neural_augmentation:
+        perceptual_metric: "psnr"
+        target_value: [ 40, 20 ]
+        curriculum_method: "cosine"
 optim:
   name: "adamw"
   weight_decay: 0.2

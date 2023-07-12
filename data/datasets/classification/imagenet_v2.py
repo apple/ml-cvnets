@@ -1,21 +1,21 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
 import argparse
 import tarfile
 from pathlib import Path
-from typing import Optional, Tuple, Dict, Union
+from typing import Dict, Tuple
 
 import torch
 
+from data.datasets import DATASET_REGISTRY
+from data.datasets.dataset_base import BaseImageDataset
+from data.transforms import image_pil as T
+from data.transforms.common import Compose
 from utils import logger
 from utils.download_utils import get_local_path
-
-from .. import register_dataset
-from ..dataset_base import BaseImageDataset
-from ...transforms import image_pil as T
 
 IMAGENETv2_SPLIT_LINK_MAP = {
     "matched_frequency": {
@@ -33,34 +33,27 @@ IMAGENETv2_SPLIT_LINK_MAP = {
 }
 
 
-@register_dataset(name="imagenet_v2", task="classification")
+@DATASET_REGISTRY.register(name="imagenet_v2", type="classification")
 class Imagenetv2Dataset(BaseImageDataset):
     """
     `ImageNetv2 Dataset <https://arxiv.org/abs/1902.10811>`_ for studying the robustness of models trained on ImageNet dataset
 
     Args:
         opts: command-line arguments
-        is_training (Optional[bool]): ImageNetv2 should be used for evaluation only Default: False
-        is_evaluation (Optional[bool]): A flag used to indicate evaluation (or inference) mode. Default: True
-
     """
 
     def __init__(
         self,
         opts,
-        is_training: Optional[bool] = False,
-        is_evaluation: Optional[bool] = True,
         *args,
         **kwargs,
     ) -> None:
-        if is_training:
+
+        super().__init__(opts=opts, *args, **kwargs)
+        if self.is_training:
             logger.error(
                 "{} can only be used for evaluation".format(self.__class__.__name__)
             )
-
-        super().__init__(
-            opts=opts, is_training=is_training, is_evaluation=is_evaluation
-        )
 
         split = getattr(opts, "dataset.imagenet_v2.split", None)
         if split is None or split not in IMAGENETv2_SPLIT_LINK_MAP.keys():
@@ -76,7 +69,8 @@ class Imagenetv2Dataset(BaseImageDataset):
 
         root = Path(
             "{}/{}".format(
-                self.root, IMAGENETv2_SPLIT_LINK_MAP[split]["extracted_folder_name"]
+                self.root,
+                IMAGENETv2_SPLIT_LINK_MAP[split]["extracted_folder_name"],
             )
         )
         file_names = list(root.glob("**/*.jpeg"))
@@ -84,14 +78,15 @@ class Imagenetv2Dataset(BaseImageDataset):
 
         setattr(opts, "dataset.collate_fn_name_train", "imagenet_collate_fn")
         setattr(opts, "dataset.collate_fn_name_val", "imagenet_collate_fn")
-        setattr(opts, "dataset.collate_fn_name_eval", "imagenet_collate_fn")
+        setattr(opts, "dataset.collate_fn_name_test", "imagenet_collate_fn")
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         """Add dataset-specific arguments to the parser."""
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        if cls != Imagenetv2Dataset:
+            # Don't re-register arguments in subclasses that don't override `add_arguments()`.
+            return parser
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--dataset.imagenet-v2.split",
             type=str,
@@ -106,10 +101,13 @@ class Imagenetv2Dataset(BaseImageDataset):
         )
         return parser
 
-    def _validation_transforms(self, size: Union[Tuple, int], *args, **kwargs):
-        """
-        Validation augmentation
-            Image --> Resize --> CenterCrop --> ToTensor
+    def _validation_transforms(self, *args, **kwargs):
+        """Data transforms during validation
+
+        Order of transform is Resize, CenterCrop, ToTensor
+
+        Returns:
+            An instance of `data.transforms.image_pil.BaseTransformation.`
         """
         aug_list = [
             T.Resize(opts=self.opts),
@@ -117,17 +115,31 @@ class Imagenetv2Dataset(BaseImageDataset):
             T.ToTensor(opts=self.opts),
         ]
 
-        return T.Compose(opts=self.opts, img_transforms=aug_list)
+        return Compose(opts=self.opts, img_transforms=aug_list)
 
-    def __getitem__(self, batch_indexes_tup: Tuple) -> Dict:
+    def __getitem__(self, sample_size_and_index: Tuple) -> Dict:
+        """Returns the sample corresponding to the input sample index.
+
+        Returned sample is transformed into the size specified by the input.
+
+        Args:
+            sample_size_and_index: Tuple of the form (crop_size_h, crop_size_w, sample_index)
+
+        Shapes:
+            The output data dictionary contains three keys (samples, sample_id, and target). The values of these
+            keys has the following shapes:
+                data["samples"]: Shape is [Channels, Height, Width]
+                data["sample_id"]: Shape is 1
+                data["targets"]: Shape is 1
+
+        Returns:
+            A dictionary with `samples`, `sample_id` and `targets` as keys corresponding to input, index and label of
+            a sample, respectively.
         """
-        :param batch_indexes_tup: Tuple of the form (Crop_size_W, Crop_size_H, Image_ID)
-        :return: dictionary containing input image, label, and sample_id.
-        """
-        crop_size_h, crop_size_w, img_index = batch_indexes_tup
+        crop_size_h, crop_size_w, img_index = sample_size_and_index
 
         # same for validation and evaluation
-        transform_fn = self._validation_transforms(size=(crop_size_h, crop_size_w))
+        transform_fn = self.get_augmentation_transforms(size=(crop_size_h, crop_size_w))
 
         # infer target label from the file name
         # file names are organized as SPLIT_NAME-format-val/class_idx/*.jpg
@@ -141,7 +153,7 @@ class Imagenetv2Dataset(BaseImageDataset):
             # Skip such images
             logger.log("Img index {} is possibly corrupt.".format(img_index))
             input_tensor = torch.zeros(
-                size=(3, crop_size_h, crop_size_w), dtype=self.img_dtype
+                size=(3, crop_size_h, crop_size_w), dtype=torch.float
             )
             target = -1
             data = {"image": input_tensor}
@@ -157,17 +169,3 @@ class Imagenetv2Dataset(BaseImageDataset):
 
     def __len__(self) -> int:
         return len(self.file_names)
-
-    def __repr__(self) -> str:
-        from utils.tensor_utils import image_size_from_opts
-
-        im_h, im_w = image_size_from_opts(opts=self.opts)
-
-        transforms_str = self._validation_transforms(size=(im_h, im_w))
-
-        return "{}(\n\troot={}\n\tsamples={}\n\ttransforms={}\n)".format(
-            self.__class__.__name__,
-            self.root,
-            len(self.file_names),
-            transforms_str,
-        )

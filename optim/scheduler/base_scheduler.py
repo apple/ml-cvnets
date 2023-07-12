@@ -1,9 +1,11 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
 import argparse
+
+from utils import logger
 
 
 class BaseLRScheduler(object):
@@ -55,3 +57,11 @@ class BaseLRScheduler(object):
         for param_group in optimizer.param_groups:
             lr_list.append(param_group["lr"])
         return lr_list
+
+    def extra_repr(self) -> str:
+        """Extra information to be represented in __repr__. Each line in the output
+        string should be prefixed with ``\n\t``."""
+        return ""
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.extra_repr()}\n)"

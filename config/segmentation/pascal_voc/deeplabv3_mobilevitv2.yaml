@@ -54,11 +54,11 @@ sampler:
     crop_size_height: 512
 loss:
   category: "segmentation"
-  ignore_idx: 255
   segmentation:
     name: "cross_entropy"
     cross_entropy:
       aux_weight: 0.4
+      ignore_index: 255
 optim:
   name: "adamw"
   weight_decay: 0.05 #0.01
@@ -78,6 +78,7 @@ scheduler:
 model:
   segmentation:
     name: "encoder_decoder"
+    n_classes: 21
     lr_multiplier: 1
     seg_head: "deeplabv3"
     output_stride: 16
@@ -90,6 +91,8 @@ model:
       aspp_rates: [ 6, 12, 18 ]
   classification:
     name: "mobilevit_v2"
+    n_classes: 1000
+    pretrained: "https://docs-assets.developer.apple.com/ml-research/models/cvnets-v2/classification/mobilevitv2/imagenet1k/256x256/mobilevitv2-1.0.pt"
     mitv2:
       width_multiplier: 1.0
       attn_norm_layer: "layer_norm_2d"

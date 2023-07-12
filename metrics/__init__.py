@@ -1,23 +1,17 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
-import os
-import importlib
 import argparse
 
-SUPPORTED_STATS = ["loss", "grad_norm"]
+from utils.registry import Registry
 
-
-def register_stats_fn(name):
-    def register_fn(fn):
-        if name in SUPPORTED_STATS:
-            raise ValueError("Cannot register duplicate state ({})".format(name))
-        SUPPORTED_STATS.append(name)
-        return fn
-
-    return register_fn
+METRICS_REGISTRY = Registry(
+    "metrics",
+    lazy_load_dirs=["metrics"],
+    internal_dirs=["internal", "internal/projects/*"],
+)
 
 
 def arguments_stats(parser: argparse.ArgumentParser):
@@ -45,7 +39,7 @@ def arguments_stats(parser: argparse.ArgumentParser):
         help="Maximize checkpoint metric",
     )
     group.add_argument(
-        "--stats.coco-map.iou_types",
+        "--stats.coco-map.iou-types",
         type=str,
         default=["bbox"],
         nargs="+",
@@ -54,20 +48,3 @@ def arguments_stats(parser: argparse.ArgumentParser):
     )
 
     return parser
-
-
-# automatically import different metrics
-metrics_dir = os.path.dirname(__file__)
-for file in os.listdir(metrics_dir):
-    path = os.path.join(metrics_dir, file)
-    if (
-        not file.startswith("_")
-        and not file.startswith(".")
-        and (file.endswith(".py") or os.path.isdir(path))
-    ):
-        model_name = file[: file.find(".py")] if file.endswith(".py") else file
-        module = importlib.import_module("metrics." + model_name)
-
-
-from metrics.stats import Statistics
-from metrics.metric_monitor import metric_monitor

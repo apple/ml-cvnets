@@ -1,110 +1,97 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
 
+import argparse
 import sys
 import time
+import traceback
+from numbers import Number
+from typing import Any, Dict, List, Optional, Union
+
 import numpy as np
 import torch
-from utils import logger
-from typing import Optional, Dict, Union, Any, List
-from numbers import Number
+from torch import Tensor
 
-from . import SUPPORTED_STATS
+from metrics import METRICS_REGISTRY
+from metrics.metric_base import BaseMetric
+from utils import logger
+from utils.object_utils import apply_recursively, flatten_to_dict
 
 
 class Statistics(object):
     def __init__(
         self,
-        metric_names: Optional[list] = ["loss"],
+        opts: argparse.Namespace,
+        metric_names: list = ["loss"],
         is_master_node: Optional[bool] = False,
+        is_distributed: Optional[bool] = False,
+        log_writers: Optional[List] = [],
     ) -> None:
         if len(metric_names) == 0:
             logger.error("Metric names list cannot be empty")
 
         # key is the metric name and value is the value
-        metric_dict: Dict[str, Union[Any]] = {}
-        metric_counters = {}
+        self.metric_dict: Dict[str, BaseMetric] = {}
         for m_name in metric_names:
-            # Don't use coco_map key here as it is handled separately
-            if m_name == "coco_map":
-                continue
-
-            if m_name in SUPPORTED_STATS:
-                metric_dict[m_name] = None
-                metric_counters[m_name] = 0
+            if m_name in METRICS_REGISTRY:
+                self.metric_dict[m_name] = METRICS_REGISTRY[m_name](
+                    opts=opts, is_distributed=is_distributed
+                )
             else:
                 if is_master_node:
                     logger.log(
                         "{} statistics not supported. Supported: {}".format(
-                            m_name, SUPPORTED_STATS
+                            m_name, METRICS_REGISTRY.keys()
                         )
                     )
 
-        self.metric_dict = metric_dict
-        self.supported_metrics = list(metric_dict.keys())
-        self.metric_counters = metric_counters
         self.round_places = 4
         self.is_master_node = is_master_node
+        self.log_writers = log_writers
 
         self.batch_time = 0
         self.batch_counter = 0
 
     def update(
-        self, metric_vals: dict, batch_time: float, n: Optional[int] = 1
+        self,
+        pred_label: Union[Tensor, Dict],
+        target_label: Union[Tensor, Dict],
+        extras: Optional[Dict[str, Any]] = None,
+        batch_time: Optional[float] = 0.0,
+        batch_size: Optional[int] = 1,
     ) -> None:
-        for k, v in metric_vals.items():
-            if k in self.supported_metrics:
-                if self.metric_dict[k] is None:
-                    if k == "iou":
-                        if isinstance(v["inter"], np.ndarray):
-                            self.metric_dict[k] = {
-                                "inter": v["inter"] * n,
-                                "union": v["union"] * n,
-                            }
-                        else:
-                            logger.error(
-                                "IOU computation is only supported using np.ndarray."
-                            )
-                    elif isinstance(v, Dict):
-                        self.metric_dict[k] = dict()
-                        for k1, v1 in v.items():
-                            self.metric_dict[k][k1] = v1 * n
-                    elif isinstance(v, Number):
-                        self.metric_dict[k] = v * n
-                    else:
-                        logger.error(
-                            "Dict[str, float] or float are supported in {}".format(
-                                self.__class__.__name__
-                            )
-                        )
-                else:
-                    if k == "iou":
-                        if isinstance(v["inter"], np.ndarray):
-                            self.metric_dict[k]["inter"] += v["inter"] * n
-                            self.metric_dict[k]["union"] += v["union"] * n
-                        else:
-                            logger.error(
-                                "IOU computation is only supported using np.ndarray."
-                            )
-                    elif isinstance(v, Dict):
-                        for k1, v1 in v.items():
-                            self.metric_dict[k][k1] += v1 * n
-                    elif isinstance(v, Number):
-                        self.metric_dict[k] += v * n
-                    else:
-                        logger.error(
-                            "Dict[str, float] or Number are supported in {}".format(
-                                self.__class__.__name__
-                            )
-                        )
+        """
+        Updates all the metrics after a batch.
 
-                self.metric_counters[k] += n
+        :param pred_label: predictions coming from a model (must be a Tensor or a Dict of Tensors)
+        :param target_label: GT labels (Tensor or a Dict of Tensors)
+        :param extras: Optional Dict containing extra info, usually Loss and GradNorm
+                       e.g. {"loss": loss_value, "grad_norm": gradient_norm}
+        :param batch_time: Optional time it took to run through the batch
+        :param n: batch size (to be used in averaging the numbers correctly)
+        """
+        for metric_name, metric in self.metric_dict.items():
+            try:
+                metric.update(
+                    prediction=pred_label,
+                    target=target_label,
+                    extras=extras,
+                    batch_size=batch_size,
+                )
+            except Exception as e:
+                traceback.print_exc()
+                logger.error(
+                    "Caught an error while updating metric {}: {}".format(
+                        metric_name, e
+                    )
+                )
+
         self.batch_time += batch_time
         self.batch_counter += 1
 
-    def avg_statistics_all(self, sep=": ") -> List[str]:
+    def _avg_statistics_all(self, sep=": ", metrics=None) -> List[str]:
         """
         This function computes average statistics of all metrics and returns them as a list of strings.
 
@@ -112,34 +99,26 @@ class Statistics(object):
          loss: 12.9152
          loss: {'total_loss': 12.9152, 'reg_loss': 2.8199, 'cls_loss': 10.0953}
         """
+        if metrics is None:
+            metrics = self._compute_avg_statistics_all()
+        return [
+            "{:<}{}{}".format(name, sep, avg)
+            for name, avg in metrics.items()
+            if isinstance(avg, Number) or avg
+        ]
 
-        metric_stats = []
-        for k, v in self.metric_dict.items():
-            counter = self.metric_counters[k]
+    def _compute_avg_statistics_all(self) -> Dict[str, Union[float, Dict]]:
+        metric_stats = {}
+        for metric_name, metric in self.metric_dict.items():
+            value = metric.compute()
+            # metric_stats.update(self._flatten_metric(value, metric_name))
+            metric_stats[metric_name] = apply_recursively(
+                value, lambda x: round(x * 1.0, self.round_places)
+            )
 
-            if k == "iou":
-                if isinstance(v["inter"], np.ndarray):
-                    inter = (v["inter"] * 1.0) / counter
-                    union = (v["union"] * 1.0) / counter
-                    iou = inter / union
-                    if isinstance(iou, torch.Tensor):
-                        iou = iou.cpu().numpy()
-                    # Converting iou from [0, 1] to [0, 100]
-                    # other metrics are by default in [0, 100 range]
-                    v_avg = np.mean(iou) * 100.0
-                    v_avg = round(v_avg, self.round_places)
-                else:
-                    logger.error("IOU computation is only supported using np.ndarray.")
-            elif isinstance(v, Dict):
-                v_avg = {}
-                for k1, v1 in v.items():
-                    v_avg[k1] = round((v1 * 1.0) / counter, self.round_places)
-            else:
-                v_avg = round((v * 1.0) / counter, self.round_places)
-
-            metric_stats.append("{:<}{}{}".format(k, sep, v_avg))
         return metric_stats
 
+    # TODO: change name: avg is presumptuous
     def avg_statistics(
         self, metric_name: str, sub_metric_name: Optional[str] = None, *args, **kwargs
     ) -> float:
@@ -155,41 +134,31 @@ class Statistics(object):
              {'loss': {'total_loss': 10.0, 'cls_loss': 2.0, 'reg_loss': 8.0}, 'mAP': 5.0}
 
         """
-        avg_val = None
-        if metric_name in self.supported_metrics:
-            counter = self.metric_counters[metric_name]
-            v = self.metric_dict[metric_name]
+        if metric_name in self.metric_dict:
+            computed_metric = self.metric_dict[metric_name].compute()
+            computed_metric = apply_recursively(
+                computed_metric, lambda x: round(x * 1.0, self.round_places)
+            )
 
-            if metric_name == "iou":
-                if isinstance(v["inter"], np.ndarray):
-                    inter = (v["inter"] * 1.0) / counter
-                    union = (v["union"] * 1.0) / counter
-                    iou = inter / union
-                    if isinstance(iou, torch.Tensor):
-                        iou = iou.cpu().numpy()
-                    # Converting iou from [0, 1] to [0, 100]
-                    # other metrics are by default in [0, 100 range]
-                    avg_val = np.mean(iou) * 100.0
-                    avg_val = round(avg_val, self.round_places)
-                else:
-                    logger.error("IOU computation is only supported using np.ndarray.")
-
-            elif isinstance(v, Dict) and sub_metric_name is not None:
-                sub_metric_keys = list(v.keys())
-                if sub_metric_name in sub_metric_keys:
-                    avg_val = round(
-                        (v[sub_metric_name] * 1.0) / counter, self.round_places
-                    )
-                else:
-                    logger.error(
-                        "{} not present in the dictionary. Available keys are: {}".format(
-                            sub_metric_name, sub_metric_keys
+            if isinstance(computed_metric, Dict):
+                if sub_metric_name is not None:
+                    if sub_metric_name in computed_metric:
+                        return computed_metric[sub_metric_name]
+                    else:
+                        logger.error(
+                            "{} not present in the dictionary. Available keys are: {}".format(
+                                sub_metric_name, list(computed_metric.keys())
+                            )
                         )
-                    )
-            elif isinstance(v, Number):
-                avg_val = round((v * 1.0) / counter, self.round_places)
+                else:
+                    return None
 
-        return avg_val
+            elif isinstance(computed_metric, Number):
+                return computed_metric
+            else:
+                return None
+
+        return None
 
     def iter_summary(
         self,
@@ -200,7 +169,7 @@ class Statistics(object):
         learning_rate: float or list,
     ) -> None:
         if self.is_master_node:
-            metric_stats = self.avg_statistics_all()
+            metric_stats = self._avg_statistics_all()
             el_time_str = "Elapsed time: {:5.2f}".format(time.time() - elapsed_time)
             if isinstance(learning_rate, float):
                 lr_str = "LR: {:1.6f}".format(learning_rate)
@@ -226,8 +195,27 @@ class Statistics(object):
 
     def epoch_summary(self, epoch: int, stage: Optional[str] = "Training") -> None:
         if self.is_master_node:
-            metric_stats = self.avg_statistics_all(sep="=")
+            metrics = self._compute_avg_statistics_all()
+            metric_stats = self._avg_statistics_all(sep="=", metrics=metrics)
             metric_stats_str = " || ".join(metric_stats)
             logger.log("*** {} summary for epoch {}".format(stage.title(), epoch))
             print("\t {}".format(metric_stats_str))
             sys.stdout.flush()
+
+            # TODO: this step is only here for backward-compatibility. We can remove it as well
+            shortened_stage_map = {
+                "training": "Train",
+                "validation": "Val",
+                "evaluation": "Eval",
+                "validation (EMA)": "Val_EMA",
+            }
+            s_stage = shortened_stage_map.get(stage, stage)
+
+            for k, v in metrics.items():
+                for scalar_name, scalar_value in flatten_to_dict(v, name=k).items():
+                    for log_writer in self.log_writers:
+                        log_writer.add_scalar(
+                            "{}/{}".format(s_stage, scalar_name.title()),
+                            scalar_value,
+                            epoch,
+                        )

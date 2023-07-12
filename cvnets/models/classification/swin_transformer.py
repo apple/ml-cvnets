@@ -1,30 +1,30 @@
 #
 # For licensing see accompanying LICENSE file.
-# Copyright (C) 2022 Apple Inc. All Rights Reserved.
+# Copyright (C) 2023 Apple Inc. All Rights Reserved.
 #
-import torch
-from torch import nn, Tensor
 import argparse
-from typing import List, Optional, Dict, Tuple, Union
+from typing import Dict, List, Optional
 
-from utils import logger
+import torch
+from torch import Tensor, nn
 
-from . import register_cls_models
-from .base_cls import BaseEncoder
-from .config.swin_transformer import get_configuration
-from ...layers import (
-    ConvLayer,
-    LinearLayer,
+from cvnets.layers import (
+    ConvLayer2d,
+    Dropout,
     GlobalPool,
     Identity,
-    Dropout,
+    LinearLayer,
     get_normalization_layer,
 )
-from ...modules import SwinTransformerBlock, PatchMerging, Permute
+from cvnets.models import MODEL_REGISTRY
+from cvnets.models.classification.base_image_encoder import BaseImageEncoder
+from cvnets.models.classification.config.swin_transformer import get_configuration
+from cvnets.modules import PatchMerging, Permute, SwinTransformerBlock
+from utils import logger
 
 
-@register_cls_models("swin")
-class SwinTransformer(BaseEncoder):
+@MODEL_REGISTRY.register(name="swin", type="classification")
+class SwinTransformer(BaseImageEncoder):
     """
     Implements Swin Transformer from the `"Swin Transformer: Hierarchical Vision Transformer using
     Shifted Windows" <https://arxiv.org/pdf/2103.14030>`_ paper.
@@ -59,7 +59,7 @@ class SwinTransformer(BaseEncoder):
         self.model_conf_dict = dict()
         self.conv_1 = nn.Sequential(
             *[
-                ConvLayer(
+                ConvLayer2d(
                     opts=opts,
                     in_channels=image_channels,
                     out_channels=embed_dim,
@@ -250,9 +250,7 @@ class SwinTransformer(BaseEncoder):
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-        group = parser.add_argument_group(
-            title="".format(cls.__name__), description="".format(cls.__name__)
-        )
+        group = parser.add_argument_group(title=cls.__name__)
         group.add_argument(
             "--model.classification.swin.mode",
             type=str,
@@ -276,47 +274,3 @@ class SwinTransformer(BaseEncoder):
         )
 
         return parser
-
-    def profile_model(
-        self, input: Tensor, is_classification: Optional[bool] = True, *args, **kwargs
-    ) -> Tuple[Union[Tensor, Dict[str, Tensor]], float, float]:
-        """
-        Helper function to profile SwinTrasnformer Model
-        """
-
-        logger.log("Model statistics for an input of size {}".format(input.size()))
-        logger.double_dash_line(dashes=65)
-        print("{:>35} Summary".format(self.__class__.__name__))
-        logger.double_dash_line(dashes=65)
-        overall_params = sum([p.numel() for p in self.parameters()])
-        print(
-            "{:<20} = {:>8.3f} M".format(
-                "Overall parameters (sanity check)", overall_params / 1e6
-            )
-        )
-
-        overall_macs = 0.0
-        # compute flops using FVCore
-        try:
-            # compute flops using FVCore also
-            from fvcore.nn import FlopCountAnalysis
-
-            flop_analyzer = FlopCountAnalysis(self.eval(), input)
-            flop_analyzer.unsupported_ops_warnings(False)
-            flop_analyzer.uncalled_modules_warnings(False)
-            overall_macs = flop_analyzer.total()
-
-            print(
-                "{:<20} = {:>8.3f} M".format(
-                    "Overall MACs (FVCore)**", overall_macs / 1e6
-                )
-            )
-        except Exception:
-            pass
-
-        print("Note: Theoretical MACs depends on user-implementation. Be cautious")
-        logger.double_dash_line(dashes=65)
-
-        out_dict = self.extract_end_points_all(x=input)
-
-        return out_dict, overall_params, overall_macs
