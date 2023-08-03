@@ -51,6 +51,7 @@ If we want to finetune the ImageNet model with `1000` classes on another classif
    * Pass this argument `--model.classification.finetune-pretrained-model` to enable finetuning
    * Specify number of classes in pre-trained model using `--model.classification.n-pretrained-classes` argument
    * Specify the location of pre-trained weights using `--model.classification.pretrained` argument
+   * Pass this argument `--model.resume-exclude-scopes classifier`
 
 For a concrete example, see training recipe of [MobileViTv2](README-mobilevit-v2.md)
 
