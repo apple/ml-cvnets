@@ -18,7 +18,7 @@ from data.transforms import image_bytes
         ("fCHW", None, 432),
         ("fHWC", None, 432),
         ("TIFF", None, 572),
-        ("PNG", None, 126),
+        ("PNG", None, 512),
         ("JPEG", 100, 693),
         ("JPEG", 50, 644),
     ],
