@@ -88,7 +88,7 @@ class PILSave(BaseTransformation):
         elif self.file_encoding == "TIFF":
             x = _bytes_to_int32(_image_to_bytes(x, format="tiff"))
         elif self.file_encoding == "PNG":
-            x = _bytes_to_int32(_image_to_bytes(x, format="png"))
+            x = _bytes_to_int32(_image_to_bytes(x, format="png", compress_level=0))
         elif self.file_encoding == "JPEG":
             quality = getattr(self.opts, "image_augmentation.pil_save.quality")
             x = _bytes_to_int32(_image_to_bytes(x, format="jpeg", quality=quality))
