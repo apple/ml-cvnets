@@ -255,6 +255,7 @@ class LinearAttnFFN(BaseModule):
             # cross-attention
             res = x
             x = self.pre_norm_attn[0](x)  # norm
+            x_prev = self.pre_norm_attn[0](x_prev)  # normalize x_prev as well!
             x = self.pre_norm_attn[1](x, x_prev)  # attn
             x = self.pre_norm_attn[2](x)  # drop
             x = x + res  # residual
